@@ -1,4 +1,4 @@
-# 🗺️ BikinMap — Peta Sebaran Kegiatan P3M
+# 🗺️ SIGAP-P3M — Peta Sebaran Kegiatan P3M
 
 > Platform pemetaan interaktif untuk kegiatan Penelitian, Pengabdian, dan Pemberdayaan Masyarakat (P3M) Politeknik Pariwisata Makassar.
 
@@ -129,6 +129,9 @@ Proyek ini dikembangkan untuk keperluan internal **P3M Politeknik Pariwisata Mak
 
 ---
 
-## 👤 Author
+## 👤 Developer
 
-Dikembangkan oleh **Bintang** — [@githubnyabintang](https://github.com/githubnyabintang)
+Dikembangkan oleh:
+1. **Ir'fikri Anggara Hasbar (Project Leader)** — [@Irfikri0204](https://github.com/Irfikri0204),
+2. **Mahabintang Pallawabonang (Front-End Developer)** — [@githubnyabintang](https://github.com/githubnyabintang),
+3. **Akmal Al-Faizhal Ms. (Back-End Developer)** — [@nearmeoi](https://github.com/nearmeoi).
