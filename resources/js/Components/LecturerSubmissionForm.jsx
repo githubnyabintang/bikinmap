@@ -1,15 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from '@inertiajs/react';
-
-// Make sure to import the CSS in your main page or Layout
-// import '../../../css/lecturer-form.css';
+import Toast from './Toast';
 
 export default function LecturerSubmissionForm({ onClose }) {
-    const { data, setData, post, processing, errors, reset } = useForm({
+    const { data, setData, post, processing: inertiaProcessing, errors, setError, clearErrors, reset } = useForm({
         nama_dosen: '',
         judul_proyek: '',
         lokasi: '',
-        personil_terlibat: [''], // Initialize with one empty input
+        dosen_terlibat: [''],
+        staff_terlibat: [''],
+        mahasiswa_terlibat: [''],
         sumber_dana: '',
         total_RAB: '',
         tanggal_mulai: '',
@@ -18,32 +18,60 @@ export default function LecturerSubmissionForm({ onClose }) {
     });
 
     // --- Dynamic Array Logic for Personnel ---
-    const handleAddPersonil = () => {
-        setData('personil_terlibat', [...data.personil_terlibat, '']);
+    const handleAddPersonil = (type) => {
+        setData(type, [...data[type], '']);
     };
 
-    const handleRemovePersonil = (indexToRemove) => {
-        const filtered = data.personil_terlibat.filter((_, index) => index !== indexToRemove);
-        setData('personil_terlibat', filtered);
+    const handleRemovePersonil = (type, indexToRemove) => {
+        const filtered = data[type].filter((_, index) => index !== indexToRemove);
+        setData(type, filtered);
     };
 
-    const handlePersonilChange = (index, value) => {
-        const updated = [...data.personil_terlibat];
+    const handlePersonilChange = (type, index, value) => {
+        const updated = [...data[type]];
         updated[index] = value;
-        setData('personil_terlibat', updated);
+        setData(type, updated);
     };
 
-    // --- Submission Logic ---
+    // --- UI State ---
+    const [mockProcessing, setMockProcessing] = useState(false);
+    const [toast, setToast] = useState({ show: false, type: 'success', title: '', message: '' });
+
+    // --- Submission Logic (MOCK FOR UI/UX TESTING) ---
     const handleSubmit = (e) => {
         e.preventDefault();
-        post(route('pkm.lecturer.store'), {
-            forceFormData: true,
-            onSuccess: () => {
+        clearErrors();
+
+        // 1. Trigger Validation Errors (if mandatory fields are empty)
+        let hasErrors = false;
+        if (!data.judul_proyek) { setError('judul_proyek', 'Judul proyek wajib diisi'); hasErrors = true; }
+        if (!data.nama_dosen) { setError('nama_dosen', 'Ketua kelompok wajib diisi'); hasErrors = true; }
+        if (!data.lokasi) { setError('lokasi', 'Lokasi pengabdian wajib diisi'); hasErrors = true; }
+
+        if (hasErrors) {
+            setToast({ show: true, type: 'error', title: 'Validasi Gagal', message: 'Harap periksa kembali isian yang wajib diisi (bergaris merah).' });
+            return;
+        }
+
+        // 2. Trigger Processing Loading State
+        setMockProcessing(true);
+
+        // Simulate 1.5 seconds network request
+        setTimeout(() => {
+            setMockProcessing(false);
+
+            // 3. Show Success Toast
+            setToast({ show: true, type: 'success', title: 'Berhasil', message: 'Pengajuan PKM Anda berhasil dikirim.' });
+
+            // Close modal after toast clears (3s)
+            setTimeout(() => {
                 reset();
                 onClose();
-            },
-        });
+            }, 3000);
+        }, 1500);
     };
+
+    const isProcessing = inertiaProcessing || mockProcessing;
 
     return (
         <div className="fintech-modal-overlay">
@@ -65,21 +93,20 @@ export default function LecturerSubmissionForm({ onClose }) {
                             <i className="fa-solid fa-folder-open text-blue"></i> Detail Proyek
                         </h3>
                         <div className="form-grid">
-                            <div className="form-group full-width">
-                                <label>Judul Proyek PKM</label>
+                            <div className={`form-group full-width ${errors.judul_proyek ? 'has-error' : ''}`}>
+                                <label>Judul Proyek PKM <span className="required-star">*</span></label>
                                 <input
                                     type="text"
                                     className="fintech-input"
                                     placeholder="Masukkan judul pengabdian..."
                                     value={data.judul_proyek}
                                     onChange={(e) => setData('judul_proyek', e.target.value)}
-                                    required
                                 />
-                                {errors.judul_proyek && <span className="form-error">{errors.judul_proyek}</span>}
+                                {errors.judul_proyek && <span className="form-error-message"><i className="fa-solid fa-circle-exclamation"></i> {errors.judul_proyek}</span>}
                             </div>
 
-                            <div className="form-group">
-                                <label>Nama Dosen Pembimbing</label>
+                            <div className={`form-group ${errors.nama_dosen ? 'has-error' : ''}`}>
+                                <label>Ketua Kelompok <span className="required-star">*</span></label>
                                 <input
                                     type="text"
                                     className="fintech-input"
@@ -88,69 +115,177 @@ export default function LecturerSubmissionForm({ onClose }) {
                                     onChange={(e) => setData('nama_dosen', e.target.value)}
                                     required
                                 />
-                                {errors.nama_dosen && <span className="form-error">{errors.nama_dosen}</span>}
+                                {errors.nama_dosen && <span className="form-error-message"><i className="fa-solid fa-circle-exclamation"></i> {errors.nama_dosen}</span>}
                             </div>
 
-                            <div className="form-group">
-                                <label>Lokasi Pengabdian</label>
+                            <div className={`form-group ${errors.lokasi ? 'has-error' : ''}`}>
+                                <label>Lokasi Pengabdian <span className="required-star">*</span></label>
                                 <input
                                     type="text"
                                     className="fintech-input"
                                     placeholder="Desa, Kecamatan, Kota..."
                                     value={data.lokasi}
                                     onChange={(e) => setData('lokasi', e.target.value)}
-                                    required
                                 />
-                                {errors.lokasi && <span className="form-error">{errors.lokasi}</span>}
+                                {errors.lokasi && <span className="form-error-message"><i className="fa-solid fa-circle-exclamation"></i> {errors.lokasi}</span>}
                             </div>
                         </div>
                     </div>
 
                     <hr className="form-divider" />
 
-                    {/* SECTION 2: Team (Dynamic Array) */}
+                    {/* SECTION 2: Team (Dynamic Arrays) */}
                     <div className="form-section">
-                        <div className="form-section-header-flex">
-                            <h3 className="form-section-title mb-0">
-                                <i className="fa-solid fa-users text-blue"></i> Personil Terlibat
+                        <div className="form-section-header-flex" style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '12px', marginBottom: '16px' }}>
+                            <h3 className="form-section-title mb-0" style={{ borderBottom: 'none', paddingBottom: 0, marginBottom: 0 }}>
+                                <i className="fa-solid fa-users text-blue"></i> Tim Pelaksana
                             </h3>
-                            <button
-                                type="button"
-                                className="btn-add-dynamic"
-                                onClick={handleAddPersonil}
-                            >
-                                <i className="fa-solid fa-plus"></i> Tambah Anggota
-                            </button>
                         </div>
-                        <p className="form-section-desc">Masukkan nama mahasiswa atau staf pendukung yang turut serta.</p>
+                        <p className="form-section-desc" style={{ marginBottom: '20px' }}>Masukkan nama dosen, staf, atau mahasiswa yang turut serta dalam proyek ini.</p>
 
-                        <div className="dynamic-array-container">
-                            {data.personil_terlibat.map((personil, index) => (
-                                <div key={index} className="dynamic-array-row">
-                                    <div className="dynamic-input-wrapper">
-                                        <span className="dynamic-numbering">{index + 1}</span>
-                                        <input
-                                            type="text"
-                                            className="fintech-input"
-                                            placeholder={`Nama Anggota Tim ${index + 1}`}
-                                            value={personil}
-                                            onChange={(e) => handlePersonilChange(index, e.target.value)}
-                                            required
-                                        />
+                        {/* DOSEN TERLIBAT */}
+                        <div className="team-sub-section" style={{ padding: '16px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
+                            <div className="form-section-header-flex" style={{ marginBottom: '16px', borderBottom: 'none' }}>
+                                <h4 style={{ fontSize: '14px', fontWeight: '700', color: '#1e293b', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', backgroundColor: '#e0f2fe', color: '#0369a1', borderRadius: '8px', fontSize: '13px' }}>
+                                        <i className="fa-solid fa-user-tie"></i>
+                                    </span>
+                                    Dosen Terlibat
+                                </h4>
+                                <button
+                                    type="button"
+                                    className="btn-add-dynamic"
+                                    onClick={() => handleAddPersonil('dosen_terlibat')}
+                                    style={{ padding: '6px 14px', fontSize: '12px', borderRadius: '8px' }}
+                                >
+                                    <i className="fa-solid fa-plus"></i> Tambah
+                                </button>
+                            </div>
+                            <div className="dynamic-array-container">
+                                {data.dosen_terlibat.map((personil, index) => (
+                                    <div key={index} className="dynamic-array-row" style={{ marginBottom: '12px' }}>
+                                        <div className="dynamic-input-wrapper">
+                                            <span className="dynamic-numbering">{index + 1}</span>
+                                            <input
+                                                type="text"
+                                                className="fintech-input"
+                                                placeholder={`Nama Dosen ${index + 1}`}
+                                                value={personil}
+                                                onChange={(e) => handlePersonilChange('dosen_terlibat', index, e.target.value)}
+                                            />
+                                        </div>
+                                        {data.dosen_terlibat.length > 1 && (
+                                            <button
+                                                type="button"
+                                                className="btn-remove-dynamic"
+                                                onClick={() => handleRemovePersonil('dosen_terlibat', index)}
+                                                aria-label="Hapus Anggota"
+                                            >
+                                                <i className="fa-regular fa-trash-can"></i>
+                                            </button>
+                                        )}
                                     </div>
-                                    {data.personil_terlibat.length > 1 && (
-                                        <button
-                                            type="button"
-                                            className="btn-remove-dynamic"
-                                            onClick={() => handleRemovePersonil(index)}
-                                            aria-label="Hapus Anggota"
-                                        >
-                                            <i className="fa-regular fa-trash-can"></i>
-                                        </button>
-                                    )}
-                                </div>
-                            ))}
-                            {errors.personil_terlibat && <span className="form-error">{errors.personil_terlibat}</span>}
+                                ))}
+                                {errors.dosen_terlibat && <span className="form-error">{errors.dosen_terlibat}</span>}
+                            </div>
+                        </div>
+
+                        {/* STAFF TERLIBAT */}
+                        <div className="team-sub-section" style={{ padding: '16px', backgroundColor: '#fbf5ff', borderRadius: '12px', border: '1px solid #f3e8ff', marginBottom: '16px' }}>
+                            <div className="form-section-header-flex" style={{ marginBottom: '16px', borderBottom: 'none' }}>
+                                <h4 style={{ fontSize: '14px', fontWeight: '700', color: '#4c1d95', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', backgroundColor: '#f3e8ff', color: '#6d28d9', borderRadius: '8px', fontSize: '13px' }}>
+                                        <i className="fa-solid fa-id-badge"></i>
+                                    </span>
+                                    Staf Terlibat
+                                </h4>
+                                <button
+                                    type="button"
+                                    className="btn-add-dynamic"
+                                    onClick={() => handleAddPersonil('staff_terlibat')}
+                                    style={{ padding: '6px 14px', fontSize: '12px', borderRadius: '8px', color: '#6d28d9', backgroundColor: '#ede9fe' }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#ddd6fe'; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#ede9fe'; }}
+                                >
+                                    <i className="fa-solid fa-plus"></i> Tambah
+                                </button>
+                            </div>
+                            <div className="dynamic-array-container">
+                                {data.staff_terlibat.map((personil, index) => (
+                                    <div key={index} className="dynamic-array-row" style={{ marginBottom: '12px' }}>
+                                        <div className="dynamic-input-wrapper">
+                                            <span className="dynamic-numbering" style={{ backgroundColor: '#f3e8ff', color: '#6d28d9' }}>{index + 1}</span>
+                                            <input
+                                                type="text"
+                                                className="fintech-input"
+                                                placeholder={`Nama Staf ${index + 1}`}
+                                                value={personil}
+                                                onChange={(e) => handlePersonilChange('staff_terlibat', index, e.target.value)}
+                                            />
+                                        </div>
+                                        {data.staff_terlibat.length > 1 && (
+                                            <button
+                                                type="button"
+                                                className="btn-remove-dynamic"
+                                                onClick={() => handleRemovePersonil('staff_terlibat', index)}
+                                                aria-label="Hapus Anggota"
+                                            >
+                                                <i className="fa-regular fa-trash-can"></i>
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
+                                {errors.staff_terlibat && <span className="form-error">{errors.staff_terlibat}</span>}
+                            </div>
+                        </div>
+
+                        {/* MAHASISWA TERLIBAT */}
+                        <div className="team-sub-section" style={{ padding: '16px', backgroundColor: '#f0fdf4', borderRadius: '12px', border: '1px solid #dcfce7' }}>
+                            <div className="form-section-header-flex" style={{ marginBottom: '16px', borderBottom: 'none' }}>
+                                <h4 style={{ fontSize: '14px', fontWeight: '700', color: '#14532d', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', backgroundColor: '#dcfce7', color: '#16a34a', borderRadius: '8px', fontSize: '13px' }}>
+                                        <i className="fa-solid fa-graduation-cap"></i>
+                                    </span>
+                                    Mahasiswa Terlibat
+                                </h4>
+                                <button
+                                    type="button"
+                                    className="btn-add-dynamic"
+                                    onClick={() => handleAddPersonil('mahasiswa_terlibat')}
+                                    style={{ padding: '6px 14px', fontSize: '12px', borderRadius: '8px', color: '#16a34a', backgroundColor: '#dcfce7' }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#bbf7d0'; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#dcfce7'; }}
+                                >
+                                    <i className="fa-solid fa-plus"></i> Tambah
+                                </button>
+                            </div>
+                            <div className="dynamic-array-container">
+                                {data.mahasiswa_terlibat.map((personil, index) => (
+                                    <div key={index} className="dynamic-array-row" style={{ marginBottom: '12px' }}>
+                                        <div className="dynamic-input-wrapper">
+                                            <span className="dynamic-numbering" style={{ backgroundColor: '#dcfce7', color: '#16a34a' }}>{index + 1}</span>
+                                            <input
+                                                type="text"
+                                                className="fintech-input"
+                                                placeholder={`Nama Mahasiswa ${index + 1}`}
+                                                value={personil}
+                                                onChange={(e) => handlePersonilChange('mahasiswa_terlibat', index, e.target.value)}
+                                            />
+                                        </div>
+                                        {data.mahasiswa_terlibat.length > 1 && (
+                                            <button
+                                                type="button"
+                                                className="btn-remove-dynamic"
+                                                onClick={() => handleRemovePersonil('mahasiswa_terlibat', index)}
+                                                aria-label="Hapus Anggota"
+                                            >
+                                                <i className="fa-regular fa-trash-can"></i>
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
+                                {errors.mahasiswa_terlibat && <span className="form-error">{errors.mahasiswa_terlibat}</span>}
+                            </div>
                         </div>
                     </div>
 
@@ -241,19 +376,24 @@ export default function LecturerSubmissionForm({ onClose }) {
                     </div>
 
                     <div className="fintech-modal-footer">
-                        <button type="button" className="btn-modal-cancel" onClick={onClose}>
+                        <button type="button" className="btn-modal-cancel" onClick={onClose} disabled={isProcessing}>
                             Batal
                         </button>
-                        <button type="submit" className="btn-modal-submit" disabled={processing}>
-                            {processing ? (
-                                <>Memproses <i className="fa-solid fa-spinner fa-spin"></i></>
-                            ) : (
-                                <>Kirim Pengajuan <i className="fa-solid fa-paper-plane"></i></>
-                            )}
+                        <button type="submit" className={`btn-modal-submit ${isProcessing ? 'btn-loading' : ''}`} disabled={isProcessing}>
+                            Kirim Pengajuan <i className="fa-solid fa-paper-plane"></i>
                         </button>
                     </div>
                 </form>
             </div>
+
+            {/* Premium Toast Component Rendered Here */}
+            <Toast
+                show={toast.show}
+                type={toast.type}
+                title={toast.title}
+                message={toast.message}
+                onClose={() => setToast({ ...toast, show: false })}
+            />
         </div>
     );
 }

@@ -9,11 +9,9 @@ export default function GeneralSubmissionForm({ onClose }) {
         location: '',
         email: '',
         whatsapp: '',
-        proposal: null,
         request_letter: null,
     });
 
-    const proposalInputRef = useRef(null);
     const letterInputRef = useRef(null);
 
     const handleSubmit = (e) => {
@@ -112,42 +110,7 @@ export default function GeneralSubmissionForm({ onClose }) {
                             </div>
                         </div>
 
-                        {/* File Uploads - Tap Friendly */}
-                        <div className="form-group">
-                            <label className="file-label">Proposal Kegiatan (PDF) <span className="required">*</span></label>
-                            <div
-                                className={`file-dropzone ${data.proposal ? 'file-selected' : ''}`}
-                                onClick={() => proposalInputRef.current.click()}
-                                onDragOver={(e) => e.preventDefault()}
-                                onDrop={(e) => handleDrop('proposal', e)}
-                            >
-                                <input type="file" ref={proposalInputRef} onChange={(e) => handleFileChange('proposal', e)} accept=".pdf" className="hidden-input" required={!data.proposal} />
-                                <div className="dropzone-inner">
-                                    <div className="dropzone-icon-wrapper">
-                                        <i className={`fa-solid ${data.proposal ? 'fa-file-pdf icon-pdf' : 'fa-cloud-arrow-up icon-upload'}`}></i>
-                                    </div>
-                                    <div className="dropzone-text">
-                                        {data.proposal ? (
-                                            <>
-                                                <div className="file-name">{data.proposal.name}</div>
-                                                <div className="file-size">{(data.proposal.size / 1024 / 1024).toFixed(2)} MB</div>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <div className="upload-title">Tap atau Tarik Dokumen Proposal</div>
-                                                <div className="upload-subtitle">Format PDF, maksimal 5MB</div>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                            {progress && progress.percentage && data.proposal && !errors.proposal && (
-                                <div className="upload-progress">
-                                    <div className="progress-bar" style={{ width: `${progress.percentage}%` }}></div>
-                                </div>
-                            )}
-                            {errors.proposal && <div className="field-error">{errors.proposal}</div>}
-                        </div>
+
 
                         <div className="form-group">
                             <label className="file-label">Surat Permohonan (PDF) <span className="required">*</span></label>

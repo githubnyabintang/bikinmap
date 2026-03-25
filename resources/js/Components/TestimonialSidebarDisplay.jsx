@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import '../../css/testimonial-sidebar.css';
+import TestimonialForm from './TestimonialForm';
 
 const StarIcon = ({ filled = true, half = false }) => {
     if (half) {
@@ -24,6 +25,8 @@ const StarIcon = ({ filled = true, half = false }) => {
 };
 
 const TestimonialSidebarDisplay = ({ status }) => {
+    const [isFormOpen, setIsFormOpen] = useState(false);
+
     // Only show testimonials for completed projects
     if (status !== 'selesai') return null;
 
@@ -88,6 +91,60 @@ const TestimonialSidebarDisplay = ({ status }) => {
                     </div>
                 ))}
             </div>
+
+            {/* CTA: Invite to Write Testimonial */}
+            <div style={{
+                marginTop: '16px',
+                padding: '16px 20px',
+                backgroundColor: '#f0f9ff',
+                borderRadius: '12px',
+                border: '1px solid #bae6fd',
+                textAlign: 'center'
+            }}>
+                <p style={{
+                    fontSize: '13px',
+                    color: '#0369a1',
+                    margin: '0 0 12px 0',
+                    lineHeight: '1.5',
+                    fontWeight: '500'
+                }}>
+                    <i className="fa-solid fa-bullhorn" style={{ marginRight: '6px' }}></i>
+                    Pernah terlibat dalam kegiatan ini? Bagikan pengalaman Anda!
+                </p>
+                <button
+                    onClick={() => setIsFormOpen(true)}
+                    style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '10px 20px',
+                        background: 'linear-gradient(135deg, #0284c7, #0369a1)',
+                        color: '#ffffff',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        borderRadius: '10px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        boxShadow: '0 2px 8px rgba(3,105,161,0.25)'
+                    }}
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                        e.currentTarget.style.boxShadow = '0 4px 14px rgba(3,105,161,0.35)';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(3,105,161,0.25)';
+                    }}
+                >
+                    <i className="fa-solid fa-pen-to-square" style={{ fontSize: '14px' }}></i>
+                    Tulis Testimoni
+                </button>
+            </div>
+
+            {isFormOpen && (
+                <TestimonialForm onClose={() => setIsFormOpen(false)} />
+            )}
         </div>
     );
 };

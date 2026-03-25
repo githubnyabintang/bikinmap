@@ -306,6 +306,15 @@
     gap: 4px;
 }
 
+.input-wrapper.error-border {
+    border-color: #ef4444 !important;
+    background-color: #fef2f2;
+}
+
+.input-wrapper.error-border .input-icon {
+    color: #ef4444;
+}
+
 .field-error::before {
     content: "\f071";
     font-family: "Font Awesome 6 Free";

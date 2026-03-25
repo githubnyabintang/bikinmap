@@ -4,24 +4,28 @@
 
 ---
 
-## ✨ Fitur Utama
+## ✨ Fitur Utama Frontend (UI/UX & React Components)
 
-### 🖥️ Tampilan Desktop
-- **Peta interaktif** berbasis Leaflet dengan marker kustom berwarna (🟡 Berlangsung / 🟢 Selesai)
-- **Search bar** untuk mencari lokasi kegiatan secara real-time
-- **Hamburger menu** — sidebar kiri dengan daftar kegiatan dan thumbnail
-- **Detail sidebar** — panel kanan dengan informasi lengkap kegiatan (gambar, status, deskripsi, lokasi, aksi)
-- **Glassmorphism overlay** pada peta saat sidebar aktif
-- **Form CRUD** — Tambah & Edit data kegiatan PKM dengan fitur Pick Location dari peta dan upload thumbnail
-- **Success modal** dengan animasi dan ikon
+Pembaruan besar-besaran pada sisi Frontend menggunakan **React + Inertia.js** dengan pendekatan **Premium Fintech UI Design**:
 
-### 📱 Tampilan Mobile (Fintech-style Map App)
-Tampilan mobile dirancang khusus berbeda dari desktop, terinspirasi dari aplikasi fintech/maps seperti Grab, Gojek, dan Google Maps:
-- **Peta full-screen** (100vh) — tanpa border, tanpa kotak, langsung penuh layar
-- **Bottom Tab Bar** — navigasi bawah dengan 4 tab (Beranda, Peta, Kegiatan, Akun) dengan efek glassmorphism
-- **Bottom Sheet** — panel geser dari bawah saat klik titik lokasi (swipe-to-dismiss)
-- **Daftar Kegiatan** — bottom sheet dengan thumbnail saat klik tab Kegiatan
-- Header, Footer, Hero section tersembunyi di mobile untuk pengalaman app-first
+### 🔐 Autentikasi & Akun
+- **Dual Login Pages**: Desain halaman login terpisah untuk **Dosen** dan **Masyarakat** dengan UI modern, split-screen desktop, dan mobile-friendly.
+- **Form Verification / Register**: Komponen form dengan validasi global, input OTP simulasi, dan error state handling (Red Border & Error Toast).
+- **Role Indicators**: Lencana penunjuk peran pengguna aktif (Dosen/Masyarakat) bergaya dinamis di atas peta (desktop) atau di dalam hamburger menu (mobile).
+
+### 🗺️ Pemetaan (Map Dashboard)
+- **Peta Interaktif (Leaflet)**: Peta full-screen (mobile) atau boxed-container (desktop) dengan marker kustom (Kuning: Berlangsung, Hijau: Selesai).
+- **Search Widget**: Bar pencarian melayang dengan dropdown hasil auto-complete untuk mencari desa/nama P3M secara instan.
+- **Glassmorphism Sidebars**: Panel kiri (Daftar Kegiatan) dan Panel Kanan (Detail Kegiatan) dengan efek *blur* gaya iOS/Fintech.
+- **Bottom Sheet Mobile**: Implementasi native-feel *bottom sheet* (swipe-to-dismiss) untuk melihat detail lokasi di layar sentuh perangkat genggam.
+- **Extended FAB**: Tombol Floating Action Button (`+`) warna gradasi biru dengan animasi *hover slide-in text* ("Buat Pengajuan").
+
+### 📋 Komponen Form Premium & Interaktif
+- **Sistem Validasi Global**: Semua form mengadopsi standar UI yang terpusat (asterisk wajib, border merah untuk field kosong, ikon FontAwesome *prefix* di dalam input).
+- **Testimonial Modal (React Portal)**: Form Tulis Testimoni 1-Layar (Overlay penuh) dengan *Interactive Star Rating* (1-5 Bintang). Render bersih melepaskan diri dari CSS sidebar menggunakan `ReactDOM.createPortal`.
+- **Dynamic Array Inputs**: Pada form Dosen, input untuk "Personil Terlibat" (Dosen, Mahasiswa, Staff) bersifat dinamis (Bisa ditambah `+` atau dihapus `-` secara instan).
+- **Premium File Dropzone**: Drag & drop area untuk mengunggah proposal PDF atau gambar dokumentasi dengan ikon *cloud-arrow-up* / *file-pdf*.
+- **Toast Notifications**: Notifikasi pop-up cantik berwarna untuk umpan balik *Success* atau *Error* usai pengiriman form.
 
 ---
 
