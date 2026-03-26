@@ -1,5 +1,6 @@
 @import './landing.css';
 @import './login.css';
+@import './form-components.css';
 
 @tailwind base;
 @tailwind components;
@@ -705,7 +706,7 @@ h6 {
 
 .map-wrapper-boxed .leaflet-top.leaflet-left {
     top: 92px;
-    left: 18px;
+    left: 80px;
 }
 
 .map-wrapper-boxed .leaflet-control-zoom {
@@ -999,29 +1000,35 @@ h6 {
 .sidebar {
     position: absolute;
     top: 0;
-    left: 0;
+    left: 72px;
     height: 100%;
     width: 400px;
     background-color: #ffffff;
     display: flex;
     flex-direction: column;
-    box-shadow: 10px 0 30px rgba(15, 23, 42, 0.12);
-    z-index: 1000;
+    box-shadow: 4px 0 16px rgba(15, 23, 42, 0.08);
+    z-index: 1008;
     transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     transform: translateX(0);
-    border-radius: 0 24px 24px 0;
+    border-radius: 0;
     overflow: hidden;
 }
 
 .sidebar-hidden {
-    transform: translateX(-100%);
+    transform: translateX(calc(-100% - 72px));
     box-shadow: none;
 }
 
 @media (max-width: 768px) {
     .sidebar {
+        left: 0;
         width: 100%;
         border-radius: 0;
+        z-index: 1020;
+    }
+
+    .sidebar-hidden {
+        transform: translateX(-100%);
     }
 }
 
@@ -1057,16 +1064,16 @@ h6 {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(30, 41, 59, 0.7);
-    backdrop-filter: blur(20px) saturate(160%);
-    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    background-color: rgba(30, 41, 59, 0.5);
+    backdrop-filter: blur(4px) saturate(120%);
+    -webkit-backdrop-filter: blur(4px) saturate(120%);
     transform: translateZ(0);
     will-change: backdrop-filter;
-    z-index: 900;
+    z-index: 1006;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.4s ease;
-    border-radius: var(--radius-xl);
+    border-radius: 0;
 }
 
 .map-overlay.active {
@@ -1117,7 +1124,6 @@ h6 {
 
 .location-card:hover {
     box-shadow: var(--shadow-hover);
-    transform: translateY(-4px);
     border-color: rgba(4, 107, 210, 0.15);
 }
 
@@ -1129,6 +1135,12 @@ h6 {
     justify-content: center;
     position: relative;
     overflow: hidden;
+}
+
+.card-image-wrapper.has-image {
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
 }
 
 .card-image-wrapper::after {
@@ -1451,8 +1463,14 @@ h6 {
     }
 
     .sidebar {
+        left: 0;
         width: 100%;
         border-radius: 0;
+        z-index: 1020;
+    }
+
+    .sidebar-hidden {
+        transform: translateX(-100%);
     }
 
     .fab {

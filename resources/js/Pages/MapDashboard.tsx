@@ -258,41 +258,6 @@ export default function MapDashboard() {
                                                 <i className="fa-solid fa-map-pin"></i> {sidebarPkm.desa}, Kec. {sidebarPkm.kecamatan},{' '}
                                                 {sidebarPkm.kabupaten}, {sidebarPkm.provinsi}
                                             </div>
-
-                                            <div className="card-actions">
-                                                <button
-                                                    className="action-button"
-                                                    onClick={() => window.open(`https://maps.google.com/?q=${sidebarPkm.lat},${sidebarPkm.lng}`)}
-                                                >
-                                                    <i className="fa-solid fa-location-arrow"></i> Rute
-                                                </button>
-                                                {sidebarPkm.laporan ? (
-                                                    <button className="action-button laporan" onClick={() => window.open(sidebarPkm.laporan)}>
-                                                        <i className="fa-solid fa-file-alt"></i> Laporan
-                                                    </button>
-                                                ) : (
-                                                    <button className="action-button disabled" disabled>
-                                                        <i className="fa-solid fa-file-alt"></i> Laporan
-                                                    </button>
-                                                )}
-                                                {sidebarPkm.status === 'selesai' &&
-                                                    (sidebarPkm.dokumentasi ? (
-                                                        <button
-                                                            className="action-button dokumentasi"
-                                                            onClick={() => window.open(sidebarPkm.dokumentasi)}
-                                                        >
-                                                            <i className="fa-solid fa-camera"></i> Dokumentasi
-                                                        </button>
-                                                    ) : (
-                                                        <button className="action-button disabled" disabled>
-                                                            <i className="fa-solid fa-camera"></i> Dokumentasi
-                                                        </button>
-                                                    ))}
-                                            </div>
-
-                                            <button className="btn-secondary edit-btn" onClick={() => handleEditPKM(sidebarPkm)}>
-                                                <i className="fa-solid fa-pen"></i> Edit Data
-                                            </button>
                                         </div>
                                     </div>
                                 )}

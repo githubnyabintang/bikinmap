@@ -9,12 +9,52 @@ Repositori ini berisi kode sumber untuk sistem backend dan administrasi **SIGAP-
 - **Autentikasi:** Laravel Breeze / Session-based
 - **Environment:** PHP 8.4
 
+## ✨ Fitur Utama Frontend (UI/UX & React Components)
+
+Pembaruan besar-besaran pada sisi Frontend menggunakan **React + Inertia.js** dengan pendekatan **Premium Fintech UI Design**:
+
+### 🔐 Autentikasi & Akun
+- **Dual Login Pages**: Desain halaman login terpisah untuk **Dosen** dan **Masyarakat** dengan UI modern, split-screen desktop, dan mobile-friendly.
+- **Form Verification / Register**: Komponen form dengan validasi global, input OTP simulasi, dan error state handling (Red Border & Error Toast).
+- **Role Indicators**: Lencana penunjuk peran pengguna aktif (Dosen/Masyarakat) bergaya dinamis di atas peta (desktop) atau di dalam hamburger menu (mobile).
+
+### 🗺️ Pemetaan (Map Dashboard)
+- **Peta Interaktif (Leaflet)**: Peta full-screen (mobile) atau boxed-container (desktop) dengan marker kustom (Kuning: Berlangsung, Hijau: Selesai).
+- **Search Widget**: Bar pencarian melayang dengan dropdown hasil auto-complete untuk mencari desa/nama P3M secara instan.
+- **Glassmorphism Sidebars**: Panel kiri (Daftar Kegiatan) dan Panel Kanan (Detail Kegiatan) dengan efek *blur* gaya iOS/Fintech.
+- **Bottom Sheet Mobile**: Implementasi native-feel *bottom sheet* (swipe-to-dismiss) untuk melihat detail lokasi di layar sentuh perangkat genggam.
+- **Extended FAB**: Tombol Floating Action Button (`+`) warna gradasi biru dengan animasi *hover slide-in text* ("Buat Pengajuan").
+
+### 📋 Komponen Form Premium & Interaktif
+- **Sistem Validasi Global**: Semua form mengadopsi standar UI yang terpusat (asterisk wajib, border merah untuk field kosong, ikon FontAwesome *prefix* di dalam input).
+- **Testimonial Modal (React Portal)**: Form Tulis Testimoni 1-Layar (Overlay penuh) dengan *Interactive Star Rating* (1-5 Bintang). Render bersih melepaskan diri dari CSS sidebar menggunakan `ReactDOM.createPortal`.
+- **Dynamic Array Inputs**: Pada form Dosen, input untuk "Personil Terlibat" (Dosen, Mahasiswa, Staff) bersifat dinamis (Bisa ditambah `+` atau dihapus `-` secara instan).
+- **Premium File Dropzone**: Drag & drop area untuk mengunggah proposal PDF atau gambar dokumentasi dengan ikon *cloud-arrow-up* / *file-pdf*.
+- **Toast Notifications**: Notifikasi pop-up cantik berwarna untuk umpan balik *Success* atau *Error* usai pengiriman form.
+
+---
+
+## 🛠️ Tech Stack
+
+| Teknologi | Keterangan |
+|---|---|
+| **Laravel** | Backend framework (PHP) |
+| **React** | Frontend library (via Inertia.js) |
+| **Inertia.js** | SPA bridge antara Laravel & React |
+| **Leaflet** | Library peta interaktif |
+| **react-leaflet** | React wrapper untuk Leaflet |
+| **Vite** | Build tool & bundler |
+| **Font Awesome** | Icon library |
+
+---
+
 ## Akun Kebutuhan Tes
 - **Email:** admin@poltekpar.ac.id
 - **Password:** password
 
-## Persyaratan Sistem
-Sebelum menjalankan *project* ini, pastikan sistem Anda telah terpasang perangkat lunak berikut:
+## 🚀 Instalasi & Setup
+
+### Prasyarat
 - PHP >= 8.4
 - Composer
 - Node.js & npm (Untuk *compile* *asset* Inertia)

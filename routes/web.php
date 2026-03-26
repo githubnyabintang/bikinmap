@@ -17,6 +17,18 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [AuthController::class, 'register']);
+
+    Route::get('/verify-email', function () {
+        return Inertia::render('Auth/VerifyEmail');
+    })->name('verification.notice');
+
+    Route::get('/login/dosen', function () {
+        return Inertia::render('Auth/LoginDosen');
+    })->name('login.dosen');
+
+    Route::get('/login/masyarakat', function () {
+        return Inertia::render('Auth/LoginMasyarakat');
+    })->name('login.masyarakat');
 });
 
 Route::middleware('auth')->group(function () {
