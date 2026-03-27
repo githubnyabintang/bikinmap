@@ -11,8 +11,11 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\User\PengajuanUserController;
 use App\Models\Aktivitas;
+use App\Models\Arsip;
 use App\Models\JenisPkm;
+use App\Models\Pegawai;
 use App\Models\Pengajuan;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -193,6 +196,26 @@ Route::middleware('auth')->group(function () {
 
     // User pengajuan submission (POST only, form is on landing page)
     Route::post('/pengajuan', [PengajuanUserController::class, 'store'])->name('pengajuan.store');
+
+    // Global search API
+    Route::get('/api/search', function (Request $request) {
+        $q = trim($request->input('q', ''));
+        if (strlen($q) < 2) {
+            return response()->json([]);
+        }
+
+        $like = "%{$q}%";
+        $limit = 5;
+
+        return response()->json([
+            'pengajuan' => Pengajuan::where('judul_kegiatan', 'like', $like)->limit($limit)->get(['id_pengajuan', 'judul_kegiatan', 'status_pengajuan'])->map(fn ($p) => ['id' => $p->id_pengajuan, 'title' => $p->judul_kegiatan, 'subtitle' => ucfirst($p->status_pengajuan), 'url' => '/admin/pengajuan/'.$p->id_pengajuan]),
+            'users' => User::where('name', 'like', $like)->orWhere('email', 'like', $like)->limit($limit)->get(['id_user', 'name', 'email', 'role'])->map(fn ($u) => ['id' => $u->id_user, 'title' => $u->name, 'subtitle' => $u->email.' ('.$u->role.')', 'url' => '/admin/users']),
+            'pegawai' => Pegawai::where('nama_pegawai', 'like', $like)->orWhere('nip', 'like', $like)->limit($limit)->get(['id_pegawai', 'nama_pegawai', 'nip'])->map(fn ($p) => ['id' => $p->id_pegawai, 'title' => $p->nama_pegawai, 'subtitle' => 'NIP: '.($p->nip ?? '-'), 'url' => '/admin/pegawai']),
+            'aktivitas' => Aktivitas::with('pengajuan')->where('status_pelaksanaan', 'like', $like)->limit($limit)->get(['id_aktivitas', 'id_pengajuan', 'status_pelaksanaan'])->map(fn ($a) => ['id' => $a->id_aktivitas, 'title' => $a->pengajuan->judul_kegiatan ?? 'Aktivitas #'.$a->id_aktivitas, 'subtitle' => ucfirst($a->status_pelaksanaan), 'url' => '/admin/aktivitas/'.$a->id_aktivitas]),
+            'testimoni' => App\Models\Testimoni::where('nama_pemberi', 'like', $like)->orWhere('pesan_ulasan', 'like', $like)->limit($limit)->get(['id_testimoni', 'nama_pemberi', 'rating'])->map(fn ($t) => ['id' => $t->id_testimoni, 'title' => $t->nama_pemberi, 'subtitle' => 'Rating: '.$t->rating.'/5', 'url' => '/admin/testimoni']),
+            'arsip' => Arsip::where('nama_dokumen', 'like', $like)->limit($limit)->get(['id_arsip', 'nama_dokumen', 'jenis_arsip'])->map(fn ($a) => ['id' => $a->id_arsip, 'title' => $a->nama_dokumen, 'subtitle' => $a->jenis_arsip, 'url' => '/admin/arsip']),
+        ]);
+    })->name('api.search');
 
     Route::prefix('admin')->name('admin.')->middleware('admin')->group(
         function () {

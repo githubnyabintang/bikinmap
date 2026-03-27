@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import Toast from '../Components/Toast';
+import CommandPalette from '../Components/CommandPalette';
 import {
     LayoutDashboard,
     Users,
@@ -15,7 +16,6 @@ import {
     ChevronRight,
     FileText,
     UserCircle,
-    Command
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -66,6 +66,21 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
     }, [flash.success, flash.error]);
 
     const closeToast = useCallback(() => setToast(prev => ({ ...prev, show: false })), []);
+
+    // Command Palette state
+    const [paletteOpen, setPaletteOpen] = useState(false);
+
+    // Cmd+K / Ctrl+K shortcut
+    useEffect(() => {
+        const handler = (e: KeyboardEvent) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                setPaletteOpen(prev => !prev);
+            }
+        };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+    }, []);
 
     const isActive = (href?: string) => {
         if (!href || href === '#') return false;
@@ -196,15 +211,16 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
                 {/* Header */}
                 <header className="h-[56px] bg-white/80 backdrop-blur-md border-b border-zinc-200/80 flex items-center justify-between px-6 sticky top-0 z-40 flex-shrink-0">
                     <div className="flex-1 max-w-xl">
-                        <div className="relative group cursor-text">
+                        <div className="relative group cursor-pointer" onClick={() => setPaletteOpen(true)}>
                             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 group-hover:text-zinc-500 transition-colors pointer-events-none" />
                             <input
                                 type="text"
-                                placeholder="Search anything relative to SIGAP..."
-                                className="w-full bg-zinc-50 hover:bg-zinc-100 pl-9 pr-12 py-1.5 rounded-md border border-zinc-200 text-[13px] text-zinc-700 placeholder-zinc-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-200 focus:border-zinc-300 transition-all"
+                                readOnly
+                                placeholder="Cari pengajuan, pengguna, aktivitas..."
+                                className="w-full bg-zinc-50 hover:bg-zinc-100 pl-9 pr-12 py-1.5 rounded-md border border-zinc-200 text-[13px] text-zinc-700 placeholder-zinc-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-200 focus:border-zinc-300 transition-all cursor-pointer"
                             />
                             <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-60">
-                                <kbd className="hidden sm:inline-block bg-white border border-zinc-200 rounded px-1.5 text-[10px] font-sans font-medium text-zinc-500 shadow-sm"><Command size={10} className="inline mb-[2px]" /> K</kbd>
+                                <kbd className="hidden sm:inline-block bg-white border border-zinc-200 rounded px-1.5 py-0.5 text-[10px] font-sans font-medium text-zinc-500 shadow-sm">⌘K</kbd>
                             </div>
                         </div>
                     </div>
@@ -232,6 +248,9 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
                 message={toast.message}
                 onClose={closeToast}
             />
+
+            {/* Command Palette */}
+            <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
         </div>
     );
 };
