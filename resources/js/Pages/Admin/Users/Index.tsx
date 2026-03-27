@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { router } from '@inertiajs/react';
 import AdminLayout from '../../../Layouts/AdminLayout';
+import ConfirmDialog from '../../../Components/ConfirmDialog';
 import { Users, Plus, Edit, Trash2, Search, Shield, X, MoreHorizontal } from 'lucide-react';
 
 interface User {
@@ -61,10 +62,18 @@ const ManajemenUser: React.FC<Props> = ({ users }) => {
     };
 
     const handleDelete = (id: number) => {
-        if (confirm('Yakin ingin menghapus user ini?')) {
-            router.delete(`/admin/users/${id}`);
+        setDeleteTarget(id);
+    };
+
+    const confirmDelete = () => {
+        if (deleteTarget) {
+            router.delete(`/admin/users/${deleteTarget}`, {
+                onFinish: () => setDeleteTarget(null),
+            });
         }
     };
+
+    const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
 
     return (
         <AdminLayout title="">
@@ -214,6 +223,15 @@ const ManajemenUser: React.FC<Props> = ({ users }) => {
                     </div>
                 </div>
             )}
+
+            <ConfirmDialog
+                open={deleteTarget !== null}
+                title="Hapus User"
+                message="Data user ini akan dihapus. Semua pengajuan terkait juga akan dihapus secara permanen."
+                onConfirm={confirmDelete}
+                onCancel={() => setDeleteTarget(null)}
+                variant="danger"
+            />
         </AdminLayout>
     );
 };

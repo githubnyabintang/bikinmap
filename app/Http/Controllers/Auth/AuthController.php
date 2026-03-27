@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Pegawai;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -31,7 +32,7 @@ class AuthController extends Controller
                 return redirect()->intended('/admin');
             }
 
-            return redirect()->intended('/dashboard');
+            return redirect()->intended('/');
         }
 
         return back()->withErrors([
@@ -48,20 +49,38 @@ class AuthController extends Controller
     {
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+            'nip' => ['nullable', 'string', 'max:30'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
+
+        $role = 'masyarakat';
+        $pegawaiId = null;
+
+        // Check if NIP exists in pegawai table
+        if ($request->filled('nip')) {
+            $pegawai = Pegawai::where('nip', $request->nip)->first();
+            if ($pegawai) {
+                $role = 'dosen';
+                $pegawaiId = $pegawai->id_pegawai;
+            }
+        }
 
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => 'masyarakat', // Default role for open registration
+            'role' => $role,
         ]);
+
+        // Link user to pegawai record if dosen
+        if ($role === 'dosen' && $pegawaiId) {
+            Pegawai::where('id_pegawai', $pegawaiId)->update(['id_user' => $user->id_user]);
+        }
 
         Auth::login($user);
 
-        return redirect('/dashboard');
+        return redirect('/');
     }
 
     public function logout(Request $request)

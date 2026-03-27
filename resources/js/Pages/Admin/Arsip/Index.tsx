@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { router } from '@inertiajs/react';
 import AdminLayout from '../../../Layouts/AdminLayout';
+import ConfirmDialog from '../../../Components/ConfirmDialog';
 import { ExternalLink, Search, FolderOpen, X, FileText, Eye, Plus, Trash2 } from 'lucide-react';
 
 interface ArsipItem {
@@ -73,10 +74,18 @@ const ArsipPage: React.FC<Props> = ({ listArsip }) => {
     };
 
     const handleDelete = (id: number) => {
-        if (confirm('Yakin ingin menghapus arsip ini?')) {
-            router.delete(`/admin/arsip/${id}`);
+        setDeleteTarget(id);
+    };
+
+    const confirmDelete = () => {
+        if (deleteTarget) {
+            router.delete(`/admin/arsip/${deleteTarget}`, {
+                onFinish: () => setDeleteTarget(null),
+            });
         }
     };
+
+    const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
 
     return (
         <AdminLayout title="">
@@ -281,6 +290,15 @@ const ArsipPage: React.FC<Props> = ({ listArsip }) => {
                     </div>
                 </div>
             )}
+
+            <ConfirmDialog
+                open={deleteTarget !== null}
+                title="Hapus Arsip"
+                message="Data arsip ini akan dihapus secara permanen. Tindakan ini tidak dapat dibatalkan."
+                onConfirm={confirmDelete}
+                onCancel={() => setDeleteTarget(null)}
+                variant="danger"
+            />
         </AdminLayout>
     );
 };

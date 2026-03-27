@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { router } from '@inertiajs/react';
 import AdminLayout from '../../../Layouts/AdminLayout';
+import ConfirmDialog from '../../../Components/ConfirmDialog';
 import { Edit2, Trash2, X, Plus, Search, Upload, ShieldCheck, Grid, Type } from 'lucide-react';
 
 interface JenisPkm {
@@ -40,8 +41,18 @@ const JenisPkmPage: React.FC<Props> = ({ listJenisPkm }) => {
     };
 
     const handleDelete = (id: number) => {
-        if (confirm('Yakin ingin menghapus jenis PKM ini?')) router.delete(`/admin/master/jenis-pkm/${id}`);
+        setDeleteTarget(id);
     };
+
+    const confirmDelete = () => {
+        if (deleteTarget) {
+            router.delete(`/admin/master/jenis-pkm/${deleteTarget}`, {
+                onFinish: () => setDeleteTarget(null),
+            });
+        }
+    };
+
+    const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
 
     const filtered = listJenisPkm.filter(j => j.nama_jenis.toLowerCase().includes(search.toLowerCase()));
 
@@ -163,6 +174,15 @@ const JenisPkmPage: React.FC<Props> = ({ listJenisPkm }) => {
                     </div>
                 </div>
             )}
+
+            <ConfirmDialog
+                open={deleteTarget !== null}
+                title="Hapus Jenis PKM"
+                message="Data jenis PKM ini akan dihapus secara permanen. Tindakan ini tidak dapat dibatalkan."
+                onConfirm={confirmDelete}
+                onCancel={() => setDeleteTarget(null)}
+                variant="danger"
+            />
         </AdminLayout>
     );
 };

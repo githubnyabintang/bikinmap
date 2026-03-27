@@ -6,14 +6,15 @@ interface AktivitasItem {
     id_aktivitas: number;
     status_pelaksanaan: string;
     created_at?: string;
-    pengajuan?: {
-        id_pengajuan: number;
-        judul_kegiatan: string;
-        lokasi_pkm?: { kota_kabupaten: string; provinsi: string };
-        jenis_pkm?: { nama_jenis: string };
-        tgl_mulai?: string;
-        tgl_selesai?: string;
-    };
+        pengajuan?: {
+            judul_kegiatan: string;
+            tgl_mulai?: string;
+            tgl_selesai?: string;
+            provinsi?: string;
+            kota_kabupaten?: string;
+            user?: { name: string };
+            jenis_pkm?: { nama_jenis: string };
+        };
 }
 
 interface PaginatedData {
@@ -136,7 +137,7 @@ const AktivitasPage: React.FC<Props> = ({ listAktivitas }) => {
                                         </div>
                                         <div className="flex items-center gap-1 text-zinc-500 text-[12px]">
                                             <MapPin size={12} className="text-zinc-400" />
-                                            {act.pengajuan?.lokasi_pkm ? `${act.pengajuan.lokasi_pkm.kota_kabupaten}, ${act.pengajuan.lokasi_pkm.provinsi}` : 'Lokasi TBD'}
+                                            {act.pengajuan?.kota_kabupaten ? `${act.pengajuan.kota_kabupaten}, ${act.pengajuan.provinsi}` : 'Lokasi TBD'}
                                         </div>
                                     </td>
                                     <td className="py-4 px-6 text-right">

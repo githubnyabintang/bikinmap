@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { router } from '@inertiajs/react';
 import AdminLayout from '../../../Layouts/AdminLayout';
+import ConfirmDialog from '../../../Components/ConfirmDialog';
 import { Edit2, Trash2, X, Plus, Search, Upload, User, Users } from 'lucide-react';
 
 interface Pegawai {
@@ -37,8 +38,18 @@ const PegawaiPage: React.FC<Props> = ({ listPegawai }) => {
     };
 
     const handleDelete = (id: number) => {
-        if (confirm('Yakin ingin menghapus pegawai ini?')) router.delete(`/admin/pegawai/${id}`);
+        setDeleteTarget(id);
     };
+
+    const confirmDelete = () => {
+        if (deleteTarget) {
+            router.delete(`/admin/pegawai/${deleteTarget}`, {
+                onFinish: () => setDeleteTarget(null),
+            });
+        }
+    };
+
+    const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
 
     const handleCsvUpload = () => {
         const input = document.createElement('input');
@@ -176,6 +187,15 @@ const PegawaiPage: React.FC<Props> = ({ listPegawai }) => {
                     </div>
                 </div>
             )}
+
+            <ConfirmDialog
+                open={deleteTarget !== null}
+                title="Hapus Pegawai"
+                message="Data pegawai ini akan dihapus secara permanen. Tindakan ini tidak dapat dibatalkan."
+                onConfirm={confirmDelete}
+                onCancel={() => setDeleteTarget(null)}
+                variant="danger"
+            />
         </AdminLayout>
     );
 };

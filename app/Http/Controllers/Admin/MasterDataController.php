@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\JenisPkm;
-use App\Models\LokasiPkm;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 

@@ -2,8 +2,33 @@ import React, { useState } from 'react';
 import { useForm } from '@inertiajs/react';
 import Toast from './Toast';
 
-export default function LecturerSubmissionForm({ onClose }) {
-    const { data, setData, post, processing: inertiaProcessing, errors, setError, clearErrors, reset } = useForm({
+interface LecturerSubmissionFormProps {
+    onClose: () => void;
+}
+
+interface LecturerSubmissionFormData {
+    nama_dosen: string;
+    judul_proyek: string;
+    lokasi: string;
+    dosen_terlibat: string[];
+    staff_terlibat: string[];
+    mahasiswa_terlibat: string[];
+    sumber_dana: string;
+    total_RAB: string;
+    tanggal_mulai: string;
+    tanggal_selesai: string;
+    proposal: File | null;
+}
+
+interface ToastState {
+    show: boolean;
+    type: 'success' | 'error' | 'info' | 'warning';
+    title: string;
+    message: string;
+}
+
+export default function LecturerSubmissionForm({ onClose }: LecturerSubmissionFormProps) {
+    const { data, setData, post, processing: inertiaProcessing, errors, setError, clearErrors, reset } = useForm<LecturerSubmissionFormData>({
         nama_dosen: '',
         judul_proyek: '',
         lokasi: '',
@@ -18,27 +43,26 @@ export default function LecturerSubmissionForm({ onClose }) {
     });
 
     // --- Dynamic Array Logic for Personnel ---
-    const handleAddPersonil = (type) => {
+    const handleAddPersonil = (type: keyof Pick<LecturerSubmissionFormData, 'dosen_terlibat' | 'staff_terlibat' | 'mahasiswa_terlibat'>) => {
         setData(type, [...data[type], '']);
     };
 
-    const handleRemovePersonil = (type, indexToRemove) => {
+    const handleRemovePersonil = (type: keyof Pick<LecturerSubmissionFormData, 'dosen_terlibat' | 'staff_terlibat' | 'mahasiswa_terlibat'>, indexToRemove: number) => {
         const filtered = data[type].filter((_, index) => index !== indexToRemove);
         setData(type, filtered);
     };
 
-    const handlePersonilChange = (type, index, value) => {
+    const handlePersonilChange = (type: keyof Pick<LecturerSubmissionFormData, 'dosen_terlibat' | 'staff_terlibat' | 'mahasiswa_terlibat'>, index: number, value: string) => {
         const updated = [...data[type]];
         updated[index] = value;
         setData(type, updated);
     };
 
     // --- UI State ---
-    const [mockProcessing, setMockProcessing] = useState(false);
-    const [toast, setToast] = useState({ show: false, type: 'success', title: '', message: '' });
+    const [toast, setToast] = useState<ToastState>({ show: false, type: 'success', title: '', message: '' });
 
     // --- Submission Logic (MOCK FOR UI/UX TESTING) ---
-    const handleSubmit = (e) => {
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         clearErrors();
 
@@ -54,24 +78,19 @@ export default function LecturerSubmissionForm({ onClose }) {
         }
 
         // 2. Trigger Processing Loading State
-        setMockProcessing(true);
-
-        // Simulate 1.5 seconds network request
-        setTimeout(() => {
-            setMockProcessing(false);
-
-            // 3. Show Success Toast
-            setToast({ show: true, type: 'success', title: 'Berhasil', message: 'Pengajuan PKM Anda berhasil dikirim.' });
-
-            // Close modal after toast clears (3s)
-            setTimeout(() => {
-                reset();
-                onClose();
-            }, 3000);
-        }, 1500);
+        post('/pengajuan', {
+            forceFormData: true,
+            onSuccess: () => {
+                setToast({ show: true, type: 'success', title: 'Berhasil', message: 'Pengajuan PKM Anda berhasil dikirim.' });
+                setTimeout(() => { reset(); onClose(); }, 2000);
+            },
+            onError: () => {
+                setToast({ show: true, type: 'error', title: 'Gagal', message: 'Gagal mengirim pengajuan. Silakan coba lagi.' });
+            },
+        });
     };
 
-    const isProcessing = inertiaProcessing || mockProcessing;
+    const isProcessing = inertiaProcessing;
 
     return (
         <div className="fintech-modal-overlay">
@@ -204,8 +223,14 @@ export default function LecturerSubmissionForm({ onClose }) {
                                     className="btn-add-dynamic"
                                     onClick={() => handleAddPersonil('staff_terlibat')}
                                     style={{ padding: '6px 14px', fontSize: '12px', borderRadius: '8px', color: '#6d28d9', backgroundColor: '#ede9fe' }}
-                                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#ddd6fe'; }}
-                                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#ede9fe'; }}
+                                    onMouseEnter={(e) => {
+                                        const target = e.currentTarget;
+                                        target.style.backgroundColor = '#ddd6fe';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        const target = e.currentTarget;
+                                        target.style.backgroundColor = '#ede9fe';
+                                    }}
                                 >
                                     <i className="fa-solid fa-plus"></i> Tambah
                                 </button>
@@ -253,8 +278,14 @@ export default function LecturerSubmissionForm({ onClose }) {
                                     className="btn-add-dynamic"
                                     onClick={() => handleAddPersonil('mahasiswa_terlibat')}
                                     style={{ padding: '6px 14px', fontSize: '12px', borderRadius: '8px', color: '#16a34a', backgroundColor: '#dcfce7' }}
-                                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#bbf7d0'; }}
-                                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#dcfce7'; }}
+                                    onMouseEnter={(e) => {
+                                        const target = e.currentTarget;
+                                        target.style.backgroundColor = '#bbf7d0';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        const target = e.currentTarget;
+                                        target.style.backgroundColor = '#dcfce7';
+                                    }}
                                 >
                                     <i className="fa-solid fa-plus"></i> Tambah
                                 </button>
@@ -361,7 +392,11 @@ export default function LecturerSubmissionForm({ onClose }) {
                                         id="proposal"
                                         className="file-upload-input"
                                         accept=".pdf"
-                                        onChange={(e) => setData('proposal', e.target.files[0])}
+                                        onChange={(e) => {
+                                            if (e.target.files && e.target.files[0]) {
+                                                setData('proposal', e.target.files[0]);
+                                            }
+                                        }}
                                     />
                                     <label htmlFor="proposal" className="file-upload-trigger">
                                         <i className="fa-solid fa-cloud-arrow-up"></i>
@@ -397,3 +432,4 @@ export default function LecturerSubmissionForm({ onClose }) {
         </div>
     );
 }
+

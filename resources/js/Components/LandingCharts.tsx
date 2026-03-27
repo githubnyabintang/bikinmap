@@ -9,6 +9,8 @@ import {
     Tooltip,
     Legend,
     Filler,
+    ChartOptions,
+    ChartData
 } from 'chart.js';
 import { Bar, Doughnut } from 'react-chartjs-2';
 
@@ -50,7 +52,7 @@ const COLORS = {
 };
 
 // ---- Chart 1: Tren PKM Tahunan (Bar Chart) ----
-const yearlyTrendData = {
+const yearlyTrendData: ChartData<'bar'> = {
     labels: ['2021', '2022', '2023', '2024', '2025', '2026'],
     datasets: [
         {
@@ -74,7 +76,7 @@ const yearlyTrendData = {
     ],
 };
 
-const yearlyTrendOptions = {
+const yearlyTrendOptions: ChartOptions<'bar'> = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -84,14 +86,14 @@ const yearlyTrendOptions = {
                 usePointStyle: true,
                 pointStyle: 'circle',
                 padding: 20,
-                font: { size: 13, weight: '600', family: "'Segoe UI', sans-serif" },
+                font: { size: 13, weight: 'bold', family: "'Segoe UI', sans-serif" },
                 color: COLORS.textMuted,
             },
         },
         title: { display: false },
         tooltip: {
             backgroundColor: '#0f172a',
-            titleFont: { size: 13, weight: '700' },
+            titleFont: { size: 13, weight: 'bold' },
             bodyFont: { size: 12 },
             padding: 12,
             cornerRadius: 10,
@@ -106,7 +108,7 @@ const yearlyTrendOptions = {
         x: {
             grid: { display: false },
             ticks: {
-                font: { size: 12, weight: '600' },
+                font: { size: 12, weight: 'bold' },
                 color: COLORS.textMuted,
             },
         },
@@ -124,7 +126,7 @@ const yearlyTrendOptions = {
 
 // ---- Chart 2: Sebaran Status PKM Berdasarkan Titik Lokasi (Doughnut) ----
 // Segments correspond to the exact map marker locations + status
-const statusDistributionData = {
+const statusDistributionData: ChartData<'doughnut'> = {
     labels: [
         'Kripik Pisang - Bira (Selesai)',
         'Sanitasi Lingkungan - Tamalanrea Indah (Berlangsung)',
@@ -147,7 +149,7 @@ const statusDistributionData = {
     ],
 };
 
-const statusDistributionOptions = {
+const statusDistributionOptions: ChartOptions<'doughnut'> = {
     responsive: true,
     maintainAspectRatio: false,
     cutout: '62%',
@@ -158,7 +160,7 @@ const statusDistributionOptions = {
                 usePointStyle: true,
                 pointStyle: 'circle',
                 padding: 16,
-                font: { size: 12, weight: '600', family: "'Segoe UI', sans-serif" },
+                font: { size: 12, weight: 'bold', family: "'Segoe UI', sans-serif" },
                 color: COLORS.textMuted,
                 boxWidth: 10,
             },
@@ -166,7 +168,7 @@ const statusDistributionOptions = {
         title: { display: false },
         tooltip: {
             backgroundColor: '#0f172a',
-            titleFont: { size: 13, weight: '700' },
+            titleFont: { size: 13, weight: 'bold' },
             bodyFont: { size: 12 },
             padding: 12,
             cornerRadius: 10,
@@ -179,7 +181,36 @@ const statusDistributionOptions = {
 
 // ---- Component ----
 
-export default function LandingCharts() {
+interface ChartStats {
+    years: number[];
+    selesai: number[];
+    berlangsung: number[];
+    total_pengajuan: number;
+    total_diterima: number;
+    total_selesai: number;
+}
+
+export default function LandingCharts({ chartStats }: { chartStats?: ChartStats | null }) {
+    const barData: ChartData<'bar'> = chartStats ? {
+        labels: chartStats.years.map(String),
+        datasets: [
+            { ...yearlyTrendData.datasets[0], data: chartStats.selesai },
+            { ...yearlyTrendData.datasets[1], data: chartStats.berlangsung },
+        ],
+    } : yearlyTrendData;
+
+    const doughnutData: ChartData<'doughnut'> = chartStats ? {
+        labels: statusDistributionData.labels,
+        datasets: [{
+            ...statusDistributionData.datasets[0],
+            data: [
+                chartStats.total_selesai,
+                chartStats.total_diterima,
+                Math.max(0, chartStats.total_pengajuan - chartStats.total_selesai - chartStats.total_diterima),
+            ],
+        }],
+    } : statusDistributionData;
+
     return (
         <section className="fintech-charts-section" id="visualisasi-data">
             <div className="fintech-panel-header">
@@ -199,7 +230,7 @@ export default function LandingCharts() {
                         </div>
                     </div>
                     <div className="chart-canvas-wrapper">
-                        <Bar data={yearlyTrendData} options={yearlyTrendOptions} />
+                        <Bar data={barData} options={yearlyTrendOptions} />
                     </div>
                 </div>
 
@@ -211,14 +242,15 @@ export default function LandingCharts() {
                         </div>
                         <div>
                             <h3 className="chart-card-title">Sebaran Status PKM</h3>
-                            <p className="chart-card-subtitle">Distribusi status berdasarkan titik lokasi peta</p>
+                            <p className="chart-card-subtitle">Distribusi status pengajuan</p>
                         </div>
                     </div>
                     <div className="chart-canvas-wrapper">
-                        <Doughnut data={statusDistributionData} options={statusDistributionOptions} />
+                        <Doughnut data={doughnutData} options={statusDistributionOptions} />
                     </div>
                 </div>
             </div>
         </section>
     );
 }
+

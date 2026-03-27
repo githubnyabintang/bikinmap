@@ -1,5 +1,6 @@
+// @ts-nocheck - Legacy component, types will be refined in future refactors
 import React, { useState } from 'react';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { MapContainer, Marker, TileLayer, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -10,22 +11,28 @@ import LandingCharts from '@/Components/LandingCharts';
 import DocumentationGallery from '@/Components/DocumentationGallery';
 import TestimonialSidebarDisplay from '@/Components/TestimonialSidebarDisplay';
 
-export interface PkmData {
-    id: number | null;
-    nama: string;
-    tahun: number;
-    status: string;
-    deskripsi: string;
-    thumbnail: string | null;
-    laporan: string;
-    dokumentasi: string;
-    provinsi: string;
-    kabupaten: string;
-    kecamatan: string;
-    desa: string;
-    lat: number | string;
-    lng: number | string;
+import { PkmData } from '@/types';
+
+interface UserPengajuan {
+    id_pengajuan: number;
+    judul_kegiatan: string;
+    status_pengajuan: string;
+    created_at: string;
+    total_anggaran: number;
+    jenis_pkm?: { nama_jenis: string };
+    provinsi?: string;
+    kota_kabupaten?: string;
 }
+
+interface LandingProps {
+    pkmData?: PkmData[];
+    user?: { id_user: number; name: string; email: string; role: string } | null;
+    userPengajuan?: UserPengajuan[];
+    listJenisPkm?: { id_jenis_pkm: number; nama_jenis: string }[];
+    chartStats?: { years: number[]; selesai: number[]; berlangsung: number[]; total_pengajuan: number; total_diterima: number; total_selesai: number } | null;
+    testimonials?: any[];
+}
+
 
 // Leaflet Setup
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -149,43 +156,11 @@ const MapSearchWidget = ({ pkmData, onSelectPkm, isHidden }: MapSearchWidgetProp
 // Main Landing Page Component
 // ----------------------------------------------------
 
-export default function LandingPage() {
-    const [pkmData, setPkmData] = useState<PkmData[]>([
-        {
-            id: 1,
-            nama: 'Pemberdayaan UMKM Kripik Pisang',
-            tahun: 2025,
-            status: 'selesai',
-            deskripsi: 'Program pendampingan pemasaran digital dan perbaikan kemasan untuk industri rumah tangga kripik pisang di wilayah Tamalanrea.',
-            thumbnail: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=400',
-            laporan: '',
-            dokumentasi: 'https://drive.google.com/',
-            provinsi: 'Sulawesi Selatan',
-            kabupaten: 'Makassar',
-            kecamatan: 'Tamalanrea',
-            desa: 'Bira',
-            lat: -5.135,
-            lng: 119.495,
-        },
-        {
-            id: 2,
-            nama: 'Edukasi Sanitasi Lingkungan',
-            tahun: 2026,
-            status: 'berlangsung',
-            deskripsi: 'Penyuluhan mengenai pentingnya memilah sampah organik dan non-organik serta pembuatan bank sampah mandiri tingkat RW.',
-            thumbnail: 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&q=80&w=400',
-            laporan: '',
-            dokumentasi: '',
-            provinsi: 'Sulawesi Selatan',
-            kabupaten: 'Makassar',
-            kecamatan: 'Tamalanrea',
-            desa: 'Tamalanrea Indah',
-            lat: -5.13,
-            lng: 119.485,
-        },
-    ]);
+export default function LandingPage({ pkmData: initialPkmData = [], user = null, userPengajuan = [], listJenisPkm = [], chartStats = null, testimonials = [] }: LandingProps) {
+    const [pkmData, setPkmData] = useState<PkmData[]>(initialPkmData);
 
     const [sidebarPkm, setSidebarPkm] = useState<PkmData | null>(null);
+    const [validationError, setValidationError] = useState('');
     const [isMenuListOpen, setIsMenuListOpen] = useState(false);
     const [mobileActiveTab, setMobileActiveTab] = useState('peta');
     const [mobileBottomSheet, setMobileBottomSheet] = useState<'detail' | 'kegiatan' | null>(null);
@@ -214,11 +189,11 @@ export default function LandingPage() {
     const handleLinkFormSubmit = (e: React.FormEvent<HTMLFormElement> | React.MouseEvent<HTMLButtonElement>) => {
         e.preventDefault();
         if (!linkFormData.pkmId) {
-            alert('Silakan pilih kegiatan terlebih dahulu.');
+            setValidationError('Silakan pilih kegiatan terlebih dahulu.');
             return;
         }
         if (!linkFormData.linkDokumentasi && !linkFormData.linkLaporan) {
-            alert('Silakan isi minimal satu link.');
+            setValidationError('Silakan isi minimal satu link.');
             return;
         }
         // Update the pkmData with the submitted links
@@ -309,7 +284,7 @@ export default function LandingPage() {
     const handleSubmit = (event: React.FormEvent<HTMLFormElement> | React.MouseEvent<HTMLButtonElement>) => {
         event.preventDefault();
         if (!formData.id && !formData.thumbnail) {
-            alert('Silakan pilih thumbnail gambar terlebih dahulu.');
+            setValidationError('Silakan pilih thumbnail gambar terlebih dahulu.');
             return;
         }
 
@@ -327,6 +302,23 @@ export default function LandingPage() {
     return (
         <Layout>
             <Head title="Beranda - P3M Poltekpar Makassar" />
+
+            {validationError && (
+                <div style={{
+                    position: 'fixed', top: '16px', left: '50%', transform: 'translateX(-50%)', zIndex: 9999,
+                    backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '12px',
+                    padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '10px',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxWidth: '420px', width: '90%',
+                    animation: 'slideDown 0.2s ease',
+                }}>
+                    <i className="fa-solid fa-circle-exclamation" style={{ color: '#dc2626', fontSize: '16px', flexShrink: 0 }} />
+                    <span style={{ fontSize: '13px', color: '#991b1b', fontWeight: 600, flex: 1 }}>{validationError}</span>
+                    <button onClick={() => setValidationError('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', padding: '2px' }}>
+                        <i className="fa-solid fa-xmark" />
+                    </button>
+                    <style>{`@keyframes slideDown { from { opacity: 0; transform: translateX(-50%) translateY(-8px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }`}</style>
+                </div>
+            )}
 
             <div className="landing-page">
                 <div className="landing-main-layout">
@@ -505,12 +497,13 @@ export default function LandingPage() {
                                         <MapContainer center={[-5.132, 119.49]} zoom={15} className="map-container">
                                             <TileLayer
                                                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                                attribution=''
                                             />
                                             {pkmData.map((pkm) => (
                                                 <Marker
                                                     key={pkm.id}
-                                                    position={[pkm.lat, pkm.lng]}
+                                                    position={[Number(pkm.lat), Number(pkm.lng)]}
+
                                                     icon={createCustomIcon(pkm.status)}
                                                     eventHandlers={{ click: () => handleMarkerClick(pkm) }}
                                                 />
@@ -590,9 +583,16 @@ export default function LandingPage() {
 
                     {/* 2. Data Visualization Charts Section */}
                     <div className={`landing-charts-column ${mobileActiveTab !== 'dashboard' ? 'mobile-hidden' : ''}`}>
-                        <LandingCharts />
+                        <LandingCharts chartStats={chartStats} />
                     </div>
                 </div>
+
+                {/* 3. User Dashboard Section (logged in only) */}
+                {user && (
+                    <div style={{ padding: '32px 24px', maxWidth: '1200px', margin: '0 auto' }}>
+                        <UserDashboardSection user={user} userPengajuan={userPengajuan} listJenisPkm={listJenisPkm} />
+                    </div>
+                )}
 
                 {/* Mobile Bottom Sheet — Location Detail */}
                 <BottomSheet
@@ -921,9 +921,10 @@ export default function LandingPage() {
                                             required
                                         >
                                             <option value="">-- Pilih Kegiatan --</option>
-                                            {pkmData.map(pkm => (
-                                                <option key={pkm.id} value={pkm.id}>{pkm.nama}</option>
+                                            {pkmData.map((pkm, index) => (
+                                                <option key={pkm.id ?? index} value={pkm.id ?? ''}>{pkm.nama}</option>
                                             ))}
+
                                         </select>
                                     </div>
 
@@ -966,5 +967,236 @@ export default function LandingPage() {
                 )}
             </div>
         </Layout>
+    );
+}
+
+// =====================================================
+// User Dashboard Section (Form + Status Table)
+// =====================================================
+
+const statusConfig: Record<string, { label: string; cls: string; dot: string }> = {
+    diproses: { label: 'Diproses', cls: 'bg-blue-50 text-blue-700', dot: 'bg-blue-400' },
+    direvisi: { label: 'Perlu Revisi', cls: 'bg-amber-50 text-amber-700', dot: 'bg-amber-400' },
+    diterima: { label: 'Diterima', cls: 'bg-emerald-50 text-emerald-700', dot: 'bg-emerald-400' },
+    ditolak: { label: 'Ditolak', cls: 'bg-red-50 text-red-700', dot: 'bg-red-400' },
+    selesai: { label: 'Selesai', cls: 'bg-indigo-50 text-indigo-700', dot: 'bg-indigo-400' },
+};
+
+function UserDashboardSection({ user, userPengajuan, listJenisPkm }: {
+    user: any;
+    userPengajuan: UserPengajuan[];
+    listJenisPkm: any[];
+}) {
+    const [showForm, setShowForm] = useState(false);
+    const [form, setForm] = useState({
+        id_jenis_pkm: '', provinsi: '', kota_kabupaten: '', kecamatan: '', kelurahan_desa: '', alamat_lengkap: '',
+        judul_kegiatan: '', kebutuhan: '', instansi_mitra: '', sumber_dana: '', total_anggaran: '',
+        tgl_mulai: '', tgl_selesai: '', proposal: '', surat_permohonan: '', rab: '',
+    });
+    const [errors, setErrors] = useState<Record<string, string>>({});
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        router.post('/pengajuan', form, {
+            onError: (err) => setErrors(err),
+            onSuccess: () => {
+                setShowForm(false);
+                setForm({ id_jenis_pkm: '', provinsi: '', kota_kabupaten: '', kecamatan: '', kelurahan_desa: '', alamat_lengkap: '', judul_kegiatan: '', kebutuhan: '', instansi_mitra: '', sumber_dana: '', total_anggaran: '', tgl_mulai: '', tgl_selesai: '', proposal: '', surat_permohonan: '', rab: '' });
+            },
+        });
+    };
+
+    const inputCls = (hasError: boolean) =>
+        `w-full rounded-lg border ${hasError ? 'border-red-400 bg-red-50/50' : 'border-zinc-200'} px-4 py-2.5 text-[13px] text-zinc-900 placeholder-zinc-400 outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all bg-white`;
+
+    return (
+        <div>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                <div>
+                    <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#0f172a', margin: 0 }}>Dashboard Saya</h2>
+                    <p style={{ fontSize: '14px', color: '#64748b', margin: '4px 0 0' }}>
+                        Selamat datang, <strong>{user.name}</strong> ({user.role})
+                    </p>
+                </div>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                    <button
+                        onClick={() => setShowForm(!showForm)}
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px',
+                            backgroundColor: showForm ? '#f1f5f9' : '#0f172a', color: showForm ? '#0f172a' : 'white',
+                            border: showForm ? '1px solid #e2e8f0' : 'none', borderRadius: '10px',
+                            fontSize: '13px', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s',
+                        }}
+                    >
+                        <i className={`fa-solid ${showForm ? 'fa-xmark' : 'fa-plus'}`}></i>
+                        {showForm ? 'Tutup Form' : 'Buat Pengajuan'}
+                    </button>
+                    <Link href="/logout" method="post" as="button"
+                        style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: 'white', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '10px', fontSize: '13px', fontWeight: '700', cursor: 'pointer' }}>
+                        <i className="fa-solid fa-arrow-right-from-bracket"></i> Logout
+                    </Link>
+                </div>
+            </div>
+
+            {/* Pengajuan Form (collapsible) */}
+            {showForm && (
+                <div style={{ backgroundColor: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '28px', marginBottom: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                    <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#0f172a', margin: '0 0 6px' }}>Form Pengajuan PKM</h3>
+                    <p style={{ fontSize: '13px', color: '#94a3b8', margin: '0 0 24px' }}>Isi formulir dengan lengkap. Link dokumen (Google Drive, dll).</p>
+
+                    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div>
+                            <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', display: 'block', marginBottom: '6px' }}>Judul Kegiatan *</label>
+                            <input value={form.judul_kegiatan} onChange={e => setForm({ ...form, judul_kegiatan: e.target.value })} required placeholder="Judul kegiatan PKM..." className={inputCls(!!errors.judul_kegiatan)} />
+                            {errors.judul_kegiatan && <p style={{ color: '#dc2626', fontSize: '12px', marginTop: '4px' }}>{errors.judul_kegiatan}</p>}
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                            <div>
+                                <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', display: 'block', marginBottom: '6px' }}>Jenis PKM *</label>
+                                <select value={form.id_jenis_pkm} onChange={e => setForm({ ...form, id_jenis_pkm: e.target.value })} required className={inputCls(!!errors.id_jenis_pkm)}>
+                                    <option value="">-- Pilih Jenis --</option>
+                                    {listJenisPkm.map(j => <option key={j.id_jenis_pkm} value={j.id_jenis_pkm}>{j.nama_jenis}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', display: 'block', marginBottom: '6px' }}>Provinsi *</label>
+                                <input value={form.provinsi} onChange={e => setForm({ ...form, provinsi: e.target.value })} required placeholder="Contoh: Sulawesi Selatan" className={inputCls(!!errors.provinsi)} />
+                            </div>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                            <div>
+                                <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', display: 'block', marginBottom: '6px' }}>Kota / Kabupaten *</label>
+                                <input value={form.kota_kabupaten} onChange={e => setForm({ ...form, kota_kabupaten: e.target.value })} required placeholder="Contoh: Makassar" className={inputCls(!!errors.kota_kabupaten)} />
+                            </div>
+                            <div>
+                                <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', display: 'block', marginBottom: '6px' }}>Kecamatan</label>
+                                <input value={form.kecamatan} onChange={e => setForm({ ...form, kecamatan: e.target.value })} placeholder="Contoh: Tamalanrea" className={inputCls(false)} />
+                            </div>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                            <div>
+                                <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', display: 'block', marginBottom: '6px' }}>Kelurahan / Desa</label>
+                                <input value={form.kelurahan_desa} onChange={e => setForm({ ...form, kelurahan_desa: e.target.value })} placeholder="Contoh: Bira" className={inputCls(false)} />
+                            </div>
+                            <div>
+                                <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', display: 'block', marginBottom: '6px' }}>Alamat Lengkap *</label>
+                                <input value={form.alamat_lengkap} onChange={e => setForm({ ...form, alamat_lengkap: e.target.value })} required placeholder="Nama jalan, nomor, RT/RW, patokan..." className={inputCls(!!errors.alamat_lengkap)} />
+                            </div>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                            <div>
+                                <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', display: 'block', marginBottom: '6px' }}>Instansi Mitra</label>
+                                <input value={form.instansi_mitra} onChange={e => setForm({ ...form, instansi_mitra: e.target.value })} placeholder="Nama instansi mitra" className={inputCls(false)} />
+                            </div>
+                            <div>
+                                <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', display: 'block', marginBottom: '6px' }}>Sumber Dana</label>
+                                <input value={form.sumber_dana} onChange={e => setForm({ ...form, sumber_dana: e.target.value })} placeholder="Sumber dana" className={inputCls(false)} />
+                            </div>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+                            <div>
+                                <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', display: 'block', marginBottom: '6px' }}>Total Anggaran (Rp)</label>
+                                <input type="number" value={form.total_anggaran} onChange={e => setForm({ ...form, total_anggaran: e.target.value })} placeholder="0" className={inputCls(false)} />
+                            </div>
+                            <div>
+                                <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', display: 'block', marginBottom: '6px' }}>Tgl Mulai</label>
+                                <input type="date" value={form.tgl_mulai} onChange={e => setForm({ ...form, tgl_mulai: e.target.value })} className={inputCls(false)} />
+                            </div>
+                            <div>
+                                <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', display: 'block', marginBottom: '6px' }}>Tgl Selesai</label>
+                                <input type="date" value={form.tgl_selesai} onChange={e => setForm({ ...form, tgl_selesai: e.target.value })} min={form.tgl_mulai} className={inputCls(false)} />
+                            </div>
+                        </div>
+                        <div>
+                            <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', display: 'block', marginBottom: '6px' }}>Deskripsi Kebutuhan</label>
+                            <textarea value={form.kebutuhan} onChange={e => setForm({ ...form, kebutuhan: e.target.value })} rows={3} placeholder="Jelaskan latar belakang dan tujuan..." style={{ resize: 'none' }} className={inputCls(false)} />
+                        </div>
+
+                        <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '16px', marginTop: '8px' }}>
+                            <h4 style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a', margin: '0 0 12px' }}>Link Dokumen</h4>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                <div>
+                                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', display: 'block', marginBottom: '6px' }}>Proposal PKM *</label>
+                                    <input type="url" value={form.proposal} onChange={e => setForm({ ...form, proposal: e.target.value })} required placeholder="https://drive.google.com/file/d/..." className={inputCls(!!errors.proposal)} />
+                                </div>
+                                <div>
+                                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', display: 'block', marginBottom: '6px' }}>Surat Permohonan *</label>
+                                    <input type="url" value={form.surat_permohonan} onChange={e => setForm({ ...form, surat_permohonan: e.target.value })} required placeholder="https://drive.google.com/file/d/..." className={inputCls(!!errors.surat_permohonan)} />
+                                </div>
+                                <div>
+                                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', display: 'block', marginBottom: '6px' }}>RAB (opsional)</label>
+                                    <input type="url" value={form.rab} onChange={e => setForm({ ...form, rab: e.target.value })} placeholder="https://drive.google.com/file/d/..." className={inputCls(false)} />
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" style={{ padding: '12px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', marginTop: '8px' }}>
+                            <i className="fa-solid fa-paper-plane" style={{ marginRight: '8px' }}></i> Kirim Pengajuan
+                        </button>
+                    </form>
+                </div>
+            )}
+
+            {/* Status Table */}
+            <div style={{ backgroundColor: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a', margin: 0 }}>Riwayat Pengajuan</h3>
+                    <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>{userPengajuan.length} pengajuan</span>
+                </div>
+                {userPengajuan.length === 0 ? (
+                    <div style={{ padding: '48px 24px', textAlign: 'center', color: '#94a3b8' }}>
+                        <i className="fa-regular fa-file-lines" style={{ fontSize: '40px', color: '#cbd5e1', display: 'block', marginBottom: '12px' }}></i>
+                        <p style={{ fontWeight: '600' }}>Belum ada pengajuan.</p>
+                        <button onClick={() => setShowForm(true)} style={{ color: '#2563eb', fontWeight: '700', fontSize: '14px', background: 'none', border: 'none', cursor: 'pointer', marginTop: '8px' }}>
+                            Buat pengajuan pertama &rarr;
+                        </button>
+                    </div>
+                ) : (
+                    <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                            <thead>
+                                <tr style={{ backgroundColor: '#f8fafc' }}>
+                                    <th style={{ padding: '12px 20px', fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Judul</th>
+                                    <th style={{ padding: '12px 20px', fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Jenis / Lokasi</th>
+                                    <th style={{ padding: '12px 20px', fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tanggal</th>
+                                    <th style={{ padding: '12px 20px', fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'center' }}>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {userPengajuan.map((p) => {
+                                    const st = statusConfig[p.status_pengajuan] || statusConfig.diproses;
+                                    return (
+                                        <tr key={p.id_pengajuan} style={{ borderTop: '1px solid #f1f5f9' }}>
+                                            <td style={{ padding: '16px 20px' }}>
+                                                <div style={{ fontWeight: '700', fontSize: '14px', color: '#0f172a' }}>{p.judul_kegiatan}</div>
+                                            </td>
+                                            <td style={{ padding: '16px 20px' }}>
+                                                <div style={{ fontSize: '13px', color: '#374151', fontWeight: '600' }}>{p.jenis_pkm?.nama_jenis || '-'}</div>
+                                                <div style={{ fontSize: '12px', color: '#94a3b8' }}>{p.kota_kabupaten ? `${p.kota_kabupaten}, ${p.provinsi}` : '-'}</div>
+                                            </td>
+                                            <td style={{ padding: '16px 20px', fontSize: '13px', color: '#64748b', fontWeight: '600' }}>
+                                                {new Date(p.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                            </td>
+                                            <td style={{ padding: '16px 20px', textAlign: 'center' }}>
+                                                <span style={{
+                                                    display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', borderRadius: '6px',
+                                                    fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em',
+                                                    backgroundColor: st.cls.includes('blue') ? '#eff6ff' : st.cls.includes('amber') ? '#fffbeb' : st.cls.includes('emerald') ? '#ecfdf5' : st.cls.includes('red') ? '#fef2f2' : '#eef2ff',
+                                                    color: st.cls.includes('blue') ? '#1d4ed8' : st.cls.includes('amber') ? '#b45309' : st.cls.includes('emerald') ? '#047857' : st.cls.includes('red') ? '#dc2626' : '#4338ca',
+                                                }}>
+                                                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: st.dot.includes('blue') ? '#60a5fa' : st.dot.includes('amber') ? '#fbbf24' : st.dot.includes('emerald') ? '#34d399' : st.dot.includes('red') ? '#f87171' : '#818cf8' }}></span>
+                                                    {st.label}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+        </div>
     );
 }

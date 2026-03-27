@@ -2,7 +2,12 @@ import React, { useState } from 'react';
 import '../../css/testimonial-sidebar.css';
 import TestimonialForm from './TestimonialForm';
 
-const StarIcon = ({ filled = true, half = false }) => {
+interface StarIconProps {
+    filled?: boolean;
+    half?: boolean;
+}
+
+const StarIcon: React.FC<StarIconProps> = ({ filled = true, half = false }) => {
     if (half) {
         return (
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="star-icon">
@@ -24,13 +29,26 @@ const StarIcon = ({ filled = true, half = false }) => {
     );
 };
 
-const TestimonialSidebarDisplay = ({ status }) => {
+interface Testimonial {
+    id: number;
+    name: string;
+    role: string;
+    rating: number;
+    text: string;
+    date: string;
+}
+
+interface TestimonialSidebarDisplayProps {
+    status: string;
+}
+
+const TestimonialSidebarDisplay: React.FC<TestimonialSidebarDisplayProps> = ({ status }) => {
     const [isFormOpen, setIsFormOpen] = useState(false);
 
     // Only show testimonials for completed projects
     if (status !== 'selesai') return null;
 
-    const testimonials = [
+    const testimonials: Testimonial[] = [
         {
             id: 1,
             name: "Bapak Budi",
@@ -41,7 +59,7 @@ const TestimonialSidebarDisplay = ({ status }) => {
         }
     ];
 
-    const renderStars = (rating) => {
+    const renderStars = (rating: number) => {
         const stars = [];
         const fullStars = Math.floor(rating);
         const hasHalfStar = rating % 1 !== 0;
@@ -129,12 +147,14 @@ const TestimonialSidebarDisplay = ({ status }) => {
                         boxShadow: '0 2px 8px rgba(3,105,161,0.25)'
                     }}
                     onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-1px)';
-                        e.currentTarget.style.boxShadow = '0 4px 14px rgba(3,105,161,0.35)';
+                        const target = e.currentTarget;
+                        target.style.transform = 'translateY(-1px)';
+                        target.style.boxShadow = '0 4px 14px rgba(3,105,161,0.35)';
                     }}
                     onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(3,105,161,0.25)';
+                        const target = e.currentTarget;
+                        target.style.transform = 'translateY(0)';
+                        target.style.boxShadow = '0 2px 8px rgba(3,105,161,0.25)';
                     }}
                 >
                     <i className="fa-solid fa-pen-to-square" style={{ fontSize: '14px' }}></i>
@@ -150,3 +170,4 @@ const TestimonialSidebarDisplay = ({ status }) => {
 };
 
 export default TestimonialSidebarDisplay;
+

@@ -2,7 +2,12 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import '../../css/documentation-gallery.css';
 
-const DocumentationGallery = ({ status, driveLink = '' }) => {
+interface DocumentationGalleryProps {
+    status: string;
+    driveLink?: string;
+}
+
+const DocumentationGallery: React.FC<DocumentationGalleryProps> = ({ status, driveLink = '' }) => {
     // Video Modal State
     const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
 
@@ -91,14 +96,16 @@ const DocumentationGallery = ({ status, driveLink = '' }) => {
                             boxShadow: '0 1px 3px rgba(0,0,0,0.06)'
                         }}
                         onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = '#eff6ff';
-                            e.currentTarget.style.borderColor = '#93c5fd';
-                            e.currentTarget.style.boxShadow = '0 2px 8px rgba(29,78,216,0.12)';
+                            const target = e.currentTarget;
+                            target.style.backgroundColor = '#eff6ff';
+                            target.style.borderColor = '#93c5fd';
+                            target.style.boxShadow = '0 2px 8px rgba(29,78,216,0.12)';
                         }}
                         onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = '#ffffff';
-                            e.currentTarget.style.borderColor = '#e2e8f0';
-                            e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)';
+                            const target = e.currentTarget;
+                            target.style.backgroundColor = '#ffffff';
+                            target.style.borderColor = '#e2e8f0';
+                            target.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)';
                         }}
                     >
                         <i className="fa-brands fa-google-drive" style={{ fontSize: '16px', color: '#4285f4' }}></i>
@@ -135,3 +142,4 @@ const DocumentationGallery = ({ status, driveLink = '' }) => {
 };
 
 export default DocumentationGallery;
+

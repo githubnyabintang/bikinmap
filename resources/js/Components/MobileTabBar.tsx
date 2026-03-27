@@ -1,7 +1,19 @@
 import React from 'react';
 
-const MobileTabBar = ({ activeTab = 'peta', onTabChange }) => {
-    const tabs = [
+interface MobileTabBarProps {
+    activeTab?: string;
+    onTabChange?: (tabId: string) => void;
+}
+
+interface TabItem {
+    id: string;
+    label: string;
+    icon: string;
+    href?: string;
+}
+
+const MobileTabBar: React.FC<MobileTabBarProps> = ({ activeTab = 'peta', onTabChange }) => {
+    const tabs: TabItem[] = [
         { id: 'beranda', label: 'Beranda', icon: 'fa-solid fa-house', href: 'https://p3m.poltekparmakassar.ac.id/' },
         { id: 'peta', label: 'Peta', icon: 'fa-solid fa-map-location-dot' },
         { id: 'dashboard', label: 'Statistik', icon: 'fa-solid fa-chart-pie' },
@@ -32,3 +44,4 @@ const MobileTabBar = ({ activeTab = 'peta', onTabChange }) => {
 };
 
 export default MobileTabBar;
+

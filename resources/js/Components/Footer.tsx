@@ -3,7 +3,8 @@ import React from 'react';
 const Footer = () => {
     return (
         <>
-            <footer className="site-footer" itemScope="itemscope" itemType="https://schema.org/WPFooter">
+            <footer className="site-footer" itemScope itemType="https://schema.org/WPFooter">
+
                 <div className="footer-container">
                     <div className="footer-widgets">
                         <div className="footer-widget">

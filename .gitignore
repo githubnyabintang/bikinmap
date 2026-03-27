@@ -26,3 +26,4 @@ auth.json
 .idea
 /public/hot
 /public/storage
+*.log

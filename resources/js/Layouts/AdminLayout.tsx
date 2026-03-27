@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, usePage } from '@inertiajs/react';
+import Toast from '../Components/Toast';
 import {
     LayoutDashboard,
     Users,
@@ -47,7 +48,24 @@ const navItems: NavItem[] = [
 ];
 
 const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
-    const { url } = usePage();
+    const { url, props } = usePage();
+    const flash = (props as any).flash || {};
+
+    // Toast state
+    const [toast, setToast] = useState<{ show: boolean; type: 'success' | 'error' | 'info' | 'warning'; title: string; message: string }>({
+        show: false, type: 'success', title: '', message: '',
+    });
+
+    // Read flash messages and show toast
+    useEffect(() => {
+        if (flash.success) {
+            setToast({ show: true, type: 'success', title: 'Berhasil', message: flash.success });
+        } else if (flash.error) {
+            setToast({ show: true, type: 'error', title: 'Gagal', message: flash.error });
+        }
+    }, [flash.success, flash.error]);
+
+    const closeToast = useCallback(() => setToast(prev => ({ ...prev, show: false })), []);
 
     const isActive = (href?: string) => {
         if (!href || href === '#') return false;
@@ -205,6 +223,15 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
                     {children}
                 </div>
             </main>
+
+            {/* Global Toast Notifications */}
+            <Toast
+                show={toast.show}
+                type={toast.type}
+                title={toast.title}
+                message={toast.message}
+                onClose={closeToast}
+            />
         </div>
     );
 };

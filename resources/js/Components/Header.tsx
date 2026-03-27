@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 
 const menuItems = [
     {
@@ -50,7 +50,10 @@ const menuItems = [
 
 const Header = () => {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-    const [submenuOpen, setSubmenuOpen] = useState(null);
+    const [submenuOpen, setSubmenuOpen] = useState<number | null>(null);
+    const { auth } = usePage().props as any;
+    const user = auth?.user ?? null;
+
 
     const toggleMobileMenu = () => {
         setMobileMenuOpen((prev) => {
@@ -62,7 +65,8 @@ const Header = () => {
         });
     };
 
-    const toggleSubmenu = (index) => {
+    const toggleSubmenu = (index: number) => {
+
         if (window.innerWidth > 768) {
             return;
         }
@@ -114,7 +118,8 @@ const Header = () => {
                                                 <i className="fa-solid fa-bars"></i>
                                             </button>
                                             <ul className="submenu">
-                                                {item.children.map((child) => (
+                                                {item.children?.map((child) => (
+
                                                     <li key={child.label}>
                                                         <a
                                                             href={child.href}
@@ -141,9 +146,25 @@ const Header = () => {
                 </nav>
 
                 <div className="header-controls">
-                    <Link href="/login" className="btn-primary" style={{ padding: '8px 20px', fontSize: '14px', borderRadius: '99px', textDecoration: 'none' }}>
-                        Login
-                    </Link>
+                    {user ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            {user.role === 'admin' && (
+                                <Link href="/admin" style={{ padding: '8px 16px', fontSize: '13px', borderRadius: '8px', textDecoration: 'none', backgroundColor: '#0f172a', color: 'white', fontWeight: '600' }}>
+                                    Admin Panel
+                                </Link>
+                            )}
+                            <span style={{ fontSize: '13px', fontWeight: '600', color: '#64748b' }}>
+                                {user.name}
+                            </span>
+                            <Link href="/logout" method="post" as="button" style={{ padding: '8px 16px', fontSize: '13px', borderRadius: '8px', border: '1px solid #fecaca', backgroundColor: 'white', color: '#dc2626', fontWeight: '600', cursor: 'pointer' }}>
+                                Logout
+                            </Link>
+                        </div>
+                    ) : (
+                        <Link href="/login" className="btn-primary" style={{ padding: '8px 20px', fontSize: '14px', borderRadius: '99px', textDecoration: 'none' }}>
+                            Login
+                        </Link>
+                    )}
                     <button type="button" className="header-control-button header-control-primary" aria-label="Quick menu">
                         <i className="fa-solid fa-align-justify"></i>
                     </button>

@@ -1,7 +1,16 @@
 import React, { useEffect } from 'react';
 import '../../css/form-components.css'; // Ensure the CSS is imported
 
-export default function Toast({ show, type = 'success', title, message, onClose, duration = 3000 }) {
+interface ToastProps {
+    show: boolean;
+    type?: 'success' | 'error' | 'info' | 'warning';
+    title: string;
+    message: string;
+    onClose: () => void;
+    duration?: number;
+}
+
+export default function Toast({ show, type = 'success', title, message, onClose, duration = 3000 }: ToastProps) {
     useEffect(() => {
         if (show && duration > 0) {
             const timer = setTimeout(() => {
@@ -31,3 +40,4 @@ export default function Toast({ show, type = 'success', title, message, onClose,
         </div>
     );
 }
+

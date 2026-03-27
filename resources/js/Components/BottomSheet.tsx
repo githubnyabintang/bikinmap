@@ -1,17 +1,24 @@
 import React, { useRef, useEffect, useState } from 'react';
 
-const BottomSheet = ({ isOpen, onClose, title, children }) => {
-    const sheetRef = useRef(null);
+interface BottomSheetProps {
+    isOpen: boolean;
+    onClose?: () => void;
+    title?: string;
+    children: React.ReactNode;
+}
+
+const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title, children }) => {
+    const sheetRef = useRef<HTMLDivElement>(null);
     const [startY, setStartY] = useState(0);
     const [currentY, setCurrentY] = useState(0);
     const [dragging, setDragging] = useState(false);
 
-    const handleTouchStart = (e) => {
+    const handleTouchStart = (e: React.TouchEvent) => {
         setStartY(e.touches[0].clientY);
         setDragging(true);
     };
 
-    const handleTouchMove = (e) => {
+    const handleTouchMove = (e: React.TouchEvent) => {
         if (!dragging) return;
         const diff = e.touches[0].clientY - startY;
         if (diff > 0) {
@@ -74,3 +81,4 @@ const BottomSheet = ({ isOpen, onClose, title, children }) => {
 };
 
 export default BottomSheet;
+

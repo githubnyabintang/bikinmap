@@ -1,3 +1,9 @@
+/* Hide Leaflet attribution and polish controls */
+.leaflet-control-attribution { display: none !important; }
+.leaflet-control-zoom { border: none !important; box-shadow: 0 1px 4px rgba(0,0,0,0.12) !important; }
+.leaflet-control-zoom a { border-radius: 6px !important; }
+.leaflet-control-zoom-in, .leaflet-control-zoom-out { font-size: 16px !important; width: 30px !important; height: 30px !important; line-height: 30px !important; }
+
 /* Public Landing Page Premium Styles */
 .landing-page {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;

@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration 
+return new class extends Migration
 {
     public function up(): void
     {
@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id('id_testimoni');
             $table->foreignId('id_aktivitas')->constrained('aktivitas', 'id_aktivitas')->onDelete('cascade');
             $table->string('nama_pemberi');
-            $table->integer('rating')->default(5);
+            $table->unsignedSmallInteger('rating')->default(5);
             $table->text('pesan_ulasan')->nullable();
             $table->timestamps();
         });

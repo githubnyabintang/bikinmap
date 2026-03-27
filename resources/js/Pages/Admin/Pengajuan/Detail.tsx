@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { router, Link } from '@inertiajs/react';
 import AdminLayout from '../../../Layouts/AdminLayout';
+import ConfirmDialog from '../../../Components/ConfirmDialog';
 import {
     FileText, ExternalLink, FolderOpen, CheckCircle, X, Clock,
     AlertCircle, RefreshCw, Plus, Trash2, Users, ArrowLeft,
@@ -30,7 +31,13 @@ interface Pengajuan {
     rab?: string;
     user?: { name: string; email: string };
     jenis_pkm?: { nama_jenis: string };
-    lokasi_pkm?: { provinsi: string; kota_kabupaten: string; kecamatan?: string; kelurahan_desa?: string };
+    provinsi?: string;
+    kota_kabupaten?: string;
+    kecamatan?: string;
+    kelurahan_desa?: string;
+    alamat_lengkap?: string;
+    latitude?: number;
+    longitude?: number;
     tim_kegiatan?: TimKegiatan[];
     aktivitas?: Aktivitas; // hasOne — singular, not array
     arsip?: Arsip[];
@@ -61,13 +68,26 @@ const Detail: React.FC<Props> = ({ pengajuan, listPegawai }) => {
     );
     const [thumbnailAktivitas, setThumbnailAktivitas] = useState<File | null>(null);
 
+    // Confirm dialog state
+    const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; title: string; message: string; action: () => void }>({
+        open: false, title: '', message: '', action: () => {},
+    });
+    const showConfirm = (title: string, message: string, action: () => void) =>
+        setConfirmDialog({ open: true, title, message, action });
+    const closeConfirm = () => setConfirmDialog(prev => ({ ...prev, open: false }));
+    const execConfirm = () => { confirmDialog.action(); closeConfirm(); };
+
+    const [catatanError, setCatatanError] = useState('');
+
     const handleSimpanPengaturan = () => {
+        if (!pengajuan.aktivitas) return;
         const formData = new FormData();
         formData.append('status_pelaksanaan', statusAktivitas);
+        formData.append('_method', 'PUT');
         if (thumbnailAktivitas) {
             formData.append('thumbnail', thumbnailAktivitas);
         }
-        router.post(`/admin/pengajuan/${pengajuan.id_pengajuan}/aktivitas`, formData);
+        router.post(`/admin/aktivitas/${pengajuan.aktivitas.id_aktivitas}`, formData);
     };
 
     const st = statusConfig[pengajuan.status_pengajuan] || statusConfig.diproses;
@@ -80,16 +100,17 @@ const Detail: React.FC<Props> = ({ pengajuan, listPegawai }) => {
     const handleSimpanKeputusan = () => {
         if (!selectedAction) return;
         if (selectedAction === 'direvisi' && catatan.trim().length === 0) {
-            alert('Catatan Revisi wajib diisi jika memilih opsi Revisi.');
+            setCatatanError('Catatan Revisi wajib diisi.');
             return;
         }
+        setCatatanError('');
 
-        if (confirm('Simpan keputusan ini?')) {
+        showConfirm('Simpan Keputusan?', `Status akan diubah menjadi "${selectedAction}".`, () => {
             router.put(`/admin/pengajuan/${pengajuan.id_pengajuan}/status`, {
                 status_pengajuan: selectedAction,
                 catatan_admin: selectedAction === 'direvisi' ? catatan : null,
             });
-        }
+        });
     };
 
     const handleAddTim = (e: React.FormEvent) => {
@@ -102,9 +123,9 @@ const Detail: React.FC<Props> = ({ pengajuan, listPegawai }) => {
     };
 
     const handleRemoveTim = (timId: number) => {
-        if (confirm('Hapus anggota tim ini?')) {
+        showConfirm('Hapus Anggota Tim', 'Anggota tim ini akan dihapus dari pengajuan.', () => {
             router.delete(`/admin/pengajuan/${pengajuan.id_pengajuan}/tim/${timId}`);
-        }
+        });
     };
 
     const isCatatanRequired = selectedAction === 'direvisi';
@@ -202,17 +223,18 @@ const Detail: React.FC<Props> = ({ pengajuan, listPegawai }) => {
                     </div>
 
                     {/* Lokasi */}
-                    {pengajuan.lokasi_pkm && (
+                    {pengajuan.provinsi && (
                         <div className="bg-white rounded-xl border border-zinc-200 shadow-sm overflow-hidden">
                             <div className="px-6 py-4 border-b border-zinc-100 bg-zinc-50/50 flex justify-between items-center">
                                 <h2 className="text-[15px] font-semibold text-zinc-900">Lokasi Pelaksanaan</h2>
                                 <MapPin size={16} className="text-zinc-400" />
                             </div>
                             <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
-                                <InfoField label="Provinsi" value={pengajuan.lokasi_pkm.provinsi} icon={<MapPin size={16} />} />
-                                <InfoField label="Kota / Kabupaten" value={pengajuan.lokasi_pkm.kota_kabupaten} icon={<MapPin size={16} />} />
-                                {pengajuan.lokasi_pkm.kecamatan && <InfoField label="Kecamatan" value={pengajuan.lokasi_pkm.kecamatan} icon={<MapPin size={16} />} />}
-                                {pengajuan.lokasi_pkm.kelurahan_desa && <InfoField label="Kelurahan / Desa" value={pengajuan.lokasi_pkm.kelurahan_desa} icon={<MapPin size={16} />} />}
+                                <InfoField label="Provinsi" value={pengajuan.provinsi} icon={<MapPin size={16} />} />
+                                <InfoField label="Kota / Kabupaten" value={pengajuan.kota_kabupaten} icon={<MapPin size={16} />} />
+                                {pengajuan.kecamatan && <InfoField label="Kecamatan" value={pengajuan.kecamatan} icon={<MapPin size={16} />} />}
+                                {pengajuan.kelurahan_desa && <InfoField label="Kelurahan / Desa" value={pengajuan.kelurahan_desa} icon={<MapPin size={16} />} />}
+                                {pengajuan.alamat_lengkap && <InfoField label="Alamat Lengkap" value={pengajuan.alamat_lengkap} icon={<MapPin size={16} />} />}
                             </div>
                         </div>
                     )}
@@ -300,6 +322,7 @@ const Detail: React.FC<Props> = ({ pengajuan, listPegawai }) => {
                                             placeholder="Jelaskan bagian mana yang perlu diperbaiki oleh pengusul..."
                                             className={`w-full rounded-md border bg-white px-3 py-2.5 text-[13px] text-zinc-900 shadow-sm outline-none placeholder-zinc-400 resize-y transition-all focus:ring-2 ${isCatatanRequired && !hasCatatan ? 'border-red-300 focus:border-red-400 focus:ring-red-100' : 'border-zinc-200 focus:border-amber-400 focus:ring-amber-100'}`}
                                         />
+                                        {catatanError && <p className="text-[12px] text-red-500 mt-1.5 font-medium">{catatanError}</p>}
                                     </div>
                                 )}
 
@@ -350,6 +373,7 @@ const Detail: React.FC<Props> = ({ pengajuan, listPegawai }) => {
                                         <option value="selesai">🟢 Selesai (Pin Hijau)</option>
                                     </select>
                                 </div>
+
                                 <button
                                     onClick={handleSimpanPengaturan}
                                     className="w-full flex justify-center items-center gap-2 py-2.5 rounded-lg text-[13px] font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors"
@@ -401,6 +425,15 @@ const Detail: React.FC<Props> = ({ pengajuan, listPegawai }) => {
                     </div>
                 </div>
             )}
+
+            <ConfirmDialog
+                open={confirmDialog.open}
+                title={confirmDialog.title}
+                message={confirmDialog.message}
+                onConfirm={execConfirm}
+                onCancel={closeConfirm}
+                variant="warning"
+            />
         </AdminLayout>
     );
 };

@@ -3,30 +3,37 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Aktivitas extends Model
 {
+    use SoftDeletes;
+
     protected $table = 'aktivitas';
+
     protected $primaryKey = 'id_aktivitas';
 
     protected $fillable = [
         'id_pengajuan',
         'status_pelaksanaan',
+        'catatan_pelaksanaan',
+        'tgl_realisasi_mulai',
+        'tgl_realisasi_selesai',
         'url_thumbnail',
     ];
 
     public function pengajuan()
     {
-        return $this->belongsTo(Pengajuan::class , 'id_pengajuan', 'id_pengajuan');
+        return $this->belongsTo(Pengajuan::class, 'id_pengajuan', 'id_pengajuan');
     }
 
     public function arsip()
     {
-        return $this->hasMany(Arsip::class , 'id_aktivitas', 'id_aktivitas');
+        return $this->hasMany(Arsip::class, 'id_aktivitas', 'id_aktivitas');
     }
 
     public function testimoni()
     {
-        return $this->hasMany(Testimoni::class , 'id_aktivitas', 'id_aktivitas');
+        return $this->hasMany(Testimoni::class, 'id_aktivitas', 'id_aktivitas');
     }
 }

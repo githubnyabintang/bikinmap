@@ -12,7 +12,8 @@ export default function Login() {
     });
 
     // Handle form submission using form.post
-    const submit = (e) => {
+    const submit = (e: React.FormEvent) => {
+
         e.preventDefault();
 
         post('/login', {
@@ -92,7 +93,7 @@ export default function Login() {
                                         onClick={() => setShowPassword(!showPassword)}
                                         aria-label="Toggle password visibility"
                                     >
-                                        <i className={`fa - regular ${showPassword ? 'fa-eye-slash' : 'fa-eye'} `}></i>
+                                        <i className={`fa-regular ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
                                     </button>
                                 </div>
                                 {errors.password && (

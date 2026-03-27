@@ -1,3 +1,4 @@
+// @ts-nocheck - Legacy JSX converted to TSX, types will be refined in future refactors
 import React, { useState } from 'react';
 import { Head, Link } from '@inertiajs/react';
 import { MapContainer, Marker, TileLayer, useMapEvents } from 'react-leaflet';
@@ -7,12 +8,12 @@ import Layout from '@/Layouts/DefaultLayout';
 import MobileTabBar from '@/Components/MobileTabBar';
 import BottomSheet from '@/Components/BottomSheet';
 
-import GeneralSubmissionForm from '@/Components/GeneralSubmissionForm';
+import LecturerSubmissionForm from '@/Components/LecturerSubmissionForm';
 import DocumentationGallery from '@/Components/DocumentationGallery';
 import TestimonialSidebarDisplay from '@/Components/TestimonialSidebarDisplay';
 import LandingCharts from '@/Components/LandingCharts';
 import '../../../css/landing.css';
-import '../../../css/masyarakat-form.css';
+import '../../../css/lecturer-form.css';
 
 // Leaflet Setup
 delete L.Icon.Default.prototype._getIconUrl;
@@ -124,51 +125,18 @@ const MapSearchWidget = ({ pkmData, onSelectPkm, isHidden }) => {
 };
 
 // ====================================================
-// Login Masyarakat — Dashboard Page (Role: Masyarakat)
+// Login Dosen — Dashboard Page (Role: Dosen)
 // ====================================================
 
-export default function LoginMasyarakat() {
-    const [pkmData, setPkmData] = useState([
-        {
-            id: 1,
-            nama: 'Pemberdayaan UMKM Kripik Pisang',
-            tahun: 2025,
-            status: 'selesai',
-            deskripsi: 'Program pendampingan pemasaran digital dan perbaikan kemasan untuk industri rumah tangga kripik pisang di wilayah Tamalanrea.',
-            thumbnail: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=400',
-            laporan: '',
-            dokumentasi: 'https://drive.google.com/',
-            provinsi: 'Sulawesi Selatan',
-            kabupaten: 'Makassar',
-            kecamatan: 'Tamalanrea',
-            desa: 'Bira',
-            lat: -5.135,
-            lng: 119.495,
-        },
-        {
-            id: 2,
-            nama: 'Edukasi Sanitasi Lingkungan',
-            tahun: 2026,
-            status: 'berlangsung',
-            deskripsi: 'Penyuluhan mengenai pentingnya memilah sampah organik dan non-organik serta pembuatan bank sampah mandiri tingkat RW.',
-            thumbnail: 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&q=80&w=400',
-            laporan: '',
-            dokumentasi: '',
-            provinsi: 'Sulawesi Selatan',
-            kabupaten: 'Makassar',
-            kecamatan: 'Tamalanrea',
-            desa: 'Tamalanrea Indah',
-            lat: -5.13,
-            lng: 119.485,
-        },
-    ]);
+export default function LoginDosen({ pkmData: initialPkmData = [] as any[] }) {
+    const [pkmData, setPkmData] = useState(initialPkmData);
 
     const [sidebarPkm, setSidebarPkm] = useState(null);
     const [isMenuListOpen, setIsMenuListOpen] = useState(false);
     const [mobileActiveTab, setMobileActiveTab] = useState('peta');
     const [mobileBottomSheet, setMobileBottomSheet] = useState(null);
     const [isPickingLocation, setIsPickingLocation] = useState(false);
-    const [isFormOpen, setIsFormOpen] = useState(false);
+    const [isLecturerFormOpen, setIsLecturerFormOpen] = useState(false);
 
     // Accordion state for sidebar menu
     const [expandedSection, setExpandedSection] = useState(null);
@@ -188,11 +156,11 @@ export default function LoginMasyarakat() {
     const handleLinkFormSubmit = (e) => {
         if (e) e.preventDefault();
         if (!linkFormData.pkmId) {
-            alert('Silakan pilih kegiatan terlebih dahulu.');
+            setValidationError('Silakan pilih kegiatan terlebih dahulu.');
             return;
         }
         if (!linkFormData.linkDokumentasi && !linkFormData.linkLaporan) {
-            alert('Silakan isi minimal satu link.');
+            setValidationError('Silakan isi minimal satu link.');
             return;
         }
         setPkmData(prev => prev.map(item => {
@@ -216,6 +184,7 @@ export default function LoginMasyarakat() {
     // Status Pengajuan data — will be populated from backend
     // Each item: { id, judul, tanggal, status: 'diproses'|'disetujui'|'ditangguhkan'|'ditolak' }
     const [pengajuanData] = useState([]);
+    const [validationError, setValidationError] = useState('');
 
     const getStatusPengajuanStyle = (status) => {
         switch (status) {
@@ -260,16 +229,31 @@ export default function LoginMasyarakat() {
     };
 
     const handleFabClick = () => {
-        setIsFormOpen(true);
+        setIsLecturerFormOpen(true);
     };
 
     return (
         <Layout>
-            <Head title="Akun Masyarakat - P3M Poltekpar Makassar" />
+            <Head title="Akun Dosen - P3M Poltekpar Makassar" />
+
+            {validationError && (
+                <div style={{
+                    position: 'fixed', top: '16px', left: '50%', transform: 'translateX(-50%)', zIndex: 9999,
+                    backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '12px',
+                    padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '10px',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxWidth: '420px', width: '90%',
+                }}>
+                    <i className="fa-solid fa-circle-exclamation" style={{ color: '#dc2626', fontSize: '16px' }} />
+                    <span style={{ fontSize: '13px', color: '#991b1b', fontWeight: 600, flex: 1 }}>{validationError}</span>
+                    <button onClick={() => setValidationError('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626' }}>
+                        <i className="fa-solid fa-xmark" />
+                    </button>
+                </div>
+            )}
 
             {/* Render Contextual Form Components */}
-            {isFormOpen && (
-                <GeneralSubmissionForm onClose={() => setIsFormOpen(false)} />
+            {isLecturerFormOpen && (
+                <LecturerSubmissionForm onClose={() => setIsLecturerFormOpen(false)} />
             )}
 
             <div className="landing-page">
@@ -284,10 +268,10 @@ export default function LoginMasyarakat() {
                                     Peta Sebaran Pengabdian PKM <span className="text-blue">Poltekpar Makassar</span>
                                 </h2>
 
-                                {/* Akun Masyarakat Static Desktop Indicator (Moved to Panel Header) */}
-                                <div className="akun-masyarakat-desktop-indicator-inline" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(59, 130, 246, 0.1)', color: '#2563eb', padding: '6px 14px', borderRadius: '100px', fontWeight: '600', fontSize: '14px' }}>
-                                    <i className="fa-solid fa-users"></i>
-                                    <span>Akun Masyarakat</span>
+                                {/* Akun Dosen Static Desktop Indicator (Moved to Panel Header) */}
+                                <div className="akun-dosen-desktop-indicator-inline" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(59, 130, 246, 0.1)', color: '#2563eb', padding: '6px 14px', borderRadius: '100px', fontWeight: '600', fontSize: '14px' }}>
+                                    <i className="fa-solid fa-user-tie"></i>
+                                    <span>Akun Dosen</span>
                                 </div>
                             </div>
 
@@ -551,7 +535,7 @@ export default function LoginMasyarakat() {
                                         <MapContainer center={[-5.132, 119.49]} zoom={15} className="map-container">
                                             <TileLayer
                                                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                                attribution=''
                                             />
                                             {pkmData.map((pkm) => (
                                                 <Marker
@@ -583,6 +567,7 @@ export default function LoginMasyarakat() {
 
                                         <div className={`map-overlay ${sidebarPkm || isMenuListOpen ? 'active' : ''}`} onClick={() => { setSidebarPkm(null); setIsMenuListOpen(false); }}></div>
 
+                                        {/* FAB "+" Button — Will open Dosen PKM form */}
                                         <div className="fab-wrapper">
                                             <button className="fab" onClick={handleFabClick}>
                                                 <span className="fab-label">Buat Pengajuan</span>
@@ -691,7 +676,7 @@ export default function LoginMasyarakat() {
                 <BottomSheet
                     isOpen={mobileBottomSheet === 'kegiatan'}
                     onClose={closeMobileBottomSheet}
-                    title="Daftar Kegiatan"
+                    title="Kegiatan Saya"
                 >
                     <div className="mobile-kegiatan-list">
                         {pkmData.map((pkm) => (
@@ -747,9 +732,9 @@ export default function LoginMasyarakat() {
                             ) : (
                                 <form className="modal-body" onSubmit={handleLinkFormSubmit}>
                                     <div className="form-group">
-                                        <label htmlFor="linkPkmIdMasyarakat">Pilih Kegiatan</label>
+                                        <label htmlFor="linkPkmIdDosen">Pilih Kegiatan</label>
                                         <select
-                                            id="linkPkmIdMasyarakat"
+                                            id="linkPkmIdDosen"
                                             value={linkFormData.pkmId}
                                             onChange={(e) => handleLinkFormChange('pkmId', e.target.value)}
                                             required
@@ -762,10 +747,10 @@ export default function LoginMasyarakat() {
                                     </div>
 
                                     <div className="form-group">
-                                        <label htmlFor="linkDokumentasiMasyarakat">Link Dokumentasi</label>
+                                        <label htmlFor="linkDokumentasiDosen">Link Dokumentasi</label>
                                         <input
                                             type="url"
-                                            id="linkDokumentasiMasyarakat"
+                                            id="linkDokumentasiDosen"
                                             value={linkFormData.linkDokumentasi}
                                             onChange={(e) => handleLinkFormChange('linkDokumentasi', e.target.value)}
                                             placeholder="https://drive.google.com/..."
@@ -773,10 +758,10 @@ export default function LoginMasyarakat() {
                                     </div>
 
                                     <div className="form-group">
-                                        <label htmlFor="linkLaporanMasyarakat">Link Laporan</label>
+                                        <label htmlFor="linkLaporanDosen">Link Laporan</label>
                                         <input
                                             type="url"
-                                            id="linkLaporanMasyarakat"
+                                            id="linkLaporanDosen"
                                             value={linkFormData.linkLaporan}
                                             onChange={(e) => handleLinkFormChange('linkLaporan', e.target.value)}
                                             placeholder="https://drive.google.com/..."

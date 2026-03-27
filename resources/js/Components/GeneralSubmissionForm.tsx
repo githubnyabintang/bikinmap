@@ -1,8 +1,22 @@
 import React, { useRef } from 'react';
 import { useForm } from '@inertiajs/react';
 
-export default function GeneralSubmissionForm({ onClose }) {
-    const { data, setData, post, processing, errors, progress } = useForm({
+interface GeneralSubmissionFormProps {
+    onClose: () => void;
+}
+
+interface GeneralSubmissionFormData {
+    name: string;
+    institution: string;
+    needs: string;
+    location: string;
+    email: string;
+    whatsapp: string;
+    request_letter: File | null;
+}
+
+export default function GeneralSubmissionForm({ onClose }: GeneralSubmissionFormProps) {
+    const { data, setData, post, processing, errors, progress } = useForm<GeneralSubmissionFormData>({
         name: '',
         institution: '',
         needs: '',
@@ -12,30 +26,29 @@ export default function GeneralSubmissionForm({ onClose }) {
         request_letter: null,
     });
 
-    const letterInputRef = useRef(null);
+    const letterInputRef = useRef<HTMLInputElement>(null);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(route('pkm.general.store'), {
+        post('/pengajuan', {
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => {
-                alert('Pengajuan berhasil dikirim!');
                 onClose();
             },
         });
     };
 
-    const handleFileChange = (field, e) => {
+    const handleFileChange = (field: keyof GeneralSubmissionFormData, e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
-            setData(field, e.target.files[0]);
+            setData(field as any, e.target.files[0]);
         }
     };
 
-    const handleDrop = (field, e) => {
+    const handleDrop = (field: keyof GeneralSubmissionFormData, e: React.DragEvent) => {
         e.preventDefault();
         if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-            setData(field, e.dataTransfer.files[0]);
+            setData(field as any, e.dataTransfer.files[0]);
         }
     };
 
@@ -76,7 +89,7 @@ export default function GeneralSubmissionForm({ onClose }) {
                             <label>Kebutuhan / Permintaan <span className="required">*</span></label>
                             <div className="input-wrapper align-top">
                                 <i className="fa-solid fa-clipboard-list input-icon"></i>
-                                <textarea value={data.needs} onChange={e => setData('needs', e.target.value)} placeholder="Jelaskan secara singkat jenis bantuan / kebutuhan PKM" rows="3" required></textarea>
+                                <textarea value={data.needs} onChange={e => setData('needs', e.target.value)} placeholder="Jelaskan secara singkat jenis bantuan / kebutuhan PKM" rows={3} required></textarea>
                             </div>
                             {errors.needs && <div className="field-error">{errors.needs}</div>}
                         </div>
@@ -116,7 +129,7 @@ export default function GeneralSubmissionForm({ onClose }) {
                             <label className="file-label">Surat Permohonan (PDF) <span className="required">*</span></label>
                             <div
                                 className={`file-dropzone ${data.request_letter ? 'file-selected' : ''}`}
-                                onClick={() => letterInputRef.current.click()}
+                                onClick={() => letterInputRef.current?.click()}
                                 onDragOver={(e) => e.preventDefault()}
                                 onDrop={(e) => handleDrop('request_letter', e)}
                             >
@@ -164,3 +177,4 @@ export default function GeneralSubmissionForm({ onClose }) {
         </div>
     );
 }
+

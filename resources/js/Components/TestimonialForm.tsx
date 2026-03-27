@@ -4,44 +4,54 @@ import { useForm } from '@inertiajs/react';
 import Toast from './Toast';
 import '../../css/masyarakat-form.css'; // Consistent styling with GeneralSubmissionForm
 
-export default function TestimonialForm({ onClose }) {
+interface TestimonialFormProps {
+    onClose: () => void;
+}
+
+interface ToastState {
+    show: boolean;
+    type: 'success' | 'error' | 'info' | 'warning';
+    title: string;
+    message: string;
+}
+
+export default function TestimonialForm({ onClose }: TestimonialFormProps) {
     const { data, setData, post, processing: inertiaProcessing, errors, setError, clearErrors, reset } = useForm({
-        nama: '',
+        nama_pemberi: '',
         jabatan: '',
         rating: 0,
-        ulasan: '',
+        pesan_ulasan: '',
     });
 
-    const [mockProcessing, setMockProcessing] = useState(false);
-    const [toast, setToast] = useState({ show: false, type: 'success', title: '', message: '' });
+    const [toast, setToast] = useState<ToastState>({ show: false, type: 'success', title: '', message: '' });
 
-    const handleSubmit = (e) => {
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         clearErrors();
 
         let hasErrors = false;
-        if (!data.nama) { setError('nama', 'Nama wajib diisi'); hasErrors = true; }
+        if (!data.nama_pemberi) { setError('nama_pemberi', 'Nama wajib diisi'); hasErrors = true; }
         if (!data.jabatan) { setError('jabatan', 'Jabatan / Peran wajib diisi'); hasErrors = true; }
         if (data.rating === 0) { setError('rating', 'Silakan pilih rating (1-5 Bintang)'); hasErrors = true; }
-        if (!data.ulasan) { setError('ulasan', 'Ulasan testimoni wajib diisi'); hasErrors = true; }
+        if (!data.pesan_ulasan) { setError('pesan_ulasan', 'Ulasan testimoni wajib diisi'); hasErrors = true; }
 
         if (hasErrors) {
             setToast({ show: true, type: 'error', title: 'Validasi Gagal', message: 'Harap lengkapi semua field yang diwajibkan.' });
             return;
         }
 
-        setMockProcessing(true);
-        setTimeout(() => {
-            setMockProcessing(false);
-            setToast({ show: true, type: 'success', title: 'Berhasil', message: 'Testimoni Anda berhasil dikirim.' });
-            setTimeout(() => {
-                reset();
-                onClose();
-            }, 3000);
-        }, 1500);
+        post('/testimoni/public', {
+            onSuccess: () => {
+                setToast({ show: true, type: 'success', title: 'Berhasil', message: 'Testimoni Anda berhasil dikirim.' });
+                setTimeout(() => { reset(); onClose(); }, 2000);
+            },
+            onError: () => {
+                setToast({ show: true, type: 'error', title: 'Gagal', message: 'Gagal mengirim testimoni. Silakan coba lagi.' });
+            },
+        });
     };
 
-    const isProcessing = inertiaProcessing || mockProcessing;
+    const isProcessing = inertiaProcessing;
 
     const renderInteractiveStars = () => {
         const stars = [];
@@ -63,10 +73,12 @@ export default function TestimonialForm({ onClose }) {
                         transform: i <= data.rating ? 'scale(1.1)' : 'scale(1)',
                     }}
                     onMouseEnter={(e) => {
-                        if (i > data.rating) e.currentTarget.style.color = '#fbbf24';
+                        const target = e.currentTarget;
+                        if (i > data.rating) target.style.color = '#fbbf24';
                     }}
                     onMouseLeave={(e) => {
-                        if (i > data.rating) e.currentTarget.style.color = '#cbd5e1';
+                        const target = e.currentTarget;
+                        if (i > data.rating) target.style.color = '#cbd5e1';
                     }}
                 >
                     <i className={`fa-solid fa-star`}></i>
@@ -93,16 +105,16 @@ export default function TestimonialForm({ onClose }) {
 
                         <div className="form-group">
                             <label>Nama Lengkap <span className="required">*</span></label>
-                            <div className={`input-wrapper ${errors.nama ? 'error-border' : ''}`}>
+                            <div className={`input-wrapper ${errors.nama_pemberi ? 'error-border' : ''}`}>
                                 <i className="fa-solid fa-user input-icon"></i>
                                 <input
                                     type="text"
-                                    value={data.nama}
-                                    onChange={e => setData('nama', e.target.value)}
+                                    value={data.nama_pemberi}
+                                    onChange={e => setData('nama_pemberi', e.target.value)}
                                     placeholder="Masukkan Nama Anda"
                                 />
                             </div>
-                            {errors.nama && <div className="field-error">{errors.nama}</div>}
+                            {errors.nama_pemberi && <div className="field-error">{errors.nama_pemberi}</div>}
                         </div>
 
                         <div className="form-group">
@@ -127,16 +139,16 @@ export default function TestimonialForm({ onClose }) {
 
                         <div className="form-group">
                             <label>Ulasan / Pesan <span className="required">*</span></label>
-                            <div className={`input-wrapper align-top ${errors.ulasan ? 'error-border' : ''}`}>
+                            <div className={`input-wrapper align-top ${errors.pesan_ulasan ? 'error-border' : ''}`}>
                                 <i className="fa-solid fa-comment-dots input-icon"></i>
                                 <textarea
-                                    value={data.ulasan}
-                                    onChange={e => setData('ulasan', e.target.value)}
+                                    value={data.pesan_ulasan}
+                                    onChange={e => setData('pesan_ulasan', e.target.value)}
                                     placeholder="Ceritakan pengalaman dan kesan Anda tentang program ini..."
-                                    rows="4"
+                                    rows={4}
                                 ></textarea>
                             </div>
-                            {errors.ulasan && <div className="field-error">{errors.ulasan}</div>}
+                            {errors.pesan_ulasan && <div className="field-error">{errors.pesan_ulasan}</div>}
                         </div>
 
                         <div className="form-actions" style={{ borderTop: 'none', paddingTop: '10px' }}>
@@ -164,3 +176,4 @@ export default function TestimonialForm({ onClose }) {
         document.body
     );
 }
+

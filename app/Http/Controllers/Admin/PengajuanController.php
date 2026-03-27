@@ -3,21 +3,37 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Pengajuan;
 use App\Models\Aktivitas;
+use App\Models\Pegawai;
+use App\Models\Pengajuan;
+use App\Models\TimKegiatan;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class PengajuanController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $listPengajuan = Pengajuan::with(['user', 'jenisPkm'])
+            ->when($request->search, function ($query, $search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('judul_kegiatan', 'like', "%{$search}%")
+                        ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%"));
+                });
+            })
+            ->when($request->status, function ($query, $status) {
+                $query->where('status_pengajuan', $status);
+            })
             ->latest()
-            ->paginate(10);
+            ->paginate(10)
+            ->withQueryString();
 
         return Inertia::render('Admin/Pengajuan/Index', [
             'listPengajuan' => $listPengajuan,
+            'filters' => [
+                'search' => $request->search ?? '',
+                'status' => $request->status ?? '',
+            ],
         ]);
     }
 
@@ -31,7 +47,7 @@ class PengajuanController extends Controller
             'arsip',
         ])->findOrFail($id);
 
-        $listPegawai = \App\Models\Pegawai::orderBy('nama_pegawai')
+        $listPegawai = Pegawai::orderBy('nama_pegawai')
             ->get(['id_pegawai', 'nama_pegawai', 'nip']);
 
         return Inertia::render('Admin/Pengajuan/Detail', [
@@ -40,10 +56,6 @@ class PengajuanController extends Controller
         ]);
     }
 
-    /**
-     * Ubah status pengajuan. Jika status menjadi 'diterima',
-     * otomatis buat record aktivitas baru dengan status 'berjalan'.
-     */
     public function updateStatus(Request $request, int $id)
     {
         $request->validate([
@@ -59,11 +71,9 @@ class PengajuanController extends Controller
         $pengajuan->catatan_admin = $request->catatan_admin;
         $pengajuan->save();
 
-        // ✅ AUTO-TRIGGER: buat aktivitas otomatis saat status berubah ke 'diterima'
         if ($statusBaru === 'diterima' && $statusLama !== 'diterima') {
-            // Cek agar tidak membuat duplikat
             $aktivitasSudahAda = Aktivitas::where('id_pengajuan', $id)->exists();
-            if (!$aktivitasSudahAda) {
+            if (! $aktivitasSudahAda) {
                 Aktivitas::create([
                     'id_pengajuan' => $pengajuan->id_pengajuan,
                     'status_pelaksanaan' => 'berjalan',
@@ -74,9 +84,6 @@ class PengajuanController extends Controller
         return redirect()->back()->with('success', 'Status pengajuan berhasil diperbarui.');
     }
 
-    /**
-     * Tambah anggota Tim PKM ke pengajuan
-     */
     public function storeTim(Request $request, int $id)
     {
         $request->validate([
@@ -87,7 +94,7 @@ class PengajuanController extends Controller
 
         $pengajuan = Pengajuan::findOrFail($id);
 
-        \App\Models\TimKegiatan::create([
+        TimKegiatan::create([
             'id_pengajuan' => $pengajuan->id_pengajuan,
             'id_pegawai' => $request->id_pegawai,
             'nama_mahasiswa' => $request->nama_mahasiswa,
@@ -97,12 +104,9 @@ class PengajuanController extends Controller
         return redirect()->back()->with('success', 'Anggota tim berhasil ditambahkan.');
     }
 
-    /**
-     * Hapus anggota Tim PKM
-     */
     public function destroyTim(int $pengajuanId, int $timId)
     {
-        $tim = \App\Models\TimKegiatan::where('id_pengajuan', $pengajuanId)
+        $tim = TimKegiatan::where('id_pengajuan', $pengajuanId)
             ->where('id_tim', $timId)
             ->firstOrFail();
 
@@ -111,33 +115,74 @@ class PengajuanController extends Controller
         return redirect()->back()->with('success', 'Anggota tim berhasil dihapus.');
     }
 
-    /**
-     * Update pengaturan aktivitas (thumbnail & status pelaksanaan)
-     */
-    public function updateAktivitas(Request $request, int $id)
+    public function updateLokasi(Request $request, int $id)
     {
         $request->validate([
-            'status_pelaksanaan' => 'required|in:persiapan,berjalan,selesai',
-            'thumbnail' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'latitude' => 'required|numeric|between:-90,90',
+            'longitude' => 'required|numeric|between:-180,180',
         ]);
 
         $pengajuan = Pengajuan::findOrFail($id);
 
-        // Get or create the aktivitas record for this pengajuan
-        $aktivitas = Aktivitas::firstOrCreate(
-            ['id_pengajuan' => $pengajuan->id_pengajuan],
-            ['status_pelaksanaan' => $request->status_pelaksanaan]
-        );
-
-        $aktivitas->status_pelaksanaan = $request->status_pelaksanaan;
-
-        if ($request->hasFile('thumbnail')) {
-            $path = $request->file('thumbnail')->store('aktivitas/thumbnails', 'public');
-            $aktivitas->url_thumbnail = '/storage/' . $path;
+        if ($pengajuan->status_pengajuan !== 'diterima') {
+            return redirect()->back()->with('error', 'Koordinat hanya dapat diubah untuk pengajuan yang sudah diterima.');
         }
 
-        $aktivitas->save();
+        $pengajuan->update([
+            'latitude' => $request->latitude,
+            'longitude' => $request->longitude,
+        ]);
 
-        return redirect()->back()->with('success', 'Pengaturan aktivitas berhasil disimpan.');
+        return redirect()->back()->with('success', 'Koordinat lokasi berhasil diperbarui.');
+    }
+
+    public function export(Request $request)
+    {
+        $query = Pengajuan::with(['user', 'jenisPkm'])
+            ->when($request->search, function ($query, $search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('judul_kegiatan', 'like', "%{$search}%")
+                        ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%"));
+                });
+            })
+            ->when($request->status, function ($query, $status) {
+                $query->where('status_pengajuan', $status);
+            })
+            ->latest();
+
+        $filename = 'pengajuan_'.now()->format('Y-m-d_His').'.csv';
+
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ];
+
+        $callback = function () use ($query) {
+            $file = fopen('php://output', 'w');
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF)); // UTF-8 BOM
+
+            fputcsv($file, ['ID', 'Judul Kegiatan', 'Pengaju', 'Jenis PKM', 'Lokasi', 'Status', 'Total Anggaran', 'Tanggal Mulai', 'Tanggal Selesai', 'Dibuat']);
+
+            $query->chunk(100, function ($items) use ($file) {
+                foreach ($items as $p) {
+                    fputcsv($file, [
+                        $p->id_pengajuan,
+                        $p->judul_kegiatan,
+                        $p->user->name ?? '-',
+                        $p->jenisPkm->nama_jenis ?? '-',
+                        $p->provinsi ? "{$p->kota_kabupaten}, {$p->provinsi}" : '-',
+                        $p->status_pengajuan,
+                        $p->total_anggaran,
+                        $p->tgl_mulai,
+                        $p->tgl_selesai,
+                        $p->created_at?->format('Y-m-d H:i'),
+                    ]);
+                }
+            });
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 }
