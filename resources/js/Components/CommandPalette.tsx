@@ -54,22 +54,33 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
         }
     }
 
-    // Reset on open/close
+    // Reset on open/close + fetch recent items
     useEffect(() => {
         if (open) {
             setQuery('');
-            setResults(null);
             setSelectedIndex(0);
             setTimeout(() => inputRef.current?.focus(), 50);
+            // Fetch recent items immediately
+            fetchRecent();
         }
     }, [open]);
+
+    const fetchRecent = useCallback(async () => {
+        setLoading(true);
+        try {
+            const res = await fetch('/api/search?q=');
+            const data = await res.json();
+            setResults(data);
+        } catch { setResults(null); }
+        setLoading(false);
+    }, []);
 
     // Debounced search
     const handleSearch = useCallback((value: string) => {
         setQuery(value);
         setSelectedIndex(0);
         if (debounceRef.current) clearTimeout(debounceRef.current);
-        if (value.length < 2) { setResults(null); return; }
+        if (value.length < 2) { fetchRecent(); return; }
 
         debounceRef.current = setTimeout(async () => {
             setLoading(true);
@@ -80,7 +91,7 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
             } catch { setResults(null); }
             setLoading(false);
         }, 250);
-    }, []);
+    }, [fetchRecent]);
 
     // Navigate to result
     const goToResult = useCallback((result: FlatResult) => {
@@ -151,12 +162,6 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
                         </div>
                     )}
 
-                    {!loading && query.length < 2 && (
-                        <div style={{ padding: '32px 16px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
-                            Ketik minimal 2 karakter untuk mencari
-                        </div>
-                    )}
-
                     {!loading && results && flatResults.length > 0 && (
                         <div>
                             {Object.entries(results).map(([category, items]) => {
@@ -171,7 +176,7 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
                                         <div style={{ padding: '8px 16px 4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                             <Icon size={13} style={{ color: '#94a3b8' }} />
                                             <span style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                                {config.label}
+                                                {config.label}{!query ? ' Terakhir' : ''}
                                             </span>
                                         </div>
                                         {(items as SearchResult[]).map((item: SearchResult, i: number) => {
