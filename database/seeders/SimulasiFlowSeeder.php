@@ -62,6 +62,9 @@ class SimulasiFlowSeeder extends Seeder
             'status_pengajuan' => 'diproses',
             'tgl_mulai' => now()->addDays(14)->format('Y-m-d'),
             'tgl_selesai' => now()->addDays(20)->format('Y-m-d'),
+            'proposal' => 'https://p3m.poltekparmakassar.ac.id/sample/proposal-1.pdf',
+            'surat_permohonan' => 'https://p3m.poltekparmakassar.ac.id/sample/surat-1.pdf',
+            'rab' => 'https://p3m.poltekparmakassar.ac.id/sample/rab-1.pdf',
         ]);
 
         // Simulasi 2: Direvisi
@@ -82,6 +85,7 @@ class SimulasiFlowSeeder extends Seeder
             'catatan_admin' => 'RAB kurang detail. Mohon rincikan biaya transportasi.',
             'tgl_mulai' => now()->addDays(30)->format('Y-m-d'),
             'tgl_selesai' => now()->addDays(35)->format('Y-m-d'),
+            'proposal' => 'https://p3m.poltekparmakassar.ac.id/sample/proposal-rev.pdf',
         ]);
 
         // Simulasi 3: Ditolak
@@ -124,6 +128,8 @@ class SimulasiFlowSeeder extends Seeder
             'catatan_admin' => 'Proposal disetujui. Silakan lanjut ke pelaksanaan.',
             'tgl_mulai' => now()->subDays(5)->format('Y-m-d'),
             'tgl_selesai' => now()->addDays(5)->format('Y-m-d'),
+            'proposal' => 'https://p3m.poltekparmakassar.ac.id/sample/proposal-fix.pdf',
+            'rab' => 'https://p3m.poltekparmakassar.ac.id/sample/rab-fix.pdf',
         ]);
 
         TimKegiatan::create(['id_pengajuan' => $diterima->id_pengajuan, 'id_pegawai' => $pegawai1->id_pegawai, 'peran_tim' => 'Ketua']);
@@ -149,6 +155,8 @@ class SimulasiFlowSeeder extends Seeder
             'status_pengajuan' => 'selesai',
             'tgl_mulai' => now()->subDays(60)->format('Y-m-d'),
             'tgl_selesai' => now()->subDays(55)->format('Y-m-d'),
+            'proposal' => 'https://p3m.poltekparmakassar.ac.id/sample/proposal-final.pdf',
+            'surat_permohonan' => 'https://p3m.poltekparmakassar.ac.id/sample/surat-final.pdf',
         ]);
 
         TimKegiatan::create(['id_pengajuan' => $selesai->id_pengajuan, 'id_pegawai' => $pegawai2->id_pegawai, 'peran_tim' => 'Ketua']);

@@ -70,7 +70,7 @@ const Detail: React.FC<Props> = ({ pengajuan, listPegawai }) => {
 
     // Confirm dialog state
     const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; title: string; message: string; action: () => void }>({
-        open: false, title: '', message: '', action: () => {},
+        open: false, title: '', message: '', action: () => { },
     });
     const showConfirm = (title: string, message: string, action: () => void) =>
         setConfirmDialog({ open: true, title, message, action });
@@ -245,22 +245,33 @@ const Detail: React.FC<Props> = ({ pengajuan, listPegawai }) => {
                             <h2 className="text-[15px] font-semibold text-zinc-900">Dokumen Lampiran</h2>
                             <FolderOpen size={16} className="text-zinc-400" />
                         </div>
-                        <div className="p-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="p-6 space-y-4">
                             {[
                                 { label: 'Proposal', url: pengajuan.proposal },
                                 { label: 'Surat Permohonan', url: pengajuan.surat_permohonan },
                                 { label: 'RAB', url: pengajuan.rab },
                             ].map(doc => (
-                                <a key={doc.label} href={doc.url || '#'} target="_blank" rel="noopener noreferrer"
-                                    className={`flex flex-col gap-3 px-4 py-4 rounded-xl text-[13px] font-medium border shadow-sm transition-all ${doc.url ? 'bg-white text-zinc-900 border-zinc-200 hover:border-zinc-300 hover:shadow-md' : 'bg-zinc-50 text-zinc-400 border-zinc-100 cursor-not-allowed'}`}>
-                                    <div className="flex justify-between items-center w-full">
-                                        <FileText size={20} className={doc.url ? 'text-indigo-500' : 'text-zinc-300'} />
-                                        {doc.url && <ExternalLink size={14} className="text-zinc-400" />}
-                                    </div>
-                                    <span className="font-semibold tracking-tight">{doc.label}</span>
-                                </a>
+                                <div key={doc.label}>
+                                    <label className="text-[12px] font-semibold text-zinc-500 block mb-1.5">{doc.label}</label>
+                                    {doc.url ? (
+                                        <a href={doc.url} target="_blank" rel="noopener noreferrer"
+                                            className="flex items-center justify-between w-full bg-zinc-50 border border-zinc-200 rounded-lg px-4 py-2.5 text-[13px] text-indigo-600 font-medium hover:bg-zinc-100 hover:border-zinc-300 transition-all shadow-sm group">
+                                            <div className="flex items-center gap-3 truncate">
+                                                <FileText size={16} className="text-zinc-400 group-hover:text-indigo-500" />
+                                                <span className="truncate">Buka File {doc.label}</span>
+                                            </div>
+                                            <ExternalLink size={14} className="text-zinc-400" />
+                                        </a>
+                                    ) : (
+                                        <div className="flex items-center gap-3 w-full bg-zinc-50/50 border border-zinc-100 rounded-lg px-4 py-2.5 text-[13px] text-zinc-400 cursor-not-allowed italic">
+                                            <X size={16} className="text-zinc-300" />
+                                            Belum diunggah
+                                        </div>
+                                    )}
+                                </div>
                             ))}
                         </div>
+
                     </div>
                 </div>
 

@@ -78,31 +78,22 @@ const Detail: React.FC<Props> = ({ aktivitas }) => {
     const handleSearch = (query: string) => {
         setSearchQuery(query);
         if (searchTimeout.current) clearTimeout(searchTimeout.current);
-        if (query.length < 3) { setSearchResults([]); setShowResults(false); return; }
+        if (query.length < 2) { setSearchResults([]); setShowResults(false); return; }
 
         searchTimeout.current = setTimeout(async () => {
             setSearching(true);
             try {
-                // Add viewbox for Indonesia + append "Indonesia" to query for better results
-                const params = new URLSearchParams({
-                    q: query + ', Indonesia',
-                    format: 'json',
-                    limit: '8',
-                    countrycodes: 'id',
-                    addressdetails: '1',
-                });
-                const res = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
-                    headers: { 'Accept-Language': 'id' },
-                });
+                const res = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`);
                 const data = await res.json();
                 setSearchResults(data);
                 setShowResults(true);
             } catch (e) {
-                console.error('Nominatim search error:', e);
+                console.error('Search error:', e);
                 setSearchResults([]);
+                setShowResults(true);
             }
             setSearching(false);
-        }, 600);
+        }, 400);
     };
 
     const selectSearchResult = (result: NominatimResult) => {
@@ -203,8 +194,8 @@ const Detail: React.FC<Props> = ({ aktivitas }) => {
                     </div>
 
                     {/* Map Picker with Nominatim Search */}
-                    <div className="bg-white rounded-xl border border-zinc-200 shadow-sm overflow-hidden">
-                        <div className="px-6 py-4 border-b border-zinc-100 bg-zinc-50/50 flex items-center gap-2">
+                    <div className="bg-white rounded-xl border border-zinc-200 shadow-sm overflow-visible">
+                        <div className="px-6 py-4 border-b border-zinc-100 bg-zinc-50/50 flex items-center gap-2 rounded-t-xl">
                             <MapPin size={16} className="text-zinc-500" />
                             <h2 className="text-[14px] font-semibold text-zinc-900">Koordinat Lokasi</h2>
                         </div>
@@ -238,17 +229,24 @@ const Detail: React.FC<Props> = ({ aktivitas }) => {
                                 </div>
                                 {searching && <p className="text-[11px] text-zinc-400 mt-1">Mencari...</p>}
                                 {showResults && searchResults.length > 0 && (
-                                    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-zinc-200 rounded-lg shadow-lg overflow-hidden">
+                                    <div className="absolute z-[9999] top-full left-0 right-0 mt-1 bg-white border border-zinc-200 rounded-lg shadow-xl overflow-hidden">
                                         {searchResults.map((r, i) => (
                                             <button
                                                 key={i}
                                                 onClick={() => selectSearchResult(r)}
-                                                className="w-full text-left px-4 py-2.5 text-[12px] text-zinc-700 hover:bg-zinc-50 border-b border-zinc-100 last:border-0 transition-colors flex items-center gap-2"
+                                                type="button"
+                                                className="w-full text-left px-4 py-2.5 text-[12px] text-zinc-700 hover:bg-blue-50 hover:text-blue-900 border-b border-zinc-100 last:border-0 transition-colors flex items-center gap-2"
                                             >
                                                 <MapPin size={12} className="text-zinc-400 flex-shrink-0" />
                                                 <span className="truncate">{r.display_name}</span>
                                             </button>
                                         ))}
+                                    </div>
+                                )}
+                                {showResults && searchResults.length === 0 && !searching && searchQuery.length >= 2 && (
+                                    <div className="absolute z-[9999] top-full left-0 right-0 mt-1 bg-white border border-zinc-200 rounded-lg shadow-xl p-4 text-center">
+                                        <p className="text-[12px] text-zinc-500">Tidak ada hasil untuk "{searchQuery}"</p>
+                                        <p className="text-[11px] text-zinc-400 mt-1">Coba kata kunci lain, misalnya: "Paccerakkang Makassar"</p>
                                     </div>
                                 )}
                             </div>

@@ -98,6 +98,39 @@ Route::post('/testimoni/public', function (Request $request) {
     return redirect()->back()->with('success', 'Testimoni berhasil dikirim.');
 })->name('testimoni.public');
 
+Route::get('/api/geocode', function (Request $request) {
+    $query = $request->input('q', '');
+    if (strlen($query) < 2) {
+        return response()->json([]);
+    }
+
+    $params = http_build_query([
+        'q' => $query.', Indonesia',
+        'format' => 'json',
+        'limit' => '8',
+        'countrycodes' => 'id',
+        'addressdetails' => '1',
+    ]);
+
+    $url = "https://nominatim.openstreetmap.org/search?{$params}";
+
+    $context = stream_context_create([
+        'http' => [
+            'method' => 'GET',
+            'header' => "User-Agent: SIGAP-PKM/1.0 (https://github.com/nearmeoi/SIGAP-P3M)\r\nAccept-Language: id\r\n",
+            'timeout' => 10,
+        ],
+    ]);
+
+    $response = @file_get_contents($url, false, $context);
+
+    if ($response === false) {
+        return response()->json([]);
+    }
+
+    return response($response)->header('Content-Type', 'application/json');
+})->name('api.geocode');
+
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:auth');

@@ -136,7 +136,7 @@ const Index: React.FC<IndexProps> = ({ listPengajuan, filters }) => {
                     <table className="w-full text-left min-w-[900px]">
                         <thead>
                             <tr className="border-b border-zinc-200 bg-zinc-50/50">
-                                <th className="py-3 px-6 text-[11px] font-semibold uppercase tracking-wider text-zinc-500 w-12 text-center">ID</th>
+                                <th className="py-3 px-6 text-[11px] font-semibold uppercase tracking-wider text-zinc-500 w-12 text-center">No</th>
                                 <th className="py-3 px-6 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Nama Kegiatan</th>
                                 <th className="py-3 px-6 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Pengaju</th>
                                 <th className="py-3 px-6 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Detail</th>
@@ -156,10 +156,10 @@ const Index: React.FC<IndexProps> = ({ listPengajuan, filters }) => {
                                     const st = statusBadge[item.status_pengajuan] || statusBadge.diproses;
                                     return (
                                         <tr key={item.id_pengajuan} className="hover:bg-zinc-50/50 transition-colors group">
-                                            <td className="py-4 px-6 text-center border-r border-zinc-100 bg-zinc-50/30">
-                                                <div className="text-[12px] font-mono font-medium text-zinc-500 bg-zinc-100/80 px-2 py-0.5 rounded border border-zinc-200/60 shadow-sm min-w-[40px] text-center inline-block">
+                                            <td className="py-4 px-6 text-center">
+                                                <span className="text-[13px] font-medium text-zinc-500">
                                                     {item.id_pengajuan.toString().padStart(2, '0')}
-                                                </div>
+                                                </span>
                                             </td>
                                             <td className="py-4 px-6">
                                                 <Link href={`/admin/pengajuan/${item.id_pengajuan}`} className="text-[14px] font-semibold text-zinc-900 group-hover:text-indigo-600 transition-colors leading-snug truncate max-w-[280px] block">
@@ -177,12 +177,12 @@ const Index: React.FC<IndexProps> = ({ listPengajuan, filters }) => {
                                             </td>
                                             <td className="py-4 px-6">
                                                 <div className="text-[13px] text-zinc-700 font-medium">{item.jenis_pkm?.nama_jenis || '-'}</div>
-                                                        <div className="text-[12px] text-zinc-500 mt-1 truncate max-w-[200px]">
+                                                <div className="text-[12px] text-zinc-500 mt-1 truncate max-w-[200px]">
                                                     {item.kota_kabupaten ? `${item.kota_kabupaten}, ${item.provinsi}` : 'Lokasi: TBD'}
                                                 </div>
                                             </td>
                                             <td className="py-4 px-6 text-center">
-                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold tracking-wider uppercase border ${st.bg} ${st.text} border-zinc-100`}>
+                                                <span className={`inline-flex items-center justify-start gap-1.5 w-24 px-3 py-1 rounded-md text-[11px] font-semibold tracking-wider uppercase border ${st.bg} ${st.text} border-zinc-100`}>
                                                     <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`}></span>
                                                     {st.label}
                                                 </span>
@@ -242,11 +242,10 @@ const Index: React.FC<IndexProps> = ({ listPengajuan, filters }) => {
                                         key={i}
                                         disabled={!link.url}
                                         onClick={() => link.url && router.get(link.url, {}, { preserveState: true })}
-                                        className={`w-8 h-8 flex items-center justify-center rounded-md text-[13px] font-medium transition-colors shadow-sm focus:outline-none disabled:cursor-not-allowed ${
-                                            link.active
-                                                ? 'bg-zinc-900 text-white'
-                                                : 'border border-zinc-200 bg-white text-zinc-500 hover:bg-zinc-50'
-                                        }`}
+                                        className={`w-8 h-8 flex items-center justify-center rounded-md text-[13px] font-medium transition-colors shadow-sm focus:outline-none disabled:cursor-not-allowed ${link.active
+                                            ? 'bg-zinc-900 text-white'
+                                            : 'border border-zinc-200 bg-white text-zinc-500 hover:bg-zinc-50'
+                                            }`}
                                         dangerouslySetInnerHTML={{ __html: link.label }}
                                     />
                                 );
