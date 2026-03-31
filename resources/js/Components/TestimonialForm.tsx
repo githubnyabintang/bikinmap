@@ -1,57 +1,66 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useForm } from '@inertiajs/react';
-import Toast from './Toast';
-import '../../css/masyarakat-form.css'; // Consistent styling with GeneralSubmissionForm
+import ActionFeedbackDialog from './ActionFeedbackDialog';
 
 interface TestimonialFormProps {
     onClose: () => void;
 }
 
-interface ToastState {
-    show: boolean;
-    type: 'success' | 'error' | 'info' | 'warning';
-    title: string;
-    message: string;
+interface FormData {
+    nama: string;
+    jabatan: string;
+    rating: number;
+    ulasan: string;
 }
 
 export default function TestimonialForm({ onClose }: TestimonialFormProps) {
-    const { data, setData, post, processing: inertiaProcessing, errors, setError, clearErrors, reset } = useForm({
-        nama_pemberi: '',
+    const { data, setData, post, processing: inertiaProcessing, errors, setError, clearErrors, reset } = useForm<FormData>({
+        nama: '',
         jabatan: '',
         rating: 0,
-        pesan_ulasan: '',
+        ulasan: '',
     });
 
-    const [toast, setToast] = useState<ToastState>({ show: false, type: 'success', title: '', message: '' });
+    const [mockProcessing, setMockProcessing] = useState(false);
+    const [feedbackDialog, setFeedbackDialog] = useState({ show: false, type: 'success' as const, title: '', message: '' });
+    const requiredSubmissionIssues: string[] = [];
+
+    if (!data.nama.trim()) requiredSubmissionIssues.push('Nama lengkap wajib diisi.');
+    if (!data.jabatan.trim()) requiredSubmissionIssues.push('Jabatan atau peran wajib diisi.');
+    if (data.rating === 0) requiredSubmissionIssues.push('Rating wajib dipilih sebelum testimoni dikirim.');
+    if (!data.ulasan.trim()) requiredSubmissionIssues.push('Ulasan testimoni wajib diisi.');
+
+    const hasStartedSubmission = Boolean(
+        data.nama.trim() ||
+        data.jabatan.trim() ||
+        data.rating > 0 ||
+        data.ulasan.trim()
+    );
+
+    const isSubmitDisabled = inertiaProcessing || mockProcessing || requiredSubmissionIssues.length > 0;
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         clearErrors();
 
         let hasErrors = false;
-        if (!data.nama_pemberi) { setError('nama_pemberi', 'Nama wajib diisi'); hasErrors = true; }
+        if (!data.nama) { setError('nama', 'Nama wajib diisi'); hasErrors = true; }
         if (!data.jabatan) { setError('jabatan', 'Jabatan / Peran wajib diisi'); hasErrors = true; }
         if (data.rating === 0) { setError('rating', 'Silakan pilih rating (1-5 Bintang)'); hasErrors = true; }
-        if (!data.pesan_ulasan) { setError('pesan_ulasan', 'Ulasan testimoni wajib diisi'); hasErrors = true; }
+        if (!data.ulasan) { setError('ulasan', 'Ulasan testimoni wajib diisi'); hasErrors = true; }
 
         if (hasErrors) {
-            setToast({ show: true, type: 'error', title: 'Validasi Gagal', message: 'Harap lengkapi semua field yang diwajibkan.' });
+            setFeedbackDialog({ show: true, type: 'error', title: 'Form Belum Siap Dikirim', message: 'Lengkapi seluruh field wajib sebelum mengirim testimoni.' });
             return;
         }
 
-        post('/testimoni/public', {
-            onSuccess: () => {
-                setToast({ show: true, type: 'success', title: 'Berhasil', message: 'Testimoni Anda berhasil dikirim.' });
-                setTimeout(() => { reset(); onClose(); }, 2000);
-            },
-            onError: () => {
-                setToast({ show: true, type: 'error', title: 'Gagal', message: 'Gagal mengirim testimoni. Silakan coba lagi.' });
-            },
-        });
+        setMockProcessing(true);
+        setTimeout(() => {
+            setMockProcessing(false);
+            setFeedbackDialog({ show: true, type: 'success', title: 'Testimoni Berhasil Dikirim', message: 'Terima kasih, testimoni Anda sudah berhasil kami terima.' });
+        }, 1500);
     };
-
-    const isProcessing = inertiaProcessing;
 
     const renderInteractiveStars = () => {
         const stars = [];
@@ -61,103 +70,162 @@ export default function TestimonialForm({ onClose }: TestimonialFormProps) {
                     key={i}
                     type="button"
                     onClick={() => setData('rating', i)}
-                    style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: '4px',
-                        fontSize: '32px',
-                        color: i <= data.rating ? '#f59e0b' : '#cbd5e1', // Golden for active, slate for inactive
-                        transition: 'all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-                        outline: 'none',
-                        transform: i <= data.rating ? 'scale(1.1)' : 'scale(1)',
-                    }}
+                    className={`p-1 transition-all duration-200 outline-none ${
+                        i <= data.rating ? 'text-amber-500 scale-110' : 'text-slate-300 scale-100'
+                    } hover:text-amber-400`}
+                    style={{ fontSize: '32px' }}
                     onMouseEnter={(e) => {
-                        const target = e.currentTarget;
-                        if (i > data.rating) target.style.color = '#fbbf24';
+                        if (i > data.rating) e.currentTarget.style.color = '#fbbf24';
                     }}
                     onMouseLeave={(e) => {
-                        const target = e.currentTarget;
-                        if (i > data.rating) target.style.color = '#cbd5e1';
+                        if (i > data.rating) e.currentTarget.style.color = '#cbd5e1';
                     }}
                 >
-                    <i className={`fa-solid fa-star`}></i>
+                    <i className="fa-solid fa-star"></i>
                 </button>
             );
         }
-        return <div style={{ display: 'flex', gap: '6px', margin: '8px 0', justifyContent: 'center' }}>{stars}</div>;
+        return <div className="flex gap-1.5 my-2 justify-center">{stars}</div>;
     };
 
+    if (typeof document === 'undefined') {
+        return null;
+    }
+
     return ReactDOM.createPortal(
-        <div className="masyarakat-form-overlay">
-            <div className="masyarakat-form-backdrop" onClick={onClose}></div>
-            <div className="masyarakat-form-modal" style={{ maxWidth: '520px' }}>
-                <div className="masyarakat-form-header">
-                    <h2>Tulis Testimoni</h2>
-                    <p>Bagikan pengalaman Anda tentang program pengabdian ini.</p>
-                    <button type="button" onClick={onClose} className="masyarakat-form-close">
-                        <i className="fa-solid fa-xmark"></i>
-                    </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose}></div>
+
+            {/* Modal */}
+            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200">
+                {/* Header */}
+                <div className="sticky top-0 bg-white px-6 py-5 border-b border-slate-100">
+                    <div className="flex items-start justify-between">
+                        <div>
+                            <h2 className="text-xl font-bold text-slate-900">Tulis Testimoni</h2>
+                            <p className="text-sm text-slate-600 mt-1">Bagikan pengalaman Anda tentang program pengabdian ini.</p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors text-slate-400"
+                        >
+                            <i className="fa-solid fa-xmark text-lg"></i>
+                        </button>
+                    </div>
                 </div>
 
-                <div className="masyarakat-form-body">
-                    <form onSubmit={handleSubmit} className="custom-submission-form">
-
-                        <div className="form-group">
-                            <label>Nama Lengkap <span className="required">*</span></label>
-                            <div className={`input-wrapper ${errors.nama_pemberi ? 'error-border' : ''}`}>
-                                <i className="fa-solid fa-user input-icon"></i>
+                {/* Body */}
+                <div className="px-6 py-5">
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                        {/* Nama */}
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                Nama Lengkap <span className="text-red-500">*</span>
+                            </label>
+                            <div className={`flex items-center gap-3 px-4 py-3 border rounded-xl transition-colors ${
+                                errors.nama ? 'border-red-300 bg-red-50' : 'border-slate-200 focus-within:border-sigap-blue focus-within:ring-2 focus-within:ring-blue-100'
+                            }`}>
+                                <i className="fa-solid fa-user text-slate-400"></i>
                                 <input
                                     type="text"
-                                    value={data.nama_pemberi}
-                                    onChange={e => setData('nama_pemberi', e.target.value)}
+                                    value={data.nama}
+                                    onChange={(e) => setData('nama', e.target.value)}
                                     placeholder="Masukkan Nama Anda"
+                                    className="flex-1 outline-none text-slate-900 placeholder-slate-400"
                                 />
                             </div>
-                            {errors.nama_pemberi && <div className="field-error">{errors.nama_pemberi}</div>}
+                            {errors.nama && <p className="mt-1.5 text-sm text-red-600 font-medium">{errors.nama}</p>}
                         </div>
 
-                        <div className="form-group">
-                            <label>Jabatan / Peran <span className="required">*</span></label>
-                            <div className={`input-wrapper ${errors.jabatan ? 'error-border' : ''}`}>
-                                <i className="fa-solid fa-id-card input-icon"></i>
+                        {/* Jabatan */}
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                Jabatan / Peran <span className="text-red-500">*</span>
+                            </label>
+                            <div className={`flex items-center gap-3 px-4 py-3 border rounded-xl transition-colors ${
+                                errors.jabatan ? 'border-red-300 bg-red-50' : 'border-slate-200 focus-within:border-sigap-blue focus-within:ring-2 focus-within:ring-blue-100'
+                            }`}>
+                                <i className="fa-solid fa-id-card text-slate-400"></i>
                                 <input
                                     type="text"
                                     value={data.jabatan}
-                                    onChange={e => setData('jabatan', e.target.value)}
+                                    onChange={(e) => setData('jabatan', e.target.value)}
                                     placeholder="Cth: Anggota UMKM, Kepala Desa, Dosen..."
+                                    className="flex-1 outline-none text-slate-900 placeholder-slate-400"
                                 />
                             </div>
-                            {errors.jabatan && <div className="field-error">{errors.jabatan}</div>}
+                            {errors.jabatan && <p className="mt-1.5 text-sm text-red-600 font-medium">{errors.jabatan}</p>}
                         </div>
 
-                        <div className="form-group" style={{ textAlign: 'center' }}>
-                            <label>Penilaian (Rating) <span className="required">*</span></label>
+                        {/* Rating */}
+                        <div className="text-center">
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                Penilaian (Rating) <span className="text-red-500">*</span>
+                            </label>
                             {renderInteractiveStars()}
-                            {errors.rating && <div className="field-error" style={{ justifyContent: 'center' }}>{errors.rating}</div>}
+                            {errors.rating && <p className="mt-1.5 text-sm text-red-600 font-medium">{errors.rating}</p>}
                         </div>
 
-                        <div className="form-group">
-                            <label>Ulasan / Pesan <span className="required">*</span></label>
-                            <div className={`input-wrapper align-top ${errors.pesan_ulasan ? 'error-border' : ''}`}>
-                                <i className="fa-solid fa-comment-dots input-icon"></i>
+                        {/* Ulasan */}
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                Ulasan / Pesan <span className="text-red-500">*</span>
+                            </label>
+                            <div className={`flex items-start gap-3 px-4 py-3 border rounded-xl transition-colors ${
+                                errors.ulasan ? 'border-red-300 bg-red-50' : 'border-slate-200 focus-within:border-sigap-blue focus-within:ring-2 focus-within:ring-blue-100'
+                            }`}>
+                                <i className="fa-solid fa-comment-dots text-slate-400 mt-1"></i>
                                 <textarea
-                                    value={data.pesan_ulasan}
-                                    onChange={e => setData('pesan_ulasan', e.target.value)}
+                                    value={data.ulasan}
+                                    onChange={(e) => setData('ulasan', e.target.value)}
                                     placeholder="Ceritakan pengalaman dan kesan Anda tentang program ini..."
                                     rows={4}
-                                ></textarea>
+                                    className="flex-1 outline-none text-slate-900 placeholder-slate-400 resize-none"
+                                />
                             </div>
-                            {errors.pesan_ulasan && <div className="field-error">{errors.pesan_ulasan}</div>}
+                            {errors.ulasan && <p className="mt-1.5 text-sm text-red-600 font-medium">{errors.ulasan}</p>}
                         </div>
 
-                        <div className="form-actions" style={{ borderTop: 'none', paddingTop: '10px' }}>
-                            <button type="button" className="btn-form-cancel" onClick={onClose} disabled={isProcessing}>Batal</button>
-                            <button type="submit" className={`btn-form-submit ${isProcessing ? 'btn-loading' : ''}`} disabled={isProcessing}>
-                                {isProcessing ? (
-                                    <><i className="fa-solid fa-spinner fa-spin"></i> Memproses...</>
+                        {/* Validation Alert */}
+                        {hasStartedSubmission && requiredSubmissionIssues.length > 0 && (
+                            <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                                <i className="fa-solid fa-triangle-exclamation text-amber-600 mt-0.5"></i>
+                                <div>
+                                    <strong className="text-amber-900 text-sm">Testimoni belum bisa dikirim</strong>
+                                    <p className="text-amber-700 text-sm mt-0.5">{requiredSubmissionIssues[0]}</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-3 pt-2">
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                disabled={inertiaProcessing || mockProcessing}
+                                className="flex-1 px-4 py-3 text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors disabled:opacity-50"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={isSubmitDisabled}
+                                className={`flex-1 px-4 py-3 text-sm font-semibold text-white bg-sigap-blue hover:bg-sigap-darkBlue rounded-xl transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
+                                    inertiaProcessing || mockProcessing ? 'opacity-75' : ''
+                                }`}
+                            >
+                                {inertiaProcessing || mockProcessing ? (
+                                    <>
+                                        <i className="fa-solid fa-spinner fa-spin"></i>
+                                        <span>Memproses...</span>
+                                    </>
                                 ) : (
-                                    <><i className="fa-solid fa-paper-plane"></i> Kirim Testimoni</>
+                                    <>
+                                        <i className="fa-solid fa-paper-plane"></i>
+                                        <span>Kirim Testimoni</span>
+                                    </>
                                 )}
                             </button>
                         </div>
@@ -165,12 +233,19 @@ export default function TestimonialForm({ onClose }: TestimonialFormProps) {
                 </div>
             </div>
 
-            <Toast
-                show={toast.show}
-                type={toast.type}
-                title={toast.title}
-                message={toast.message}
-                onClose={() => setToast({ ...toast, show: false })}
+            <ActionFeedbackDialog
+                show={feedbackDialog.show}
+                type={feedbackDialog.type}
+                title={feedbackDialog.title}
+                message={feedbackDialog.message}
+                onClose={() => {
+                    const wasSuccess = feedbackDialog.type === 'success';
+                    setFeedbackDialog({ ...feedbackDialog, show: false });
+                    if (wasSuccess) {
+                        reset();
+                        onClose();
+                    }
+                }}
             />
         </div>,
         document.body

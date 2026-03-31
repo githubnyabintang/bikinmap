@@ -1,13 +1,20 @@
 import React, { useState } from 'react';
-import '../../css/testimonial-sidebar.css';
 import TestimonialForm from './TestimonialForm';
 
-interface StarIconProps {
-    filled?: boolean;
-    half?: boolean;
+interface Testimonial {
+    id: number;
+    name: string;
+    role: string;
+    rating: number;
+    text: string;
+    date: string;
 }
 
-const StarIcon: React.FC<StarIconProps> = ({ filled = true, half = false }) => {
+interface TestimonialSidebarDisplayProps {
+    status: string;
+}
+
+const StarIcon: React.FC<{ filled?: boolean; half?: boolean }> = ({ filled = true, half = false }) => {
     if (half) {
         return (
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="star-icon">
@@ -24,25 +31,12 @@ const StarIcon: React.FC<StarIconProps> = ({ filled = true, half = false }) => {
 
     return (
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="star-icon">
-            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill={filled ? "#f59e0b" : "#e2e8f0"} />
+            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill={filled ? '#f59e0b' : '#e2e8f0'} />
         </svg>
     );
 };
 
-interface Testimonial {
-    id: number;
-    name: string;
-    role: string;
-    rating: number;
-    text: string;
-    date: string;
-}
-
-interface TestimonialSidebarDisplayProps {
-    status: string;
-}
-
-const TestimonialSidebarDisplay: React.FC<TestimonialSidebarDisplayProps> = ({ status }) => {
+export default function TestimonialSidebarDisplay({ status }: TestimonialSidebarDisplayProps) {
     const [isFormOpen, setIsFormOpen] = useState(false);
 
     // Only show testimonials for completed projects
@@ -77,33 +71,42 @@ const TestimonialSidebarDisplay: React.FC<TestimonialSidebarDisplayProps> = ({ s
     };
 
     return (
-        <div className="testimonial-sidebar-container">
-            <div className="doc-section-main-title">
-                <i className="fa-solid fa-comments" style={{ color: '#046bd2' }}></i> Ulasan & Testimoni Masyarakat
+        <div className="mt-6">
+            {/* Section Title */}
+            <div className="flex items-center gap-2 mb-4">
+                <i className="fa-solid fa-comments text-xl" style={{ color: '#046bd2' }}></i>
+                <span className="text-base font-bold text-slate-900">Ulasan & Testimoni Masyarakat</span>
             </div>
 
-            <div className="testimonial-list">
-                {testimonials.map(item => (
-                    <div key={item.id} className="testimonial-card">
-                        <div className="testimonial-card-header">
-                            <div className="testimonial-avatar">
+            {/* Testimonial List */}
+            <div className="space-y-3">
+                {testimonials.map((item) => (
+                    <div key={item.id} className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+                        {/* Header */}
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sigap-blue to-sigap-darkBlue flex items-center justify-center text-white font-bold text-sm">
                                 {item.name.charAt(0)}
                             </div>
-                            <div className="testimonial-meta">
-                                <span className="testimonial-name">{item.name}</span>
-                                <span className="testimonial-role">{item.role}</span>
+                            <div className="flex-1">
+                                <span className="block text-sm font-semibold text-slate-900">{item.name}</span>
+                                <span className="block text-xs text-slate-500">{item.role}</span>
                             </div>
-                            <div className="testimonial-rating-box">
-                                <span className="rating-number">{item.rating}</span>
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 rounded-lg">
+                                <span className="text-sm font-bold text-amber-700">{item.rating}</span>
+                                <i className="fa-solid fa-star text-xs text-amber-500"></i>
                             </div>
                         </div>
 
-                        <div className="testimonial-stars-row">
-                            {renderStars(item.rating)}
-                            <span className="testimonial-date">{item.date}</span>
+                        {/* Stars Row */}
+                        <div className="flex items-center gap-2 mb-3">
+                            <div className="flex items-center gap-0.5">
+                                {renderStars(item.rating)}
+                            </div>
+                            <span className="text-xs text-slate-400">{item.date}</span>
                         </div>
 
-                        <p className="testimonial-text">
+                        {/* Text */}
+                        <p className="text-sm text-slate-700 leading-relaxed italic">
                             "{item.text}"
                         </p>
                     </div>
@@ -111,62 +114,25 @@ const TestimonialSidebarDisplay: React.FC<TestimonialSidebarDisplayProps> = ({ s
             </div>
 
             {/* CTA: Invite to Write Testimonial */}
-            <div style={{
-                marginTop: '16px',
-                padding: '16px 20px',
-                backgroundColor: '#f0f9ff',
-                borderRadius: '12px',
-                border: '1px solid #bae6fd',
-                textAlign: 'center'
-            }}>
-                <p style={{
-                    fontSize: '13px',
-                    color: '#0369a1',
-                    margin: '0 0 12px 0',
-                    lineHeight: '1.5',
-                    fontWeight: '500'
-                }}>
-                    <i className="fa-solid fa-bullhorn" style={{ marginRight: '6px' }}></i>
+            <div className="mt-4 p-4 bg-sky-50 rounded-xl border border-sky-200 text-center">
+                <p className="text-sm text-sky-800 mb-3 font-medium">
+                    <i className="fa-solid fa-bullhorn mr-1.5"></i>
                     Pernah terlibat dalam kegiatan ini? Bagikan pengalaman Anda!
                 </p>
                 <button
+                    type="button"
                     onClick={() => setIsFormOpen(true)}
-                    style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        padding: '10px 20px',
-                        background: 'linear-gradient(135deg, #0284c7, #0369a1)',
-                        color: '#ffffff',
-                        fontSize: '13px',
-                        fontWeight: '600',
-                        borderRadius: '10px',
-                        border: 'none',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        boxShadow: '0 2px 8px rgba(3,105,161,0.25)'
-                    }}
-                    onMouseEnter={(e) => {
-                        const target = e.currentTarget;
-                        target.style.transform = 'translateY(-1px)';
-                        target.style.boxShadow = '0 4px 14px rgba(3,105,161,0.35)';
-                    }}
-                    onMouseLeave={(e) => {
-                        const target = e.currentTarget;
-                        target.style.transform = 'translateY(0)';
-                        target.style.boxShadow = '0 2px 8px rgba(3,105,161,0.25)';
-                    }}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-sky-600 to-sky-700 text-white text-sm font-semibold rounded-lg hover:from-sky-700 hover:to-sky-800 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
                 >
-                    <i className="fa-solid fa-pen-to-square" style={{ fontSize: '14px' }}></i>
+                    <i className="fa-solid fa-pen-to-square text-sm"></i>
                     Tulis Testimoni
                 </button>
             </div>
 
+            {/* Testimonial Form Modal */}
             {isFormOpen && (
                 <TestimonialForm onClose={() => setIsFormOpen(false)} />
             )}
         </div>
     );
-};
-
-export default TestimonialSidebarDisplay;
+}

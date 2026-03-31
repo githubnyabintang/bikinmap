@@ -1,11 +1,20 @@
 import React, { useState } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
 
-export default function Login() {
+// Import Specific Styling for Login
+import '../../../css/login.css';
+
+interface LoginFormData {
+    email: string;
+    password: string;
+    remember: boolean;
+}
+
+export default function Login(): JSX.Element {
     const [showPassword, setShowPassword] = useState(false);
 
     // Initialize Inertia's useForm hook for state management and validation handling
-    const { data, setData, post, processing, errors, reset } = useForm({
+    const { data, setData, post, processing, errors, reset } = useForm<LoginFormData>({
         email: '',
         password: '',
         remember: false,
@@ -13,7 +22,6 @@ export default function Login() {
 
     // Handle form submission using form.post
     const submit = (e: React.FormEvent) => {
-
         e.preventDefault();
 
         post('/login', {

@@ -1,27 +1,40 @@
 import React, { useState } from 'react';
 import { Head, Link } from '@inertiajs/react';
 import ActionFeedbackDialog from '@/Components/ActionFeedbackDialog';
+import { FeedbackDialogProps } from '@/types';
 
 import '../../../css/login.css';
 
-const pkmOptions = [
+interface PkmOption {
+    id: string;
+    name: string;
+    location: string;
+}
+
+const pkmOptions: PkmOption[] = [
     { id: '1', name: 'Pemberdayaan UMKM Kripik Pisang', location: 'Bira, Tamalanrea' },
     { id: '2', name: 'Edukasi Sanitasi Lingkungan', location: 'Tamalanrea Indah, Makassar' },
     { id: '3', name: 'Pelatihan Pemasaran Digital Desa Wisata', location: 'Maros, Sulawesi Selatan' },
 ];
 
-export default function SubmitDokumentasiLaporan() {
-    const [formData, setFormData] = useState({
+interface FormData {
+    pkmId: string;
+    linkDokumentasi: string;
+    linkLaporan: string;
+}
+
+export default function SubmitDokumentasiLaporan(): JSX.Element {
+    const [formData, setFormData] = useState<FormData>({
         pkmId: '',
         linkDokumentasi: '',
         linkLaporan: '',
     });
     const [pkmQuery, setPkmQuery] = useState('');
     const [isSearchOpen, setIsSearchOpen] = useState(false);
-    const [errors, setErrors] = useState({});
-    const [feedbackDialog, setFeedbackDialog] = useState({ show: false, type: 'success', title: '', message: '' });
+    const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
+    const [feedbackDialog, setFeedbackDialog] = useState<FeedbackDialogProps>({ show: false, type: 'success', title: '', message: '' });
     const [processing, setProcessing] = useState(false);
-    const requiredSubmissionIssues = [];
+    const requiredSubmissionIssues: string[] = [];
 
     if (!formData.pkmId) requiredSubmissionIssues.push('Kegiatan PKM wajib dipilih terlebih dahulu.');
     if (!formData.linkDokumentasi.trim()) requiredSubmissionIssues.push('Link dokumentasi wajib diisi.');
@@ -40,29 +53,29 @@ export default function SubmitDokumentasiLaporan() {
         pkm.location.toLowerCase().includes(pkmQuery.toLowerCase())
     );
 
-    const handleChange = (field, value) => {
+    const handleChange = (field: keyof FormData, value: string) => {
         setFormData((prev) => ({ ...prev, [field]: value }));
         setErrors((prev) => ({ ...prev, [field]: '' }));
     };
 
-    const handlePkmQueryChange = (value) => {
+    const handlePkmQueryChange = (value: string) => {
         setPkmQuery(value);
         setFormData((prev) => ({ ...prev, pkmId: '' }));
         setErrors((prev) => ({ ...prev, pkmId: '' }));
         setIsSearchOpen(true);
     };
 
-    const handlePkmSelect = (pkm) => {
+    const handlePkmSelect = (pkm: PkmOption) => {
         setPkmQuery(pkm.name);
         setFormData((prev) => ({ ...prev, pkmId: pkm.id }));
         setErrors((prev) => ({ ...prev, pkmId: '' }));
         setIsSearchOpen(false);
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        const nextErrors = {};
+        const nextErrors: Partial<Record<keyof FormData, string>> = {};
         if (!formData.pkmId) {
             nextErrors.pkmId = 'Kegiatan PKM belum dipilih.';
         }

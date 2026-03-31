@@ -8,10 +8,11 @@ import {
     resolveUserSubmissionData,
     resolveUserSubmissionHistory,
 } from '@/data/sigapData';
+import { PkmData } from '@/types';
 import '../../../css/landing.css';
 import '../../../css/lecturer-form.css';
 
-const createPengajuanDateLabel = () => (
+const createPengajuanDateLabel = (): string => (
     new Intl.DateTimeFormat('id-ID', {
         day: '2-digit',
         month: 'short',
@@ -19,22 +20,42 @@ const createPengajuanDateLabel = () => (
     }).format(new Date())
 );
 
+interface PengajuanData {
+    id: number;
+    judul: string;
+    ringkasan: string;
+    tanggal: string;
+    status: string;
+}
+
+interface PengajuanProps {
+    role?: string;
+    initialView?: string;
+    userPkmData?: PkmData[] | null;
+    userSubmissionData?: PengajuanData[] | null;
+    userSubmissionHistory?: PengajuanData[] | null;
+}
+
+interface SubmissionData extends PengajuanData {
+    status: string;
+}
+
 export default function Pengajuan({
     role = 'masyarakat',
     initialView = 'form',
     userPkmData = null,
     userSubmissionData = null,
     userSubmissionHistory = null,
-}) {
+}: PengajuanProps): JSX.Element {
     const resolvedRole = role === 'dosen' ? 'dosen' : 'masyarakat';
-    const [pengajuanData, setPengajuanData] = useState(() => (
+    const [pengajuanData, setPengajuanData] = useState<SubmissionData[]>(() => (
         resolveUserSubmissionData(userSubmissionData, { role: resolvedRole })
     ));
-    const [submissionHistoryData] = useState(() => (
+    const [submissionHistoryData] = useState<PengajuanData[]>(() => (
         resolveUserSubmissionHistory(userSubmissionHistory, resolvedRole)
     ));
-    const [pkmData] = useState(() => resolveUserPkmData(userPkmData));
-    const [activeView, setActiveView] = useState(() => (
+    const [pkmData] = useState<PkmData[]>(() => resolveUserPkmData(userPkmData));
+    const [activeView, setActiveView] = useState<'form' | 'status'>(() => (
         initialView === 'status' && resolveUserSubmissionData(userSubmissionData, { role: resolvedRole }).length === 0
             ? 'form'
             : initialView
@@ -52,12 +73,12 @@ export default function Pengajuan({
         setActiveView(initialView === 'status' && !hasSubmitted ? 'form' : initialView);
     }, [hasSubmitted, initialView]);
 
-    const handleSubmitted = (submission) => {
+    const handleSubmitted = (submission: SubmissionData) => {
         setPengajuanData((previous) => [submission, ...previous]);
         setActiveView('status');
     };
 
-    const handleUpdateLatestPengajuanStatus = (nextStatus) => {
+    const handleUpdateLatestPengajuanStatus = (nextStatus: string) => {
         if (nextStatus === 'belum_diajukan') {
             setActiveView('form');
             return;

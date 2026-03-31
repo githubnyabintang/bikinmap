@@ -1,21 +1,26 @@
-// @ts-nocheck - Legacy JSX converted to TSX, types will be refined in future refactors
-import React, { useState } from 'react';
-import { Head, Link } from '@inertiajs/react';
-import { MapContainer, Marker, TileLayer, useMapEvents } from 'react-leaflet';
+import React, { useEffect, useState } from 'react';
+import { Head } from '@inertiajs/react';
+import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import Layout from '@/Layouts/DefaultLayout';
 import MobileTabBar from '@/Components/MobileTabBar';
 import BottomSheet from '@/Components/BottomSheet';
-
-import LecturerSubmissionForm from '@/Components/LecturerSubmissionForm';
 import DocumentationGallery from '@/Components/DocumentationGallery';
 import TestimonialSidebarDisplay from '@/Components/TestimonialSidebarDisplay';
 import LandingCharts from '@/Components/LandingCharts';
+import MapLegend from '@/Components/MapLegend';
+import LoginDosenMobile from '@/Components/LoginDosenMobile';
+import {
+    resolveUserPkmData,
+    resolveUserSubmissionData,
+    resolveUserSubmissionHistory,
+} from '@/data/sigapData';
+import { createPkmMarkerIcon } from '@/data/pkmMapVisuals';
+import { PkmData } from '@/types';
 import '../../../css/landing.css';
 import '../../../css/lecturer-form.css';
 
-// Leaflet Setup
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
     iconRetinaUrl: new URL('leaflet/dist/images/marker-icon-2x.png', import.meta.url).href,
@@ -23,79 +28,146 @@ L.Icon.Default.mergeOptions({
     shadowUrl: new URL('leaflet/dist/images/marker-shadow.png', import.meta.url).href,
 });
 
-const getStatusBadge = (status) => status === 'berlangsung' ? 'status-open' : 'status-closed';
-const getStatusIcon = (status) => status === 'berlangsung' ? 'fa-spinner fa-spin' : 'fa-check-double';
-const getStatusText = (status) => status === 'berlangsung' ? 'Berlangsung' : 'Selesai';
+const getStatusBadge = (status: string): string => status === 'berlangsung' ? 'status-open' : 'status-closed';
+const getStatusIcon = (status: string): string => status === 'berlangsung' ? 'fa-spinner fa-spin' : 'fa-check-double';
+const getStatusText = (status: string): string => status === 'berlangsung' ? 'Berlangsung' : 'Selesai';
 
-const createCustomIcon = (status) => {
-    const markerColor = status === 'berlangsung' ? '#f59e0b' : '#16a34a';
-    return L.divIcon({
-        className: 'custom-leaflet-marker',
-        html: `
-            <div class="marker-pin" style="background-color: ${markerColor}">
-                <i class="fa-solid fa-hands-holding-child"></i>
-            </div>
-            <div class="marker-pulse" style="border-color: ${markerColor}"></div>
-        `,
-        iconSize: [40, 40],
-        iconAnchor: [20, 40],
-    });
+interface StatusStyle {
+    bg: string;
+    color: string;
+    icon: string;
+    label: string;
+}
+
+const getStatusPengajuanStyle = (status: string): StatusStyle => {
+    switch (status) {
+        case 'selesai':
+            return { bg: '#dcfce7', color: '#15803d', icon: 'fa-flag-checkered', label: 'Selesai' };
+        case 'berlangsung':
+            return { bg: '#fef3c7', color: '#b45309', icon: 'fa-person-walking', label: 'Berlangsung' };
+        case 'diterima':
+        case 'disetujui':
+            return { bg: '#dcfce7', color: '#15803d', icon: 'fa-circle-check', label: 'Diterima' };
+        case 'diproses':
+            return { bg: '#dbeafe', color: '#1d4ed8', icon: 'fa-clock', label: 'Diproses' };
+        case 'ditangguhkan':
+            return { bg: '#fef3c7', color: '#b45309', icon: 'fa-pause-circle', label: 'Ditangguhkan' };
+        case 'ditolak':
+            return { bg: '#fee2e2', color: '#b91c1c', icon: 'fa-circle-xmark', label: 'Ditolak' };
+        case 'belum_diajukan':
+            return { bg: '#f1f5f9', color: '#64748b', icon: 'fa-file-circle-plus', label: 'Belum Diajukan' };
+        default:
+            return { bg: '#f1f5f9', color: '#64748b', icon: 'fa-circle-info', label: status };
+    }
 };
 
-function MapEvents({ isPickingLocation, onLocationPicked, setSidebarPkm }) {
+const createPengajuanDateLabel = (): string => (
+    new Intl.DateTimeFormat('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+    }).format(new Date())
+);
+
+interface MapEventsProps {
+    setSidebarPkm: React.Dispatch<React.SetStateAction<PkmData | null>>;
+    setIsMenuListOpen: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
+function MapEvents({ setSidebarPkm, setIsMenuListOpen }: MapEventsProps): null {
     useMapEvents({
-        click(event) {
-            if (isPickingLocation) {
-                onLocationPicked(event.latlng);
-            } else {
-                setSidebarPkm(null);
-            }
+        click() {
+            setSidebarPkm(null);
+            setIsMenuListOpen(false);
         },
     });
     return null;
 }
 
-// Map Search Widget Component
-const MapSearchWidget = ({ pkmData, onSelectPkm, isHidden }) => {
+interface MapSizeInvalidatorProps {
+    watchKey: string;
+}
+
+function MapSizeInvalidator({ watchKey }: MapSizeInvalidatorProps): null {
+    const map = useMap();
+
+    useEffect(() => {
+        const runInvalidate = () => {
+            map.invalidateSize({ animate: false, pan: false });
+        };
+
+        const frameId = window.requestAnimationFrame(runInvalidate);
+        const timeoutId = window.setTimeout(runInvalidate, 180);
+
+        return () => {
+            window.cancelAnimationFrame(frameId);
+            window.clearTimeout(timeoutId);
+        };
+    }, [map, watchKey]);
+
+    return null;
+}
+
+interface MapSearchWidgetProps {
+    pkmData: PkmData[];
+    onSelectPkm: (pkm: PkmData) => void;
+    isHidden: boolean;
+}
+
+const MapSearchWidget: React.FC<MapSearchWidgetProps> = ({ pkmData, onSelectPkm, isHidden }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [isOpen, setIsOpen] = useState(false);
 
-    const filteredData = pkmData.filter(pkm =>
+    const filteredData = pkmData.filter((pkm) => (
         pkm.nama.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (pkm.deskripsi && pkm.deskripsi.toLowerCase().includes(searchQuery.toLowerCase()))
-    );
+    ));
 
     return (
-        <div className="map-search-widget" style={{
-            position: 'absolute', top: '24px', left: '80px', zIndex: 1000, width: '380px', maxWidth: 'calc(100vw - 100px)',
-            opacity: isHidden ? 0 : 1,
-            pointerEvents: isHidden ? 'none' : 'auto',
-            transform: isHidden ? 'translateY(-20px)' : 'translateY(0)',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-        }}>
-            <div style={{ position: 'relative', backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 4px 16px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', padding: '12px 16px', border: '1px solid #e2e8f0' }}>
-                <i className="fa-solid fa-search" style={{ color: '#046bd2', marginRight: '12px', fontSize: '18px' }}></i>
+        <div
+            className="map-search-widget"
+            style={{
+                position: 'absolute',
+                top: '18px',
+                left: '18px',
+                zIndex: 1000,
+                width: '360px',
+                maxWidth: 'calc(100vw - 48px)',
+                opacity: isHidden ? 0 : 1,
+                pointerEvents: isHidden ? 'none' : 'auto',
+                transform: isHidden ? 'translateY(-20px)' : 'translateY(0)',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            }}
+        >
+            <div className="relative bg-white rounded-xl shadow-lg flex items-center p-3 border border-gray-200">
+                <i className="fa-solid fa-search text-blue-600 mr-3 text-lg"></i>
                 <input
                     type="text"
                     placeholder="Cari lokasi kegiatan P3M..."
                     value={searchQuery}
-                    onChange={(e) => {
-                        setSearchQuery(e.target.value);
+                    onChange={(event) => {
+                        setSearchQuery(event.target.value);
                         setIsOpen(true);
                     }}
                     onFocus={() => setIsOpen(true)}
-                    style={{ border: 'none', outline: 'none', width: '100%', fontSize: '15px', fontWeight: '500', color: '#0f172a' }}
+                    className="border-none outline-none w-full text-base font-medium text-gray-900"
                 />
                 {searchQuery && (
-                    <i className="fa-solid fa-xmark" style={{ cursor: 'pointer', color: '#94a3b8', marginLeft: '12px', fontSize: '16px' }} onClick={() => { setSearchQuery(''); setIsOpen(false); }}></i>
+                    <i
+                        className="fa-solid fa-xmark cursor-pointer text-gray-400 ml-3 text-base"
+                        onClick={() => {
+                            setSearchQuery('');
+                            setIsOpen(false);
+                        }}
+                    ></i>
                 )}
             </div>
 
             {isOpen && searchQuery && (
-                <div style={{ marginTop: '8px', backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.15)', maxHeight: '350px', overflowY: 'auto', overflowX: 'hidden', border: '1px solid #e2e8f0' }}>
+                <div className="mt-2 bg-white rounded-xl shadow-xl max-h-[350px] overflow-y-auto overflow-x-hidden border border-gray-200">
                     {filteredData.length > 0 ? (
-                        <div style={{ padding: '8px 0' }}>
-                            {filteredData.map(pkm => (
+                        <div className="py-2">
+                            {filteredData.map((pkm) => (
                                 <div
                                     key={pkm.id}
                                     onClick={() => {
@@ -103,18 +175,19 @@ const MapSearchWidget = ({ pkmData, onSelectPkm, isHidden }) => {
                                         setIsOpen(false);
                                         setSearchQuery(pkm.nama);
                                     }}
-                                    style={{ padding: '12px 20px', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '4px' }}
-                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
-                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                    className="px-5 py-3 border-b border-gray-100 cursor-pointer flex flex-col gap-1 hover:bg-gray-50 transition-colors"
                                 >
-                                    <div style={{ fontWeight: '600', fontSize: '14.5px', color: '#0f172a', lineHeight: '1.4' }}>{pkm.nama}</div>
-                                    <div style={{ fontSize: '12.5px', color: '#64748b' }}><i className="fa-solid fa-location-dot" style={{ marginRight: '6px', color: '#94a3b8' }}></i>{pkm.desa}, {pkm.kecamatan}</div>
+                                    <div className="font-semibold text-[14.5px] text-gray-900 leading-tight">{pkm.nama}</div>
+                                    <div className="text-[12.5px] text-gray-500">
+                                        <i className="fa-solid fa-location-dot mr-1.5 text-gray-400"></i>
+                                        {pkm.desa}, {pkm.kecamatan}
+                                    </div>
                                 </div>
                             ))}
                         </div>
                     ) : (
-                        <div style={{ padding: '24px 16px', textAlign: 'center', color: '#64748b', fontSize: '14px' }}>
-                            <i className="fa-solid fa-magnifying-glass-minus" style={{ fontSize: '24px', color: '#cbd5e1', margin: '0 0 12px 0', display: 'block' }}></i>
+                        <div className="p-6 text-center text-gray-500 text-sm">
+                            <i className="fa-solid fa-magnifying-glass-minus text-2xl text-gray-300 mb-3 block"></i>
                             Tidak ada hasil ditemukan untuk <b>"{searchQuery}"</b>
                         </div>
                     )}
@@ -124,93 +197,136 @@ const MapSearchWidget = ({ pkmData, onSelectPkm, isHidden }) => {
     );
 };
 
-// ====================================================
-// Login Dosen ÔÇö Dashboard Page (Role: Dosen)
-// ====================================================
+interface MapSummaryOverlayProps {
+    totalPkm: number;
+    totalSelesai: number;
+    totalBerlangsung: number;
+    isHidden: boolean;
+}
 
-export default function LoginDosen({ pkmData: initialPkmData = [] as any[] }) {
-    const [pkmData, setPkmData] = useState(initialPkmData);
+const MapSummaryOverlay: React.FC<MapSummaryOverlayProps> = ({ totalPkm, totalSelesai, totalBerlangsung, isHidden }) => (
+    <div className={`landing-map-info-overlay ${isHidden ? 'is-hidden' : ''}`} aria-label="Ringkasan peta PKM">
+        <MapLegend className="landing-map-legend-card" />
 
-    const [sidebarPkm, setSidebarPkm] = useState(null);
+        <div className="landing-map-floating-stats">
+            <div className="landing-map-stat-card compact">
+                <span className="landing-map-stat-label">Total PKM</span>
+                <strong className="landing-map-stat-value">{totalPkm}</strong>
+            </div>
+            <div className="landing-map-stat-card compact">
+                <span className="landing-map-stat-label">PKM Selesai</span>
+                <strong className="landing-map-stat-value">{totalSelesai}</strong>
+            </div>
+            <div className="landing-map-stat-card compact">
+                <span className="landing-map-stat-label">PKM Berlangsung</span>
+                <strong className="landing-map-stat-value">{totalBerlangsung}</strong>
+            </div>
+        </div>
+    </div>
+);
+
+interface PengajuanData {
+    id: number;
+    judul: string;
+    ringkasan: string;
+    tanggal: string;
+    status: string;
+}
+
+interface StatusPengajuanPanelProps {
+    isOpen: boolean;
+    onClose: () => void;
+    pengajuanData: PengajuanData[];
+}
+
+const StatusPengajuanPanel: React.FC<StatusPengajuanPanelProps> = ({ isOpen, onClose, pengajuanData }) => (
+    <div className={`left-sidebar-menu dosen-status-sidebar ${isOpen ? 'is-open' : ''}`}>
+        <div className="dosen-status-sidebar-header">
+            <div>
+                <h3>Status Pengajuan</h3>
+                <p>Monitoring pengajuan PKM dosen yang telah Anda kirim.</p>
+            </div>
+            <button type="button" className="dosen-status-sidebar-close" onClick={onClose}>
+                <i className="fa-solid fa-arrow-left"></i>
+                Kembali
+            </button>
+        </div>
+
+        <div className="dosen-status-sidebar-body">
+            {pengajuanData.length === 0 ? (
+                <div className="dosen-status-empty">
+                    <span className="dosen-status-empty-icon">
+                        <i className="fa-solid fa-inbox"></i>
+                    </span>
+                    <strong>Belum ada pengajuan PKM</strong>
+                    <p>Form di panel kanan bisa langsung digunakan untuk membuat pengajuan PKM baru.</p>
+                </div>
+            ) : (
+                <div className="dosen-status-list">
+                    {pengajuanData.map((item) => {
+                        const statusStyle = getStatusPengajuanStyle(item.status);
+                        return (
+                            <div key={item.id} className="dosen-status-item">
+                                <span className="dosen-status-icon" style={{ backgroundColor: statusStyle.bg, color: statusStyle.color }}>
+                                    <i className={`fa-solid ${statusStyle.icon}`}></i>
+                                </span>
+                                <div className="dosen-status-content">
+                                    <div className="dosen-status-topline">
+                                        <strong>{item.judul}</strong>
+                                        <span>{item.tanggal}</span>
+                                    </div>
+                                    <p>{item.ringkasan}</p>
+                                    <span className="dosen-status-chip" style={{ backgroundColor: statusStyle.bg, color: statusStyle.color }}>
+                                        <i className={`fa-solid ${statusStyle.icon}`}></i>
+                                        {statusStyle.label}
+                                    </span>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    </div>
+);
+
+interface LoginDosenProps {
+    userPkmData?: PkmData[] | null;
+    userSubmissionData?: PengajuanData[] | null;
+    userSubmissionHistory?: PengajuanData[] | null;
+}
+
+interface SubmissionData extends PengajuanData {
+    status: string;
+}
+
+export default function LoginDosen({
+    userPkmData = null,
+    userSubmissionData = null,
+    userSubmissionHistory = null,
+}: LoginDosenProps): JSX.Element {
+    const [isMobileViewport, setIsMobileViewport] = useState(() => (
+        typeof window !== 'undefined' ? window.matchMedia('(max-width: 768px)').matches : false
+    ));
+    const [pkmData] = useState<PkmData[]>(() => resolveUserPkmData(userPkmData));
+    const [sidebarPkm, setSidebarPkm] = useState<PkmData | null>(null);
     const [isMenuListOpen, setIsMenuListOpen] = useState(false);
-    const [mobileActiveTab, setMobileActiveTab] = useState('peta');
-    const [mobileBottomSheet, setMobileBottomSheet] = useState(null);
-    const [isPickingLocation, setIsPickingLocation] = useState(false);
-    const [isLecturerFormOpen, setIsLecturerFormOpen] = useState(false);
+    const [mobileActiveTab, setMobileActiveTab] = useState<'peta' | 'dashboard' | 'kegiatan'>('peta');
+    const [mobileBottomSheet, setMobileBottomSheet] = useState<'detail' | 'kegiatan' | null>(null);
+    const [pengajuanData, setPengajuanData] = useState<SubmissionData[]>(() => resolveUserSubmissionData(userSubmissionData, { role: 'dosen' }));
+    const [submissionHistoryData] = useState<PengajuanData[]>(() => resolveUserSubmissionHistory(userSubmissionHistory, 'dosen'));
 
-    // Accordion state for sidebar menu
-    const [expandedSection, setExpandedSection] = useState(null);
-    const toggleSection = (section) => {
-        setExpandedSection(prev => prev === section ? null : section);
-    };
-
-    // Link form states
-    const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
-    const [linkFormData, setLinkFormData] = useState({ pkmId: '', linkDokumentasi: '', linkLaporan: '' });
-    const [linkFormSubmitted, setLinkFormSubmitted] = useState(false);
-
-    const handleLinkFormChange = (field, value) => {
-        setLinkFormData(prev => ({ ...prev, [field]: value }));
-    };
-
-    const handleLinkFormSubmit = (e) => {
-        if (e) e.preventDefault();
-        if (!linkFormData.pkmId) {
-            setValidationError('Silakan pilih kegiatan terlebih dahulu.');
-            return;
-        }
-        if (!linkFormData.linkDokumentasi && !linkFormData.linkLaporan) {
-            setValidationError('Silakan isi minimal satu link.');
-            return;
-        }
-        setPkmData(prev => prev.map(item => {
-            if (item.id === parseInt(linkFormData.pkmId)) {
-                return {
-                    ...item,
-                    dokumentasi: linkFormData.linkDokumentasi || item.dokumentasi,
-                    laporan: linkFormData.linkLaporan || item.laporan,
-                };
-            }
-            return item;
-        }));
-        setLinkFormSubmitted(true);
-        setTimeout(() => {
-            setLinkFormSubmitted(false);
-            setLinkFormData({ pkmId: '', linkDokumentasi: '', linkLaporan: '' });
-            setIsLinkModalOpen(false);
-        }, 2500);
-    };
-
-    // Status Pengajuan data ÔÇö will be populated from backend
-    // Each item: { id, judul, tanggal, status: 'diproses'|'disetujui'|'ditangguhkan'|'ditolak' }
-    const [pengajuanData] = useState([]);
-    const [validationError, setValidationError] = useState('');
-
-    const getStatusPengajuanStyle = (status) => {
-        switch (status) {
-            case 'disetujui':
-                return { bg: '#dcfce7', color: '#15803d', icon: 'fa-circle-check', label: 'Disetujui' };
-            case 'diproses':
-                return { bg: '#dbeafe', color: '#1d4ed8', icon: 'fa-clock', label: 'Diproses' };
-            case 'ditangguhkan':
-                return { bg: '#fef3c7', color: '#b45309', icon: 'fa-pause-circle', label: 'Ditangguhkan (Revisi)' };
-            case 'ditolak':
-                return { bg: '#fee2e2', color: '#b91c1c', icon: 'fa-circle-xmark', label: 'Ditolak' };
-            default:
-                return { bg: '#f1f5f9', color: '#64748b', icon: 'fa-question-circle', label: status };
-        }
-    };
-
-    const handleMarkerClick = (pkm) => {
+    const handleMarkerClick = (pkm: PkmData) => {
         if (window.innerWidth <= 768) {
             setSidebarPkm(pkm);
             setMobileBottomSheet('detail');
-        } else {
-            setSidebarPkm(pkm);
+            return;
         }
+        setSidebarPkm(pkm);
+        setIsMenuListOpen(false);
     };
 
-    const handleMobileTabChange = (tabId) => {
+    const handleMobileTabChange = (tabId: 'peta' | 'dashboard' | 'kegiatan') => {
         setMobileActiveTab(tabId);
         if (tabId === 'kegiatan') {
             setMobileBottomSheet('kegiatan');
@@ -224,418 +340,251 @@ export default function LoginDosen({ pkmData: initialPkmData = [] as any[] }) {
         }
     };
 
-    const onLocationPicked = (latlng) => {
-        setIsPickingLocation(false);
+    const totalPkm = pkmData.length;
+    const totalSelesai = pkmData.filter((item) => item.status === 'selesai').length;
+    const totalBerlangsung = pkmData.filter((item) => item.status === 'berlangsung').length;
+    const latestPengajuan = pengajuanData[0] ?? null;
+    const hasSubmissionHistory = pengajuanData.length > 0;
+    const pengajuanHref = '/pengajuan?role=dosen&view=form';
+    const cekStatusHref = hasSubmissionHistory ? '/pengajuan?role=dosen&view=status' : pengajuanHref;
+    const currentSubmissionStatus = latestPengajuan?.status ?? 'belum_diajukan';
+    const currentPkmStatusData = ['berlangsung', 'selesai'].includes(currentSubmissionStatus)
+        ? pkmData.find((item) => item.status === currentSubmissionStatus) ?? null
+        : null;
+
+    const handleUpdateLatestPengajuanStatus = (nextStatus: string) => {
+        if (nextStatus === 'belum_diajukan') {
+            setPengajuanData([]);
+            return;
+        }
+
+        setPengajuanData((previous) => {
+            if (previous.length === 0) {
+                return [{
+                    id: Date.now(),
+                    judul: 'Pengajuan PKM',
+                    ringkasan: 'Status diperbarui dari aksi pada akun dosen.',
+                    tanggal: createPengajuanDateLabel(),
+                    status: nextStatus,
+                }];
+            }
+
+            return previous.map((item, index) => (
+                index === 0
+                    ? { ...item, status: nextStatus, tanggal: createPengajuanDateLabel() }
+                    : item
+            ));
+        });
     };
 
-    const handleFabClick = () => {
-        setIsLecturerFormOpen(true);
-    };
+    useEffect(() => {
+        if (typeof window === 'undefined') {
+            return undefined;
+        }
+
+        const mediaQuery = window.matchMedia('(max-width: 768px)');
+        const updateViewport = (event: MediaQueryListEvent) => {
+            setIsMobileViewport(event.matches);
+        };
+
+        setIsMobileViewport(mediaQuery.matches);
+
+        if (mediaQuery.addEventListener) {
+            mediaQuery.addEventListener('change', updateViewport);
+            return () => mediaQuery.removeEventListener('change', updateViewport);
+        }
+
+        mediaQuery.addListener(updateViewport);
+        return () => mediaQuery.removeListener(updateViewport);
+    }, []);
+
+    if (isMobileViewport) {
+        return (
+            <Layout
+                mainClassName="site-main-content site-main-content--landing-balanced"
+                mainStyle={{ flex: '0 0 auto' }}
+            >
+                <Head title="Login Dosen - P3M Poltekpar Makassar" />
+                <LoginDosenMobile
+                    pkmData={pkmData}
+                    submissionStatus={currentSubmissionStatus}
+                    pkmStatusData={currentPkmStatusData}
+                    submissionHistory={submissionHistoryData}
+                    onUpdateSubmissionStatus={handleUpdateLatestPengajuanStatus}
+                    onSubmitted={(submission: SubmissionData) => {
+                        setPengajuanData((previous) => [submission, ...previous]);
+                    }}
+                />
+            </Layout>
+        );
+    }
 
     return (
-        <Layout>
-            <Head title="Akun Dosen - P3M Poltekpar Makassar" />
+        <Layout
+            mainClassName="site-main-content site-main-content--landing-balanced"
+            mainStyle={{ flex: '0 0 auto' }}
+        >
+            <Head title="Login Dosen - P3M Poltekpar Makassar" />
 
-            {validationError && (
-                <div style={{
-                    position: 'fixed', top: '16px', left: '50%', transform: 'translateX(-50%)', zIndex: 9999,
-                    backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '12px',
-                    padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '10px',
-                    boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxWidth: '420px', width: '90%',
-                }}>
-                    <i className="fa-solid fa-circle-exclamation" style={{ color: '#dc2626', fontSize: '16px' }} />
-                    <span style={{ fontSize: '13px', color: '#991b1b', fontWeight: 600, flex: 1 }}>{validationError}</span>
-                    <button onClick={() => setValidationError('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626' }}>
-                        <i className="fa-solid fa-xmark" />
-                    </button>
-                </div>
-            )}
+            <div className="landing-page login-dosen-page">
+                <div className={`landing-map-row ${mobileActiveTab !== 'peta' ? 'mobile-hidden' : ''}`}>
+                    <section className="fintech-map-section landing-map-panel" id="peta-sebaran">
+                        <div className="fintech-panel-header">
+                            <h2 className="fintech-panel-title">
+                                Peta Sebaran Pengabdian PKM <span className="text-blue">Poltekpar Makassar</span>
+                            </h2>
+                        </div>
 
-            {/* Render Contextual Form Components */}
-            {isLecturerFormOpen && (
-                <LecturerSubmissionForm onClose={() => setIsLecturerFormOpen(false)} />
-            )}
+                        <div className="landing-map-shell">
+                            <div className="map-wrapper-boxed landing-map-canvas" style={{ overflow: 'hidden', position: 'relative' }}>
+                                <MapSearchWidget
+                                    pkmData={pkmData}
+                                    onSelectPkm={(pkm) => {
+                                        setSidebarPkm(pkm);
+                                        setIsMenuListOpen(false);
+                                    }}
+                                    isHidden={!!sidebarPkm || isMenuListOpen}
+                                />
 
-            <div className="landing-page">
-                {/* Interactive Map & Dashboard Main Layout */}
-                <div className="landing-main-layout" style={{ paddingTop: '80px', paddingBottom: '40px' }}>
+                                <StatusPengajuanPanel
+                                    isOpen={isMenuListOpen}
+                                    onClose={() => setIsMenuListOpen(false)}
+                                    pengajuanData={pengajuanData}
+                                />
 
-                    {/* 1. Interactive Map Column (Left Side) */}
-                    <div className={`landing-map-column ${mobileActiveTab !== 'peta' ? 'mobile-hidden' : ''}`}>
-                        <section className="fintech-map-section" id="peta-sebaran" style={{ height: 'calc(100vh - 120px)', minHeight: '600px' }}>
-                            <div className="fintech-panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <h2 className="fintech-panel-title">
-                                    Peta Sebaran Pengabdian PKM <span className="text-blue">Poltekpar Makassar</span>
-                                </h2>
+                                <MapContainer
+                                    center={[-2.5, 118]}
+                                    zoom={5}
+                                    minZoom={4}
+                                    maxBounds={[[-15, 90], [10, 145]]}
+                                    className="map-container"
+                                    style={{ width: '100%', height: '100%' }}
+                                >
+                                    <MapSizeInvalidator watchKey={`${mobileActiveTab}-${sidebarPkm?.id ?? 'none'}-${isMenuListOpen ? 'menu' : 'closed'}`} />
+                                    <TileLayer
+                                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                    />
+                                    {pkmData.map((pkm) => (
+                                        <Marker
+                                            key={pkm.id}
+                                            position={[pkm.lat, pkm.lng]}
+                                            icon={createPkmMarkerIcon(pkm)}
+                                            eventHandlers={{ click: () => handleMarkerClick(pkm) }}
+                                        />
+                                    ))}
+                                    <MapEvents setSidebarPkm={setSidebarPkm} setIsMenuListOpen={setIsMenuListOpen} />
+                                </MapContainer>
 
-                                {/* Akun Dosen Static Desktop Indicator (Moved to Panel Header) */}
-                                <div className="akun-dosen-desktop-indicator-inline" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(59, 130, 246, 0.1)', color: '#2563eb', padding: '6px 14px', borderRadius: '100px', fontWeight: '600', fontSize: '14px' }}>
-                                    <i className="fa-solid fa-user-tie"></i>
-                                    <span>Akun Dosen</span>
-                                </div>
-                            </div>
+                                <MapSummaryOverlay
+                                    totalPkm={totalPkm}
+                                    totalSelesai={totalSelesai}
+                                    totalBerlangsung={totalBerlangsung}
+                                    isHidden={!!sidebarPkm || isMenuListOpen}
+                                />
 
-                            <div className={`map-picking-mode-container fintech-map-stretch-container ${isPickingLocation ? 'map-picking-mode' : ''}`}>
-                                <div className="landing-map-wrapper map-section-boxed fintech-map-stretch-container" style={{ margin: 0, padding: 0 }}>
-                                    <div className="map-wrapper-boxed fintech-map-inner" style={{ overflow: 'hidden', position: 'relative' }}>
+                                <div
+                                    className={`map-overlay ${sidebarPkm || isMenuListOpen ? 'active' : ''}`}
+                                    onClick={() => {
+                                        setSidebarPkm(null);
+                                        setIsMenuListOpen(false);
+                                    }}
+                                ></div>
 
-                                        <MapSearchWidget pkmData={pkmData} onSelectPkm={(pkm) => setSidebarPkm(pkm)} isHidden={!!sidebarPkm || isMenuListOpen} />
-
-                                        {/* Left Vertical Navbar (Clean and Modern) */}
-                                        <div className="left-side-navbar" style={{
-                                            position: 'absolute',
-                                            top: 0,
-                                            left: 0,
-                                            zIndex: 1010,
-                                            width: '72px',
-                                            height: '100%',
-                                            backgroundColor: 'white',
-                                            borderRight: (isMenuListOpen || sidebarPkm) ? 'none' : '1px solid #e2e8f0',
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            alignItems: 'center',
-                                            padding: '20px 0',
-                                            boxShadow: (isMenuListOpen || sidebarPkm) ? 'none' : '2px 0 8px rgba(0,0,0,0.06)',
-                                            transition: 'all 0.3s ease'
-                                        }}>
-                                            <button
-                                                onClick={() => {
-                                                    if (isMenuListOpen || sidebarPkm) {
-                                                        setIsMenuListOpen(false);
-                                                        setSidebarPkm(null);
-                                                    } else {
-                                                        setIsMenuListOpen(true);
-                                                    }
-                                                }}
-                                                style={{ background: 'none', border: 'none', cursor: 'pointer', width: '44px', height: '44px', color: '#0f172a', borderRadius: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', transition: 'all 0.2s', backgroundColor: (isMenuListOpen || sidebarPkm) ? '#f1f5f9' : 'transparent' }}
-                                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
-                                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = (isMenuListOpen || sidebarPkm) ? '#f1f5f9' : 'transparent'}
-                                            >
-                                                <i className={`fa-solid ${(isMenuListOpen || sidebarPkm) ? 'fa-xmark' : 'fa-bars'}`} style={{ fontSize: '20px' }}></i>
-                                            </button>
-                                        </div>
-
-                                        {/* Hamburger Menu List Panel - Master List (Accordion) */}
-                                        <div
-                                            className="left-sidebar-menu"
-                                            style={{
-                                                position: 'absolute',
-                                                top: 0,
-                                                left: '72px',
-                                                zIndex: 1007,
-                                                width: '400px',
-                                                height: '100%',
-                                                backgroundColor: 'white',
-                                                boxShadow: isMenuListOpen ? '4px 0 16px rgba(15, 23, 42, 0.08)' : 'none',
-                                                transform: isMenuListOpen ? 'translateX(0)' : 'translateX(-100%)',
-                                                transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                borderRadius: '0',
-                                                borderLeft: '1px solid #f8fafc',
-                                                overflow: 'hidden'
-                                            }}
-                                        >
-                                            {/* Sidebar Header */}
-                                            <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', backgroundColor: '#ffffff' }}>
-                                                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#0f172a' }}>Menu</h3>
-                                            </div>
-
-                                            {/* Scrollable accordion content */}
-                                            <div style={{ overflowY: 'auto', flex: 1 }}>
-
-                                                {/* === Section 1: Daftar Kegiatan (Accordion) === */}
-                                                <div style={{ borderBottom: '1px solid #e2e8f0' }}>
-                                                    <button
-                                                        onClick={() => toggleSection('kegiatan')}
-                                                        style={{
-                                                            width: '100%', padding: '16px 24px', background: expandedSection === 'kegiatan' ? '#f8fafc' : 'white',
-                                                            border: 'none', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                                            transition: 'background 0.2s'
-                                                        }}
-                                                        onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
-                                                        onMouseLeave={(e) => e.currentTarget.style.background = expandedSection === 'kegiatan' ? '#f8fafc' : 'white'}
+                                <aside className={`sidebar ${!sidebarPkm ? 'sidebar-hidden' : ''}`}>
+                                    <div className="dashboard-content" style={{ position: 'relative' }}>
+                                        {sidebarPkm && (
+                                            <>
+                                                <button
+                                                    onClick={() => setSidebarPkm(null)}
+                                                    className="sidebar-close-button"
+                                                    title="Tutup Detail"
+                                                >
+                                                    <i className="fa-solid fa-xmark" style={{ fontSize: '16px' }}></i>
+                                                </button>
+                                                <div className="location-card">
+                                                    <div
+                                                        className={`card-image-wrapper ${sidebarPkm.thumbnail ? 'has-image' : ''}`}
+                                                        style={sidebarPkm.thumbnail ? { backgroundImage: `url(${sidebarPkm.thumbnail})` } : {}}
                                                     >
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                            <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: '#dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                                <i className="fa-solid fa-list-check" style={{ color: '#2563eb', fontSize: '16px' }}></i>
-                                                            </div>
-                                                            <div style={{ textAlign: 'left' }}>
-                                                                <div style={{ fontWeight: '600', fontSize: '14px', color: '#0f172a' }}>Daftar Kegiatan</div>
-                                                                <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>{pkmData.length} kegiatan tersedia</div>
-                                                            </div>
-                                                        </div>
-                                                        <i className={`fa-solid fa-chevron-${expandedSection === 'kegiatan' ? 'up' : 'down'}`} style={{ color: '#94a3b8', fontSize: '14px', transition: 'transform 0.3s' }}></i>
-                                                    </button>
+                                                        {!sidebarPkm.thumbnail && <i className="fa-solid fa-image"></i>}
+                                                    </div>
 
-                                                    {/* Expandable PKM list */}
-                                                    <div style={{
-                                                        maxHeight: expandedSection === 'kegiatan' ? '600px' : '0',
-                                                        overflow: 'hidden',
-                                                        transition: 'max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
-                                                    }}>
-                                                        {pkmData.map(pkm => (
-                                                            <div
-                                                                key={pkm.id}
-                                                                onClick={() => {
-                                                                    setSidebarPkm(pkm);
-                                                                }}
-                                                                style={{ padding: '14px 24px', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', display: 'flex', gap: '14px', alignItems: 'center' }}
-                                                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
-                                                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                                            >
-                                                                <div
-                                                                    style={{
-                                                                        width: '56px', height: '56px', borderRadius: '10px', backgroundColor: '#f1f5f9', flexShrink: 0,
-                                                                        backgroundImage: pkm.thumbnail ? `url(${pkm.thumbnail})` : 'none',
-                                                                        backgroundSize: 'cover', backgroundPosition: 'center',
-                                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                                        boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.05)'
-                                                                    }}
-                                                                >
-                                                                    {!pkm.thumbnail && <i className="fa-solid fa-image" style={{ color: '#cbd5e1', fontSize: '20px' }}></i>}
-                                                                </div>
-                                                                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', flex: 1 }}>
-                                                                    <div style={{ fontWeight: '600', fontSize: '13.5px', color: '#0f172a', lineHeight: '1.4', marginBottom: '4px' }}>{pkm.nama}</div>
-                                                                    <div style={{ fontSize: '12px', color: '#64748b' }}>
-                                                                        <i className="fa-solid fa-location-dot" style={{ marginRight: '5px', color: '#94a3b8' }}></i>
-                                                                        {pkm.desa}, Kec. {pkm.kecamatan}
-                                                                    </div>
-                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '4px' }}>
-                                                                        <span style={{ display: 'inline-block', width: '7px', height: '7px', borderRadius: '50%', backgroundColor: pkm.status === 'berlangsung' ? '#f59e0b' : '#16a34a' }}></span>
-                                                                        <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{pkm.status === 'berlangsung' ? 'Berlangsung' : 'Selesai'}</span>
-                                                                    </div>
-                                                                </div>
-                                                                <i className="fa-solid fa-chevron-right" style={{ color: '#cbd5e1', fontSize: '12px' }}></i>
-                                                            </div>
-                                                        ))}
+                                                    <div className="card-body">
+                                                        <div className="card-header-flex">
+                                                            <h2 className="card-title">{sidebarPkm.nama}</h2>
+                                                            <span className="card-year">{sidebarPkm.tahun}</span>
+                                                        </div>
+
+                                                        <div className={`card-status ${getStatusBadge(sidebarPkm.status)}`}>
+                                                            <i className={`fa-solid ${getStatusIcon(sidebarPkm.status)}`}></i> {getStatusText(sidebarPkm.status)}
+                                                        </div>
+
+                                                        <p className="card-description">{sidebarPkm.deskripsi}</p>
+
+                                                        <DocumentationGallery status={sidebarPkm.status} />
+                                                        <TestimonialSidebarDisplay status={sidebarPkm.status} />
+
+                                                        <div className="card-location">
+                                                            <i className="fa-solid fa-map-pin"></i> {sidebarPkm.desa}, Kec. {sidebarPkm.kecamatan}, {sidebarPkm.kabupaten}, {sidebarPkm.provinsi}
+                                                        </div>
                                                     </div>
                                                 </div>
-
-                                                {/* === Section 2: Status Pengajuan (Accordion) === */}
-                                                <div style={{ borderBottom: '1px solid #e2e8f0' }}>
-                                                    <button
-                                                        onClick={() => toggleSection('pengajuan')}
-                                                        style={{
-                                                            width: '100%', padding: '16px 24px', background: expandedSection === 'pengajuan' ? '#f8fafc' : 'white',
-                                                            border: 'none', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                                            transition: 'background 0.2s'
-                                                        }}
-                                                        onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
-                                                        onMouseLeave={(e) => e.currentTarget.style.background = expandedSection === 'pengajuan' ? '#f8fafc' : 'white'}
-                                                    >
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                            <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                                <i className="fa-solid fa-file-circle-check" style={{ color: '#7c3aed', fontSize: '16px' }}></i>
-                                                            </div>
-                                                            <div style={{ textAlign: 'left' }}>
-                                                                <div style={{ fontWeight: '600', fontSize: '14px', color: '#0f172a' }}>Status Pengajuan</div>
-                                                                <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>{pengajuanData.length > 0 ? `${pengajuanData.length} pengajuan` : 'Belum ada pengajuan'}</div>
-                                                            </div>
-                                                        </div>
-                                                        <i className={`fa-solid fa-chevron-${expandedSection === 'pengajuan' ? 'up' : 'down'}`} style={{ color: '#94a3b8', fontSize: '14px', transition: 'transform 0.3s' }}></i>
-                                                    </button>
-
-                                                    {/* Expandable Pengajuan list */}
-                                                    <div style={{
-                                                        maxHeight: expandedSection === 'pengajuan' ? '600px' : '0',
-                                                        overflow: 'hidden',
-                                                        transition: 'max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
-                                                    }}>
-                                                        {pengajuanData.length === 0 ? (
-                                                            <div style={{ padding: '24px', textAlign: 'center' }}>
-                                                                <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
-                                                                    <i className="fa-solid fa-inbox" style={{ color: '#cbd5e1', fontSize: '24px' }}></i>
-                                                                </div>
-                                                                <div style={{ fontSize: '14px', fontWeight: '600', color: '#94a3b8', marginBottom: '4px' }}>ÔÇö</div>
-                                                                <div style={{ fontSize: '12.5px', color: '#94a3b8', lineHeight: '1.5' }}>Belum ada pengajuan PKM.<br />Tekan tombol <strong>+</strong> untuk mengajukan.</div>
-                                                            </div>
-                                                        ) : (
-                                                            pengajuanData.map(item => {
-                                                                const statusStyle = getStatusPengajuanStyle(item.status);
-                                                                return (
-                                                                    <div
-                                                                        key={item.id}
-                                                                        style={{ padding: '14px 24px', borderBottom: '1px solid #f1f5f9', display: 'flex', gap: '14px', alignItems: 'center' }}
-                                                                    >
-                                                                        <div style={{
-                                                                            width: '44px', height: '44px', borderRadius: '12px',
-                                                                            backgroundColor: statusStyle.bg,
-                                                                            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-                                                                        }}>
-                                                                            <i className={`fa-solid ${statusStyle.icon}`} style={{ color: statusStyle.color, fontSize: '18px' }}></i>
-                                                                        </div>
-                                                                        <div style={{ flex: 1, minWidth: 0 }}>
-                                                                            <div style={{ fontWeight: '600', fontSize: '13.5px', color: '#0f172a', lineHeight: '1.4', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.judul}</div>
-                                                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                                                                                <span style={{
-                                                                                    display: 'inline-flex', alignItems: 'center', gap: '5px',
-                                                                                    fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px',
-                                                                                    color: statusStyle.color,
-                                                                                    backgroundColor: statusStyle.bg,
-                                                                                    padding: '3px 10px', borderRadius: '20px'
-                                                                                }}>
-                                                                                    <i className={`fa-solid ${statusStyle.icon}`} style={{ fontSize: '10px' }}></i>
-                                                                                    {statusStyle.label}
-                                                                                </span>
-                                                                                <span style={{ fontSize: '11px', color: '#94a3b8', whiteSpace: 'nowrap' }}>{item.tanggal}</span>
-                                                                            </div>
-                                                                            {item.status === 'ditangguhkan' && (
-                                                                                <button
-                                                                                    onClick={() => { /* TODO: open edit form with item data */ }}
-                                                                                    style={{
-                                                                                        marginTop: '8px', padding: '6px 16px', fontSize: '12px', fontWeight: '600',
-                                                                                        color: '#b45309', backgroundColor: '#fef3c7', border: '1px solid #fde68a',
-                                                                                        borderRadius: '8px', cursor: 'pointer', display: 'inline-flex',
-                                                                                        alignItems: 'center', gap: '6px', transition: 'all 0.2s'
-                                                                                    }}
-                                                                                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#fde68a'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(180,83,9,0.15)'; }}
-                                                                                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#fef3c7'; e.currentTarget.style.boxShadow = 'none'; }}
-                                                                                >
-                                                                                    <i className="fa-solid fa-pen-to-square" style={{ fontSize: '11px' }}></i>
-                                                                                    Edit Pengajuan
-                                                                                </button>
-                                                                            )}
-                                                                        </div>
-                                                                    </div>
-                                                                );
-                                                            })
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                {/* === Section 3: Submit Link Dokumentasi & Laporan (Button to open modal) === */}
-                                                <div style={{ borderBottom: '1px solid #e2e8f0' }}>
-                                                    <button
-                                                        onClick={() => setIsLinkModalOpen(true)}
-                                                        style={{
-                                                            width: '100%', padding: '16px 24px', background: 'white',
-                                                            border: 'none', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                                            transition: 'background 0.2s'
-                                                        }}
-                                                        onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
-                                                        onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
-                                                    >
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                            <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                                <i className="fa-solid fa-link" style={{ color: '#d97706', fontSize: '16px' }}></i>
-                                                            </div>
-                                                            <div style={{ textAlign: 'left' }}>
-                                                                <div style={{ fontWeight: '600', fontSize: '14px', color: '#0f172a' }}>Submit Link</div>
-                                                                <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>Dokumentasi & Laporan</div>
-                                                            </div>
-                                                        </div>
-                                                        <i className="fa-solid fa-arrow-up-right-from-square" style={{ color: '#94a3b8', fontSize: '14px' }}></i>
-                                                    </button>
-                                                </div>
-
-                                            </div>
-                                        </div>
-
-                                        <MapContainer center={[-5.132, 119.49]} zoom={15} className="map-container">
-                                            <TileLayer
-                                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                                attribution=''
-                                            />
-                                            {pkmData.map((pkm) => (
-                                                <Marker
-                                                    key={pkm.id}
-                                                    position={[pkm.lat, pkm.lng]}
-                                                    icon={createCustomIcon(pkm.status)}
-                                                    eventHandlers={{ click: () => handleMarkerClick(pkm) }}
-                                                />
-                                            ))}
-                                            <MapEvents
-                                                isPickingLocation={isPickingLocation}
-                                                onLocationPicked={onLocationPicked}
-                                                setSidebarPkm={setSidebarPkm}
-                                            />
-                                        </MapContainer>
-
-                                        {/* Premium Fintech Map Legend Overlay */}
-                                        <div className="fintech-map-legend">
-                                            <div className="legend-title">LEGENDA:</div>
-                                            <div className="legend-item">
-                                                <span className="legend-icon" style={{ backgroundColor: '#16a34a' }}></span>
-                                                <span className="legend-text">PKM Selesai</span>
-                                            </div>
-                                            <div className="legend-item">
-                                                <span className="legend-icon" style={{ backgroundColor: '#f59e0b' }}></span>
-                                                <span className="legend-text">PKM Berlangsung</span>
-                                            </div>
-                                        </div>
-
-                                        <div className={`map-overlay ${sidebarPkm || isMenuListOpen ? 'active' : ''}`} onClick={() => { setSidebarPkm(null); setIsMenuListOpen(false); }}></div>
-
-                                        {/* FAB "+" Button ÔÇö Will open Dosen PKM form */}
-                                        <div className="fab-wrapper">
-                                            <button className="fab" onClick={handleFabClick}>
-                                                <span className="fab-label">Buat Pengajuan</span>
-                                                <i className="fa-solid fa-plus"></i>
-                                            </button>
-                                        </div>
-
-                                        <aside className={`sidebar ${!sidebarPkm ? 'sidebar-hidden' : ''}`}>
-                                            <div className="dashboard-content" style={{ position: 'relative' }}>
-                                                {sidebarPkm && (
-                                                    <>
-                                                        <button
-                                                            onClick={() => setSidebarPkm(null)}
-                                                            style={{ position: 'absolute', top: '36px', right: '36px', zIndex: 10, background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(4px)', width: '36px', height: '36px', borderRadius: '50%', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', color: '#475569', transition: 'all 0.2s' }}
-                                                            title={isMenuListOpen ? "Kembali ke Daftar" : "Tutup Detail"}
-                                                        >
-                                                            <i className={`fa-solid ${isMenuListOpen ? "fa-arrow-left" : "fa-xmark"}`} style={{ fontSize: '16px' }}></i>
-                                                        </button>
-                                                        <div className="location-card">
-                                                            <div
-                                                                className={`card-image-wrapper ${sidebarPkm.thumbnail ? 'has-image' : ''}`}
-                                                                style={sidebarPkm.thumbnail ? { backgroundImage: `url(${sidebarPkm.thumbnail})` } : {}}
-                                                            >
-                                                                {!sidebarPkm.thumbnail && <i className="fa-solid fa-image"></i>}
-                                                            </div>
-
-                                                            <div className="card-body">
-                                                                <div className="card-header-flex">
-                                                                    <h2 className="card-title">{sidebarPkm.nama}</h2>
-                                                                    <span className="card-year">{sidebarPkm.tahun}</span>
-                                                                </div>
-
-                                                                <div className={`card-status ${getStatusBadge(sidebarPkm.status)}`}>
-                                                                    <i className={`fa-solid ${getStatusIcon(sidebarPkm.status)}`}></i> {getStatusText(sidebarPkm.status)}
-                                                                </div>
-
-                                                                <p className="card-description">{sidebarPkm.deskripsi}</p>
-
-                                                                <DocumentationGallery status={sidebarPkm.status} />
-                                                                <TestimonialSidebarDisplay status={sidebarPkm.status} />
-
-                                                                <div className="card-location">
-                                                                    <i className="fa-solid fa-map-pin"></i> {sidebarPkm.desa}, Kec. {sidebarPkm.kecamatan},{' '}
-                                                                    {sidebarPkm.kabupaten}, {sidebarPkm.provinsi}
-                                                                </div>
-
-                                                            </div>
-                                                        </div>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </aside>
+                                            </>
+                                        )}
                                     </div>
-                                </div>
+                                </aside>
                             </div>
-                        </section>
-                    </div>
-
-                    {/* 2. Data Visualization Charts Column (Right Side) */}
-                    <div className={`landing-charts-column ${mobileActiveTab !== 'dashboard' ? 'mobile-hidden' : ''}`}>
-                        <LandingCharts />
-                    </div>
+                        </div>
+                    </section>
                 </div>
 
-                {/* Mobile Bottom Sheet ÔÇö Location Detail */}
+                <div
+                    className={`${mobileActiveTab !== 'dashboard' ? 'mobile-hidden' : ''} landing-insight-layout--fullwidth`}
+                    style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 12px 28px', boxSizing: 'border-box' }}
+                >
+                    <LandingCharts pkmData={pkmData} />
+                </div>
+
+                <section className="cta-banner login-dosen-cta" id="cta-pengajuan-dosen">
+                    <div className="cta-banner__content">
+                        <div className="cta-banner__icon-wrap">
+                            <i className="fa-solid fa-paper-plane"></i>
+                        </div>
+                        <h2 className="cta-banner__title">
+                            {hasSubmissionHistory ? 'Kelola pengajuan PKM Anda' : 'Mau melakukan pengajuan PKM?'}
+                        </h2>
+                        <p className="cta-banner__subtitle">
+                            {hasSubmissionHistory
+                                ? 'Buka halaman pengajuan untuk membuat pengajuan baru atau cek status untuk melihat pengajuan yang sudah pernah dikirim.'
+                                : 'Karena belum ada pengajuan yang tersimpan, tombol pengajuan dan cek status sama-sama akan membuka halaman pengajuan.'}
+                        </p>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '12px' }}>
+                            <a href={pengajuanHref} className="cta-banner__btn cta-banner__btn--auth">
+                                <i className="fa-solid fa-file-circle-plus"></i>
+                                <span>Buka Halaman Pengajuan</span>
+                            </a>
+                            <a
+                                href={cekStatusHref}
+                                className="cta-banner__btn"
+                                style={{
+                                    background: hasSubmissionHistory ? '#0f172a' : '#e2e8f0',
+                                    color: hasSubmissionHistory ? '#ffffff' : '#334155',
+                                }}
+                            >
+                                <i className="fa-solid fa-magnifying-glass"></i>
+                                <span>Cek Status</span>
+                            </a>
+                        </div>
+                    </div>
+                </section>
+
                 <BottomSheet
                     isOpen={mobileBottomSheet === 'detail'}
-                    onClose={() => { closeMobileBottomSheet(); setSidebarPkm(null); }}
+                    onClose={() => {
+                        closeMobileBottomSheet();
+                        setSidebarPkm(null);
+                    }}
                     title={sidebarPkm?.nama}
                 >
                     {sidebarPkm && (
@@ -672,7 +621,6 @@ export default function LoginDosen({ pkmData: initialPkmData = [] as any[] }) {
                     )}
                 </BottomSheet>
 
-                {/* Mobile Bottom Sheet ÔÇö Daftar Kegiatan */}
                 <BottomSheet
                     isOpen={mobileBottomSheet === 'kegiatan'}
                     onClose={closeMobileBottomSheet}
@@ -707,82 +655,7 @@ export default function LoginDosen({ pkmData: initialPkmData = [] as any[] }) {
                     </div>
                 </BottomSheet>
 
-                {/* Mobile Bottom Tab Bar */}
                 <MobileTabBar activeTab={mobileActiveTab} onTabChange={handleMobileTabChange} />
-
-                {/* Submit Link Dokumentasi & Laporan Modal */}
-                {isLinkModalOpen && (
-                    <div className="modal-overlay">
-                        <div className="modal-content">
-                            <div className="modal-header">
-                                <h2>Submit Link Dokumentasi & Laporan</h2>
-                                <button className="close-btn" onClick={() => { setIsLinkModalOpen(false); setLinkFormSubmitted(false); setLinkFormData({ pkmId: '', linkDokumentasi: '', linkLaporan: '' }); }}>
-                                    <i className="fa-solid fa-xmark"></i>
-                                </button>
-                            </div>
-
-                            {linkFormSubmitted ? (
-                                <div style={{ textAlign: 'center', padding: '48px 24px' }}>
-                                    <div style={{ width: '72px', height: '72px', borderRadius: '50%', backgroundColor: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-                                        <i className="fa-solid fa-check" style={{ color: '#16a34a', fontSize: '32px' }}></i>
-                                    </div>
-                                    <h3 style={{ fontWeight: '700', fontSize: '20px', color: '#0f172a', marginBottom: '8px' }}>Link Berhasil Dikirim!</h3>
-                                    <p style={{ fontSize: '14px', color: '#64748b' }}>Data kegiatan telah diperbarui.</p>
-                                </div>
-                            ) : (
-                                <form className="modal-body" onSubmit={handleLinkFormSubmit}>
-                                    <div className="form-group">
-                                        <label htmlFor="linkPkmIdDosen">Pilih Kegiatan</label>
-                                        <select
-                                            id="linkPkmIdDosen"
-                                            value={linkFormData.pkmId}
-                                            onChange={(e) => handleLinkFormChange('pkmId', e.target.value)}
-                                            required
-                                        >
-                                            <option value="">-- Pilih Kegiatan --</option>
-                                            {pkmData.map(pkm => (
-                                                <option key={pkm.id} value={pkm.id}>{pkm.nama}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-
-                                    <div className="form-group">
-                                        <label htmlFor="linkDokumentasiDosen">Link Dokumentasi</label>
-                                        <input
-                                            type="url"
-                                            id="linkDokumentasiDosen"
-                                            value={linkFormData.linkDokumentasi}
-                                            onChange={(e) => handleLinkFormChange('linkDokumentasi', e.target.value)}
-                                            placeholder="https://drive.google.com/..."
-                                        />
-                                    </div>
-
-                                    <div className="form-group">
-                                        <label htmlFor="linkLaporanDosen">Link Laporan</label>
-                                        <input
-                                            type="url"
-                                            id="linkLaporanDosen"
-                                            value={linkFormData.linkLaporan}
-                                            onChange={(e) => handleLinkFormChange('linkLaporan', e.target.value)}
-                                            placeholder="https://drive.google.com/..."
-                                        />
-                                    </div>
-                                </form>
-                            )}
-
-                            {!linkFormSubmitted && (
-                                <div className="modal-footer">
-                                    <button type="button" className="btn-secondary" onClick={() => { setIsLinkModalOpen(false); setLinkFormData({ pkmId: '', linkDokumentasi: '', linkLaporan: '' }); }}>
-                                        Batal
-                                    </button>
-                                    <button type="button" className="btn-primary" onClick={handleLinkFormSubmit}>
-                                        <i className="fa-solid fa-paper-plane"></i> Kirim Link
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
             </div>
         </Layout>
     );

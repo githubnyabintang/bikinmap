@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -9,10 +9,13 @@ import {
     Tooltip,
     Legend,
     Filler,
+    ChartData,
     ChartOptions,
-    ChartData
 } from 'chart.js';
 import { Bar, Doughnut } from 'react-chartjs-2';
+import { resolvePublicPkmData } from '@/data/sigapData';
+import { PKM_LEGEND_TYPES, getPkmTypeMeta } from '@/data/pkmMapVisuals';
+import type { PkmData } from '@/types';
 
 ChartJS.register(
     CategoryScale,
@@ -25,58 +28,19 @@ ChartJS.register(
     Filler
 );
 
-// -------------------------------------------------------
-// Mock data engineered from the map markers:
-//
-//   1. "Pemberdayaan UMKM Kripik Pisang"
-//      ÔåÆ Bira, Kec. Tamalanrea | 2025 | status: selesai   (#16a34a)
-//
-//   2. "Edukasi Sanitasi Lingkungan"
-//      ÔåÆ Tamalanrea Indah, Kec. Tamalanrea | 2026 | status: berlangsung (#f59e0b)
-//
-// The charts below use these real data points plus
-// realistic historical mock data to show trends.
-// -------------------------------------------------------
-
 const COLORS = {
-    selesai: '#16a34a',
-    selesaiBg: 'rgba(22, 163, 74, 0.15)',
-    berlangsung: '#f59e0b',
-    berlangsungBg: 'rgba(245, 158, 11, 0.15)',
-    primary: '#046bd2',
-    primaryBg: 'rgba(4, 107, 210, 0.7)',
-    primaryLight: 'rgba(4, 107, 210, 0.15)',
-    grid: 'rgba(148, 163, 184, 0.12)',
+    grid: 'rgba(148, 163, 180, 0.12)',
     textMuted: '#64748b',
-    textDark: '#0f172a',
 };
 
-// ---- Chart 1: Tren PKM Tahunan (Bar Chart) ----
-const yearlyTrendData: ChartData<'bar'> = {
-    labels: ['2021', '2022', '2023', '2024', '2025', '2026'],
-    datasets: [
-        {
-            label: 'Selesai',
-            data: [2, 3, 4, 5, 7, 3],
-            backgroundColor: COLORS.selesai,
-            borderRadius: 6,
-            borderSkipped: false,
-            barPercentage: 0.55,
-            categoryPercentage: 0.7,
-        },
-        {
-            label: 'Berlangsung',
-            data: [1, 1, 2, 2, 1, 4],
-            backgroundColor: COLORS.berlangsung,
-            borderRadius: 6,
-            borderSkipped: false,
-            barPercentage: 0.55,
-            categoryPercentage: 0.7,
-        },
-    ],
-};
+const fallbackPkmData = resolvePublicPkmData(null);
 
-const yearlyTrendOptions: ChartOptions<'bar'> = {
+interface ChartSource {
+    barData: ChartData<'bar'>;
+    doughnutData: ChartData<'doughnut'>;
+}
+
+const buildBarOptions = (compactMobile = false): ChartOptions<'bar'> => ({
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -85,15 +49,15 @@ const yearlyTrendOptions: ChartOptions<'bar'> = {
             labels: {
                 usePointStyle: true,
                 pointStyle: 'circle',
-                padding: 20,
-                font: { size: 13, weight: 'bold', family: "'Segoe UI', sans-serif" },
+                padding: compactMobile ? 14 : 20,
+                font: { size: compactMobile ? 11 : 13, weight: '600', family: "'Segoe UI', sans-serif" },
                 color: COLORS.textMuted,
             },
         },
         title: { display: false },
         tooltip: {
             backgroundColor: '#0f172a',
-            titleFont: { size: 13, weight: 'bold' },
+            titleFont: { size: 13, weight: '700' },
             bodyFont: { size: 12 },
             padding: 12,
             cornerRadius: 10,
@@ -108,7 +72,7 @@ const yearlyTrendOptions: ChartOptions<'bar'> = {
         x: {
             grid: { display: false },
             ticks: {
-                font: { size: 12, weight: 'bold' },
+                font: { size: compactMobile ? 11 : 12, weight: '600' },
                 color: COLORS.textMuted,
             },
         },
@@ -116,137 +80,148 @@ const yearlyTrendOptions: ChartOptions<'bar'> = {
             beginAtZero: true,
             grid: { color: COLORS.grid },
             ticks: {
-                stepSize: 2,
-                font: { size: 12 },
+                stepSize: 1,
+                precision: 0,
+                font: { size: compactMobile ? 11 : 12 },
                 color: COLORS.textMuted,
             },
         },
     },
-};
+});
 
-// ---- Chart 2: Sebaran Status PKM Berdasarkan Titik Lokasi (Doughnut) ----
-// Segments correspond to the exact map marker locations + status
-const statusDistributionData: ChartData<'doughnut'> = {
-    labels: [
-        'Kripik Pisang - Bira (Selesai)',
-        'Sanitasi Lingkungan - Tamalanrea Indah (Berlangsung)',
-        'Kegiatan Lainnya (Selesai)',
-        'Kegiatan Lainnya (Berlangsung)',
-    ],
-    datasets: [
-        {
-            data: [25, 20, 35, 20],
-            backgroundColor: [
-                COLORS.selesai,
-                COLORS.berlangsung,
-                'rgba(22, 163, 74, 0.5)',
-                'rgba(245, 158, 11, 0.45)',
-            ],
-            borderColor: '#ffffff',
-            borderWidth: 3,
-            hoverOffset: 14,
-        },
-    ],
-};
-
-const statusDistributionOptions: ChartOptions<'doughnut'> = {
+const buildDoughnutOptions = (compactMobile = false): ChartOptions<'doughnut'> => ({
     responsive: true,
     maintainAspectRatio: false,
-    cutout: '62%',
+    cutout: compactMobile ? '66%' : '62%',
     plugins: {
         legend: {
             position: 'bottom',
             labels: {
                 usePointStyle: true,
                 pointStyle: 'circle',
-                padding: 16,
-                font: { size: 12, weight: 'bold', family: "'Segoe UI', sans-serif" },
+                padding: compactMobile ? 12 : 16,
+                font: { size: compactMobile ? 10 : 12, weight: '600', family: "'Segoe UI', sans-serif" },
                 color: COLORS.textMuted,
-                boxWidth: 10,
+                boxWidth: compactMobile ? 8 : 10,
             },
         },
         title: { display: false },
         tooltip: {
             backgroundColor: '#0f172a',
-            titleFont: { size: 13, weight: 'bold' },
+            titleFont: { size: 13, weight: '700' },
             bodyFont: { size: 12 },
             padding: 12,
             cornerRadius: 10,
             callbacks: {
-                label: (ctx) => ` ${ctx.label}: ${ctx.parsed}%`,
+                label: (ctx) => ` ${ctx.label}: ${ctx.parsed} kegiatan`,
             },
         },
     },
+});
+
+const buildChartSource = (pkmData: PkmData[] = []): ChartSource => {
+    const sourceData = Array.isArray(pkmData) && pkmData.length > 0 ? pkmData : fallbackPkmData;
+
+    const years = [...new Set(
+        sourceData
+            .map((item) => Number(item?.tahun))
+            .filter((year) => Number.isFinite(year))
+    )].sort((a, b) => a - b);
+
+    const groupedByTypePerYear = PKM_LEGEND_TYPES.map((typeMeta) => ({
+        ...typeMeta,
+        data: years.map((year) => (
+            sourceData.filter((item) => Number(item?.tahun) === year && getPkmTypeMeta(item).key === typeMeta.key).length
+        )),
+    }));
+
+    const groupedByTypeTotals = PKM_LEGEND_TYPES.map((typeMeta) => ({
+        ...typeMeta,
+        total: sourceData.filter((item) => getPkmTypeMeta(item).key === typeMeta.key).length,
+    }));
+
+    return {
+        barData: {
+            labels: years,
+            datasets: groupedByTypePerYear.map((item) => ({
+                label: item.label,
+                data: item.data,
+                backgroundColor: item.color,
+                borderRadius: 6,
+                borderSkipped: false,
+                barPercentage: 0.55,
+                categoryPercentage: 0.7,
+            })),
+        },
+        doughnutData: {
+            labels: groupedByTypeTotals.map((item) => item.label),
+            datasets: [
+                {
+                    data: groupedByTypeTotals.map((item) => item.total),
+                    backgroundColor: groupedByTypeTotals.map((item) => item.color),
+                    borderColor: '#ffffff',
+                    borderWidth: 3,
+                    hoverOffset: 14,
+                },
+            ],
+        },
+    };
 };
 
-// ---- Component ----
-
-interface ChartStats {
-    years: number[];
-    selesai: number[];
-    berlangsung: number[];
-    total_pengajuan: number;
-    total_diterima: number;
-    total_selesai: number;
+interface LandingChartsProps {
+    compactMobile?: boolean;
+    pkmData?: PkmData[];
 }
 
-export default function LandingCharts({ chartStats }: { chartStats?: ChartStats | null }) {
-    const barData: ChartData<'bar'> = chartStats ? {
-        labels: chartStats.years.map(String),
-        datasets: [
-            { ...yearlyTrendData.datasets[0], data: chartStats.selesai },
-            { ...yearlyTrendData.datasets[1], data: chartStats.berlangsung },
-        ],
-    } : yearlyTrendData;
-
-    const doughnutData: ChartData<'doughnut'> = chartStats ? {
-        labels: statusDistributionData.labels,
-        datasets: [{
-            ...statusDistributionData.datasets[0],
-            data: [
-                chartStats.total_selesai,
-                chartStats.total_diterima,
-                Math.max(0, chartStats.total_pengajuan - chartStats.total_selesai - chartStats.total_diterima),
-            ],
-        }],
-    } : statusDistributionData;
+export default function LandingCharts({ compactMobile = false, pkmData = [] }: LandingChartsProps) {
+    const chartSource = useMemo(() => buildChartSource(pkmData), [pkmData]);
+    const barOptions = useMemo(() => buildBarOptions(compactMobile), [compactMobile]);
+    const doughnutOptions = useMemo(() => buildDoughnutOptions(compactMobile), [compactMobile]);
 
     return (
-        <section className="fintech-charts-section" id="visualisasi-data">
-            <div className="fintech-panel-header">
-                <h2 className="fintech-panel-title">Dashboard Evaluasi <span className="text-blue">PKM</span></h2>
+        <section className="px-6 py-8" id="visualisasi-data">
+            {/* Header */}
+            <div className="mb-6">
+                <h2 className="text-2xl font-bold text-slate-900">
+                    Dashboard Evaluasi <span className="text-sigap-blue">PKM</span>
+                </h2>
             </div>
 
-            <div className="charts-grid">
-                {/* Chart 1 ÔÇö Bar Chart */}
-                <div className="chart-card">
-                    <div className="chart-card-header">
-                        <div className="chart-card-icon">
-                            <i className="fa-solid fa-chart-column"></i>
-                        </div>
-                        <div>
-                            <h3 className="chart-card-title">Tren PKM Tahunan</h3>
-                            <p className="chart-card-subtitle">Jumlah kegiatan PKM per tahun berdasarkan status</p>
+            {/* Charts Grid */}
+            <div className={`grid gap-6 ${compactMobile ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-2'}`}>
+                {/* Bar Chart */}
+                <div className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
+                    <div className="px-6 py-5 border-b border-slate-100">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-sigap-blue to-sigap-darkBlue flex items-center justify-center text-white shadow-md">
+                                <i className="fa-solid fa-chart-column text-lg"></i>
+                            </div>
+                            <div>
+                                <h3 className="text-base font-bold text-slate-900">Jumlah PKM Per Tahun</h3>
+                                <p className="text-sm text-slate-500 mt-0.5">Perbandingan jumlah PKM per tahun berdasarkan jenis program yang berjalan</p>
+                            </div>
                         </div>
                     </div>
-                    <div className="chart-canvas-wrapper">
-                        <Bar data={barData} options={yearlyTrendOptions} />
+                    <div className="p-6 h-72">
+                        <Bar data={chartSource.barData} options={barOptions} />
                     </div>
                 </div>
 
-                {/* Chart 2 ÔÇö Doughnut Chart */}
-                <div className="chart-card">
-                    <div className="chart-card-header">
-                        <div className="chart-card-icon chart-card-icon--amber">
-                            <i className="fa-solid fa-chart-pie"></i>
-                        </div>
-                        <div>
-                            <h3 className="chart-card-title">Sebaran Status PKM</h3>
-                            <p className="chart-card-subtitle">Distribusi status pengajuan</p>
+                {/* Doughnut Chart */}
+                <div className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
+                    <div className="px-6 py-5 border-b border-slate-100">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center text-white shadow-md">
+                                <i className="fa-solid fa-chart-pie text-lg"></i>
+                            </div>
+                            <div>
+                                <h3 className="text-base font-bold text-slate-900">Sebaran Lokasi PKM</h3>
+                                <p className="text-sm text-slate-500 mt-0.5">Distribusi jenis PKM yang tersebar pada lokasi pengabdian yang tercatat</p>
+                            </div>
                         </div>
                     </div>
-                    <div className="chart-canvas-wrapper">
-                        <Doughnut data={doughnutData} options={statusDistributionOptions} />
+                    <div className="p-6 h-72">
+                        <Doughnut data={chartSource.doughnutData} options={doughnutOptions} />
                     </div>
                 </div>
             </div>

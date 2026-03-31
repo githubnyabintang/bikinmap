@@ -1,99 +1,182 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { router, usePage, Link } from '@inertiajs/react';
-import { PageProps } from '@/types/index';
-import { Settings, LogOut, ChevronDown } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from '@inertiajs/react';
+import type { User } from '@/types';
 
-export default function ProfileDropdown() {
-    const { auth } = usePage<PageProps>().props;
-    const user = auth?.user ?? null;
-    const [open, setOpen] = useState(false);
-    const dropdownRef = useRef<HTMLDivElement>(null);
+const getInitials = (name?: string): string => {
+    if (!name) return '?';
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) {
+        return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    }
+    return parts[0].slice(0, 2).toUpperCase();
+};
 
-    // Close on click outside
-    useEffect(() => {
-        if (!open) return;
-        const handler = (e: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-                setOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handler);
-        return () => document.removeEventListener('mousedown', handler);
-    }, [open]);
+interface RoleBadge {
+    label: string;
+    className: string;
+}
 
-    // Close on Escape
-    useEffect(() => {
-        if (!open) return;
-        const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
-        window.addEventListener('keydown', handler);
-        return () => window.removeEventListener('keydown', handler);
-    }, [open]);
-
+const getRoleBadge = (user: User | null): RoleBadge | null => {
     if (!user) return null;
 
-    const initial = user.name?.charAt(0)?.toUpperCase() || 'A';
+    const role = String(user.role || user.type || 'masyarakat').toLowerCase();
+    const isDosen = role.includes('dosen');
+
+    return {
+        label: isDosen ? 'Akun Dosen' : 'Akun Masyarakat',
+        className: isDosen ? 'profile-dropdown-panel__badge--dosen' : 'profile-dropdown-panel__badge--masyarakat',
+    };
+};
+
+function useClickOutside(
+    targetRef: React.RefObject<HTMLElement | null>,
+    enabled: boolean,
+    onClose: () => void
+) {
+    useEffect(() => {
+        if (!enabled) return undefined;
+
+        const handlePointerDown = (event: MouseEvent) => {
+            if (targetRef.current && !targetRef.current.contains(event.target as Node)) {
+                onClose();
+            }
+        };
+
+        const handleEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                onClose();
+            }
+        };
+
+        document.addEventListener('mousedown', handlePointerDown);
+        document.addEventListener('keydown', handleEscape);
+
+        return () => {
+            document.removeEventListener('mousedown', handlePointerDown);
+            document.removeEventListener('keydown', handleEscape);
+        };
+    }, [enabled, onClose, targetRef]);
+}
+
+interface ProfileDropdownProps {
+    auth: {
+        user: User | null;
+    };
+}
+
+export default function ProfileDropdown({ auth }: ProfileDropdownProps) {
+    const user = auth?.user ?? null;
+    const [isOpen, setIsOpen] = useState(false);
+    const shellRef = useRef<HTMLDivElement>(null);
+
+    const badge = useMemo(() => getRoleBadge(user), [user]);
+    const avatarSrc = user?.avatar || user?.avatar_url || user?.profile_photo_url || null;
+    const logoutHref = typeof route === 'function' ? route('logout') : '/logout';
+
+    const closeDropdown = useCallback(() => {
+        setIsOpen(false);
+    }, []);
+
+    const toggleDropdown = useCallback(() => {
+        setIsOpen((previous) => !previous);
+    }, []);
+
+    useClickOutside(shellRef, isOpen, closeDropdown);
+
+    if (!user) {
+        return (
+            <Link 
+                href="/login" 
+                className="inline-flex items-center gap-2 px-4 py-2 bg-sigap-blue text-white font-medium rounded-lg hover:bg-sigap-darkBlue transition-colors duration-200"
+            >
+                <i className="fa-solid fa-right-to-bracket"></i>
+                <span>Login</span>
+            </Link>
+        );
+    }
 
     return (
-        <div ref={dropdownRef} className="relative">
-            {/* Avatar Button */}
+        <div className="relative" ref={shellRef}>
+            {/* Trigger Button */}
             <button
-                onClick={() => setOpen(!open)}
-                className="flex items-center gap-2 hover:bg-zinc-100 p-1.5 rounded-lg transition-colors cursor-pointer border border-transparent hover:border-zinc-200"
+                type="button"
+                className={`flex items-center gap-3 p-2 pr-4 bg-white rounded-full border-2 transition-all duration-200 hover:shadow-soft focus:outline-none focus:ring-2 focus:ring-sigap-blue focus:ring-offset-2 ${
+                    isOpen ? 'border-sigap-blue shadow-soft' : 'border-slate-200'
+                }`}
+                onClick={toggleDropdown}
+                aria-label="Buka menu profil"
+                aria-haspopup="menu"
+                aria-expanded={isOpen}
             >
-                <div className="w-8 h-8 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 text-[13px] font-bold shadow-sm">
-                    {initial}
-                </div>
-                <div className="hidden md:flex flex-col items-start pr-1 text-left">
-                    <span className="text-[13px] font-semibold text-zinc-900 leading-none mb-1 max-w-[100px] truncate">{user.name}</span>
-                    <span className="text-[10px] font-medium text-zinc-500 leading-none uppercase tracking-wide">{user.role}</span>
-                </div>
-                <ChevronDown size={14} className="text-zinc-400 hidden md:block" />
+                <span className={`flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-sigap-blue to-sigap-darkBlue text-white font-bold ring-2 ring-white ${
+                    isOpen ? 'ring-sigap-blue' : ''
+                }`}>
+                    {avatarSrc ? (
+                        <img 
+                            src={avatarSrc} 
+                            alt={user.name || 'Profil pengguna'} 
+                            className="w-full h-full rounded-full object-cover" 
+                        />
+                    ) : (
+                        <span>{getInitials(user.name)}</span>
+                    )}
+                </span>
             </button>
 
-            {/* Dropdown Menu */}
-            {open && (
-                <div className="absolute top-[calc(100%+8px)] right-0 w-64 bg-white rounded-xl shadow-[0_12px_40px_rgba(0,0,0,0.12),0_0_0_1px_rgba(0,0,0,0.04)] overflow-hidden z-[9999] animate-in fade-in slide-in-from-top-2 duration-150">
-                    <div className="p-4 flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-indigo-50 flex flex-shrink-0 items-center justify-center text-indigo-600 text-[16px] font-bold border border-indigo-100">
-                            {initial}
-                        </div>
-                        <div className="min-w-0">
-                            <div className="text-[14px] font-bold text-zinc-900 truncate">
-                                {user.name}
-                            </div>
-                            <div className="text-[12px] font-medium text-zinc-500 truncate mb-1">
-                                {user.email}
-                            </div>
-                            <div className={`inline-block px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${user.role === 'admin' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-100 text-indigo-800'}`}>
-                                {user.role}
-                            </div>
-                        </div>
+            {/* Dropdown Panel */}
+            {isOpen && (
+                <div 
+                    className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-lg border border-slate-100 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200" 
+                    role="menu" 
+                    aria-label="Menu profil pengguna"
+                >
+                    {/* Header */}
+                    <div className="px-5 py-4 bg-gradient-to-br from-slate-50 to-slate-100/50 border-b border-slate-100">
+                        <p className="font-semibold text-slate-900 text-base">{user.name || 'Pengguna'}</p>
+                        {badge && (
+                            <span className={`inline-block mt-2 px-3 py-1 text-xs font-semibold rounded-full ${
+                                badge.className.includes('dosen') 
+                                    ? 'bg-blue-100 text-blue-700' 
+                                    : 'bg-emerald-100 text-emerald-700'
+                            }`}>
+                                {badge.label}
+                            </span>
+                        )}
                     </div>
 
-                    <div className="h-px bg-zinc-100" />
-
-                    <div className="p-2 space-y-0.5">
-                        <Link
-                            href="/admin/profile"
-                            className="w-full flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-zinc-700 hover:text-zinc-900 hover:bg-zinc-50 rounded-lg transition-colors cursor-pointer"
-                            onClick={() => setOpen(false)}
+                    {/* Menu Items */}
+                    <div className="py-2">
+                        <Link 
+                            href="/profile/edit" 
+                            className="flex items-center gap-3 px-5 py-3 text-slate-700 hover:bg-slate-50 hover:text-sigap-blue transition-colors duration-150" 
+                            role="menuitem" 
+                            onClick={closeDropdown}
                         >
-                            <Settings size={16} className="text-zinc-400 flex-shrink-0" />
-                            Pengaturan Profil
+                            <i className="fa-solid fa-user-pen text-lg"></i>
+                            <span className="font-medium">Edit Profil</span>
+                        </Link>
+                        <Link 
+                            href="/settings" 
+                            className="flex items-center gap-3 px-5 py-3 text-slate-700 hover:bg-slate-50 hover:text-sigap-blue transition-colors duration-150" 
+                            role="menuitem" 
+                            onClick={closeDropdown}
+                        >
+                            <i className="fa-solid fa-gear text-lg"></i>
+                            <span className="font-medium">Pengaturan</span>
                         </Link>
                     </div>
 
-                    <div className="h-px bg-zinc-100" />
-
-                    <div className="p-2">
+                    {/* Footer */}
+                    <div className="px-5 py-3 bg-slate-50 border-t border-slate-100">
                         <Link
-                            href="/logout"
+                            href={logoutHref}
                             method="post"
                             as="button"
-                            className="w-full flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                            className="flex items-center gap-3 w-full px-4 py-2.5 bg-red-50 text-red-600 font-medium rounded-lg hover:bg-red-100 transition-colors duration-150"
+                            role="menuitem"
                         >
-                            <LogOut size={16} className="text-red-500 flex-shrink-0" />
-                            Sign Out
+                            <i className="fa-solid fa-right-from-bracket"></i>
+                            <span>Log Out</span>
                         </Link>
                     </div>
                 </div>

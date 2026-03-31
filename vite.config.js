@@ -6,14 +6,17 @@ import path from 'path';
 export default defineConfig({
     plugins: [
         laravel({
-            input: 'resources/js/app.tsx',
+            input: ['resources/css/app.css', 'resources/js/app.ts'],
             refresh: true,
         }),
         react(),
     ],
     resolve: {
         alias: {
-            '@': path.resolve(__dirname, './resources/js'),
+            '@': '/resources/js',
         },
+    },
+    esbuild: {
+        loader: 'tsx',
     },
 });

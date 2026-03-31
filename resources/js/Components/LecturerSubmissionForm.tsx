@@ -1,12 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, ChangeEvent } from 'react';
 import { useForm } from '@inertiajs/react';
-import Toast from './Toast';
+import ActionFeedbackDialog from './ActionFeedbackDialog';
 
-interface LecturerSubmissionFormProps {
-    onClose: () => void;
-}
-
-interface LecturerSubmissionFormData {
+interface FormData {
     nama_dosen: string;
     judul_proyek: string;
     lokasi: string;
@@ -20,15 +16,30 @@ interface LecturerSubmissionFormData {
     proposal: File | null;
 }
 
-interface ToastState {
-    show: boolean;
-    type: 'success' | 'error' | 'info' | 'warning';
+interface LecturerSubmissionFormProps {
+    onClose: () => void;
+}
+
+const getFilledTeamMembers = (members: string[] = []): string[] => members.filter((member) => member.trim());
+
+interface TeamSection {
+    enabledKey: string;
+    type: 'dosen_terlibat' | 'staff_terlibat' | 'mahasiswa_terlibat';
     title: string;
-    message: string;
+    placeholder: string;
+    icon: string;
+    titleColor: string;
+    iconBg: string;
+    iconColor: string;
+    sectionBg: string;
+    sectionBorder: string;
+    buttonBg: string;
+    buttonColor: string;
+    note: string;
 }
 
 export default function LecturerSubmissionForm({ onClose }: LecturerSubmissionFormProps) {
-    const { data, setData, post, processing: inertiaProcessing, errors, setError, clearErrors, reset } = useForm<LecturerSubmissionFormData>({
+    const { data, setData, post, processing: inertiaProcessing, errors, setError, clearErrors, reset } = useForm<FormData>({
         nama_dosen: '',
         judul_proyek: '',
         lokasi: '',
@@ -42,392 +53,498 @@ export default function LecturerSubmissionForm({ onClose }: LecturerSubmissionFo
         proposal: null,
     });
 
-    // --- Dynamic Array Logic for Personnel ---
-    const handleAddPersonil = (type: keyof Pick<LecturerSubmissionFormData, 'dosen_terlibat' | 'staff_terlibat' | 'mahasiswa_terlibat'>) => {
+    const [mockProcessing, setMockProcessing] = useState(false);
+    const [feedbackDialog, setFeedbackDialog] = useState({ show: false, type: 'success' as const, title: '', message: '' });
+    const requiredSubmissionIssues: string[] = [];
+
+    if (!data.judul_proyek.trim()) requiredSubmissionIssues.push('Judul proyek wajib diisi.');
+    if (!data.nama_dosen.trim()) requiredSubmissionIssues.push('Ketua kelompok wajib diisi.');
+    if (!data.lokasi.trim()) requiredSubmissionIssues.push('Lokasi pengabdian wajib diisi.');
+    if (
+        getFilledTeamMembers(data.dosen_terlibat).length === 0 &&
+        getFilledTeamMembers(data.staff_terlibat).length === 0 &&
+        getFilledTeamMembers(data.mahasiswa_terlibat).length === 0
+    ) {
+        requiredSubmissionIssues.push('Isi minimal satu nama anggota pada salah satu bagian tim pelaksana.');
+    }
+    if (!data.sumber_dana) requiredSubmissionIssues.push('Sumber dana wajib dipilih.');
+    if (!String(data.total_RAB).trim()) requiredSubmissionIssues.push('Total anggaran wajib diisi.');
+    if (!data.tanggal_mulai) requiredSubmissionIssues.push('Tanggal mulai wajib diisi.');
+    if (!data.tanggal_selesai) requiredSubmissionIssues.push('Tanggal selesai wajib diisi.');
+    if (!data.proposal) requiredSubmissionIssues.push('Proposal wajib diunggah.');
+
+    const hasStartedSubmission = Boolean(
+        data.judul_proyek.trim() ||
+        data.nama_dosen.trim() ||
+        data.lokasi.trim() ||
+        data.sumber_dana ||
+        String(data.total_RAB).trim() ||
+        data.tanggal_mulai ||
+        data.tanggal_selesai ||
+        data.proposal ||
+        getFilledTeamMembers(data.dosen_terlibat).length ||
+        getFilledTeamMembers(data.staff_terlibat).length ||
+        getFilledTeamMembers(data.mahasiswa_terlibat).length
+    );
+
+    const isProcessing = inertiaProcessing || mockProcessing;
+    const isSubmitDisabled = isProcessing || requiredSubmissionIssues.length > 0;
+
+    const handleAddPersonil = (type: 'dosen_terlibat' | 'staff_terlibat' | 'mahasiswa_terlibat') => {
         setData(type, [...data[type], '']);
     };
 
-    const handleRemovePersonil = (type: keyof Pick<LecturerSubmissionFormData, 'dosen_terlibat' | 'staff_terlibat' | 'mahasiswa_terlibat'>, indexToRemove: number) => {
+    const handleRemovePersonil = (type: 'dosen_terlibat' | 'staff_terlibat' | 'mahasiswa_terlibat', indexToRemove: number) => {
         const filtered = data[type].filter((_, index) => index !== indexToRemove);
         setData(type, filtered);
     };
 
-    const handlePersonilChange = (type: keyof Pick<LecturerSubmissionFormData, 'dosen_terlibat' | 'staff_terlibat' | 'mahasiswa_terlibat'>, index: number, value: string) => {
+    const handlePersonilChange = (type: 'dosen_terlibat' | 'staff_terlibat' | 'mahasiswa_terlibat', index: number, value: string) => {
         const updated = [...data[type]];
         updated[index] = value;
         setData(type, updated);
     };
 
-    // --- UI State ---
-    const [toast, setToast] = useState<ToastState>({ show: false, type: 'success', title: '', message: '' });
-
-    // --- Submission Logic (MOCK FOR UI/UX TESTING) ---
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         clearErrors();
 
-        // 1. Trigger Validation Errors (if mandatory fields are empty)
         let hasErrors = false;
         if (!data.judul_proyek) { setError('judul_proyek', 'Judul proyek wajib diisi'); hasErrors = true; }
         if (!data.nama_dosen) { setError('nama_dosen', 'Ketua kelompok wajib diisi'); hasErrors = true; }
         if (!data.lokasi) { setError('lokasi', 'Lokasi pengabdian wajib diisi'); hasErrors = true; }
+        if (
+            getFilledTeamMembers(data.dosen_terlibat).length === 0 &&
+            getFilledTeamMembers(data.staff_terlibat).length === 0 &&
+            getFilledTeamMembers(data.mahasiswa_terlibat).length === 0
+        ) {
+            setError('dosen_terlibat', 'Isi minimal satu anggota pada dosen, staf, atau mahasiswa.');
+            hasErrors = true;
+        }
+        if (!data.sumber_dana) { setError('sumber_dana', 'Sumber dana wajib dipilih.'); hasErrors = true; }
+        if (!String(data.total_RAB).trim()) { setError('total_RAB', 'Total anggaran wajib diisi.'); hasErrors = true; }
+        if (!data.tanggal_mulai) { setError('tanggal_mulai', 'Tanggal mulai wajib diisi.'); hasErrors = true; }
+        if (!data.tanggal_selesai) { setError('tanggal_selesai', 'Tanggal selesai wajib diisi.'); hasErrors = true; }
+        if (!data.proposal) { setError('proposal', 'Proposal wajib diunggah.'); hasErrors = true; }
 
         if (hasErrors) {
-            setToast({ show: true, type: 'error', title: 'Validasi Gagal', message: 'Harap periksa kembali isian yang wajib diisi (bergaris merah).' });
+            setFeedbackDialog({ show: true, type: 'error', title: 'Form Belum Siap Dikirim', message: 'Masih ada data wajib yang belum lengkap. Silakan periksa kembali bagian yang diperlukan.' });
             return;
         }
 
-        // 2. Trigger Processing Loading State
-        post('/pengajuan', {
-            forceFormData: true,
-            onSuccess: () => {
-                setToast({ show: true, type: 'success', title: 'Berhasil', message: 'Pengajuan PKM Anda berhasil dikirim.' });
-                setTimeout(() => { reset(); onClose(); }, 2000);
-            },
-            onError: () => {
-                setToast({ show: true, type: 'error', title: 'Gagal', message: 'Gagal mengirim pengajuan. Silakan coba lagi.' });
-            },
-        });
+        setMockProcessing(true);
+        setTimeout(() => {
+            setMockProcessing(false);
+            setFeedbackDialog({ show: true, type: 'success', title: 'Pengajuan Berhasil Dikirim', message: 'Pengajuan PKM Anda sudah berhasil dikirim dan siap diproses lebih lanjut.' });
+            setTimeout(() => {
+                reset();
+            }, 300);
+        }, 1500);
     };
 
-    const isProcessing = inertiaProcessing;
+    const teamSections: TeamSection[] = [
+        {
+            enabledKey: 'sertakan_dosen_terlibat',
+            type: 'dosen_terlibat',
+            title: 'Dosen Terlibat',
+            placeholder: 'Nama Dosen',
+            icon: 'fa-user-tie',
+            titleColor: '#1e293b',
+            iconBg: '#e0f2fe',
+            iconColor: '#0369a1',
+            sectionBg: '#f8fafc',
+            sectionBorder: '#e2e8f0',
+            buttonBg: '#e0f2fe',
+            buttonColor: '#0369a1',
+            note: 'Centang jika ada dosen lain yang ikut selain ketua kelompok.',
+        },
+        {
+            enabledKey: 'sertakan_staff_terlibat',
+            type: 'staff_terlibat',
+            title: 'Staf Terlibat',
+            placeholder: 'Nama Staf',
+            icon: 'fa-id-badge',
+            titleColor: '#4c1d95',
+            iconBg: '#f3e8ff',
+            iconColor: '#6d28d9',
+            sectionBg: '#fbf5ff',
+            sectionBorder: '#f3e8ff',
+            buttonBg: '#ede9fe',
+            buttonColor: '#6d28d9',
+            note: 'Centang jika ada staf yang ikut dalam pelaksanaan.',
+        },
+        {
+            enabledKey: 'sertakan_mahasiswa_terlibat',
+            type: 'mahasiswa_terlibat',
+            title: 'Mahasiswa Terlibat',
+            placeholder: 'Nama Mahasiswa',
+            icon: 'fa-graduation-cap',
+            titleColor: '#14532d',
+            iconBg: '#dcfce7',
+            iconColor: '#16a34a',
+            sectionBg: '#f0fdf4',
+            sectionBorder: '#dcfce7',
+            buttonBg: '#dcfce7',
+            buttonColor: '#16a34a',
+            note: 'Centang jika ada mahasiswa yang ikut dalam pelaksanaan.',
+        },
+    ];
+
+    const renderTeamSection = (section: TeamSection, isEnabled: boolean, onToggle: (checked: boolean) => void) => (
+        <div
+            key={section.type}
+            className="p-4 rounded-xl border mb-4 transition-opacity"
+            style={{
+                backgroundColor: section.sectionBg,
+                borderColor: section.sectionBorder,
+                opacity: isEnabled ? 1 : 0.82,
+            }}
+        >
+            <div className="flex items-center justify-between mb-4">
+                <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={isEnabled}
+                        onChange={(e) => onToggle(e.target.checked)}
+                        className="w-4 h-4 accent-current"
+                        style={{ accentColor: section.iconColor }}
+                    />
+                    <span
+                        className="w-7 h-7 rounded-lg flex items-center justify-center text-sm"
+                        style={{ backgroundColor: section.iconBg, color: section.iconColor }}
+                    >
+                        <i className={`fa-solid ${section.icon}`}></i>
+                    </span>
+                    <span className="text-sm font-bold" style={{ color: section.titleColor }}>
+                        {section.title}
+                    </span>
+                </label>
+                {isEnabled && (
+                    <button
+                        type="button"
+                        onClick={() => handleAddPersonil(section.type)}
+                        className="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors"
+                        style={{ backgroundColor: section.buttonBg, color: section.buttonColor }}
+                    >
+                        <i className="fa-solid fa-plus mr-1"></i> Tambah
+                    </button>
+                )}
+            </div>
+
+            {!isEnabled && (
+                <p className="text-sm text-slate-500">{section.note}</p>
+            )}
+
+            {isEnabled && (
+                <div className="space-y-3">
+                    {data[section.type].map((personil, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                            <div className="flex items-center gap-3 flex-1">
+                                <span
+                                    className="w-7 h-7 rounded-lg flex items-center justify-center text-sm font-bold"
+                                    style={{ backgroundColor: section.iconBg, color: section.iconColor }}
+                                >
+                                    {index + 1}
+                                </span>
+                                <input
+                                    type="text"
+                                    value={personil}
+                                    onChange={(e) => handlePersonilChange(section.type, index, e.target.value)}
+                                    placeholder={`${section.placeholder} ${index + 1}`}
+                                    className="flex-1 px-4 py-2.5 border border-slate-200 rounded-lg outline-none focus:border-sigap-blue focus:ring-2 focus:ring-blue-100 transition-colors"
+                                />
+                            </div>
+                            {data[section.type].length > 1 && (
+                                <button
+                                    type="button"
+                                    onClick={() => handleRemovePersonil(section.type, index)}
+                                    className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors"
+                                >
+                                    <i className="fa-regular fa-trash-can"></i>
+                                </button>
+                            )}
+                        </div>
+                    ))}
+                    {errors[section.type] && (
+                        <p className="text-sm text-red-600 font-medium flex items-center gap-1.5">
+                            <i className="fa-solid fa-circle-exclamation"></i>
+                            {errors[section.type]}
+                        </p>
+                    )}
+                </div>
+            )}
+        </div>
+    );
 
     return (
-        <div className="fintech-modal-overlay">
-            <div className="fintech-modal-container lecturer-modal">
-                <div className="fintech-modal-header">
-                    <div>
-                        <h2 className="fintech-modal-title">Pengajuan PKM Dosen</h2>
-                        <p className="fintech-modal-subtitle">Lengkapi detail proyek pengabdian masyarakat Anda</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
+            {/* Backdrop */}
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose}></div>
+
+            {/* Modal */}
+            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200 my-8">
+                {/* Header */}
+                <div className="sticky top-0 bg-white px-6 py-5 border-b border-slate-100">
+                    <div className="flex items-start justify-between">
+                        <div>
+                            <h2 className="text-xl font-bold text-slate-900">Pengajuan PKM Dosen</h2>
+                            <p className="text-sm text-slate-600 mt-1">Lengkapi detail proyek pengabdian masyarakat Anda</p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors text-slate-400"
+                            aria-label="Tutup"
+                        >
+                            <i className="fa-solid fa-xmark text-lg"></i>
+                        </button>
                     </div>
-                    <button type="button" className="fintech-modal-close" onClick={onClose} aria-label="Tutup">
-                        <i className="fa-solid fa-xmark"></i>
-                    </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="fintech-modal-body">
-                    {/* SECTION 1: Project Details */}
-                    <div className="form-section">
-                        <h3 className="form-section-title">
-                            <i className="fa-solid fa-folder-open text-blue"></i> Detail Proyek
+                {/* Body */}
+                <form onSubmit={handleSubmit} className="px-6 py-5 space-y-6">
+                    {/* Detail Proyek */}
+                    <div>
+                        <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
+                            <i className="fa-solid fa-folder-open text-sigap-blue"></i>
+                            Detail Proyek
                         </h3>
-                        <div className="form-grid">
-                            <div className={`form-group full-width ${errors.judul_proyek ? 'has-error' : ''}`}>
-                                <label>Judul Proyek PKM <span className="required-star">*</span></label>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                    Judul Proyek PKM <span className="text-red-500">*</span>
+                                </label>
                                 <input
                                     type="text"
-                                    className="fintech-input"
-                                    placeholder="Masukkan judul pengabdian..."
                                     value={data.judul_proyek}
                                     onChange={(e) => setData('judul_proyek', e.target.value)}
+                                    placeholder="Masukkan judul pengabdian..."
+                                    className={`w-full px-4 py-3 border rounded-xl outline-none focus:border-sigap-blue focus:ring-2 focus:ring-blue-100 transition-colors ${
+                                        errors.judul_proyek ? 'border-red-300 bg-red-50' : 'border-slate-200'
+                                    }`}
                                 />
-                                {errors.judul_proyek && <span className="form-error-message"><i className="fa-solid fa-circle-exclamation"></i> {errors.judul_proyek}</span>}
+                                {errors.judul_proyek && <p className="mt-1.5 text-sm text-red-600 font-medium flex items-center gap-1.5"><i className="fa-solid fa-circle-exclamation"></i> {errors.judul_proyek}</p>}
                             </div>
 
-                            <div className={`form-group ${errors.nama_dosen ? 'has-error' : ''}`}>
-                                <label>Ketua Kelompok <span className="required-star">*</span></label>
-                                <input
-                                    type="text"
-                                    className="fintech-input"
-                                    placeholder="Nama Lengkap & Gelar..."
-                                    value={data.nama_dosen}
-                                    onChange={(e) => setData('nama_dosen', e.target.value)}
-                                    required
-                                />
-                                {errors.nama_dosen && <span className="form-error-message"><i className="fa-solid fa-circle-exclamation"></i> {errors.nama_dosen}</span>}
-                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                        Ketua Kelompok <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={data.nama_dosen}
+                                        onChange={(e) => setData('nama_dosen', e.target.value)}
+                                        placeholder="Nama Lengkap & Gelar..."
+                                        className={`w-full px-4 py-3 border rounded-xl outline-none focus:border-sigap-blue focus:ring-2 focus:ring-blue-100 transition-colors ${
+                                            errors.nama_dosen ? 'border-red-300 bg-red-50' : 'border-slate-200'
+                                        }`}
+                                    />
+                                    {errors.nama_dosen && <p className="mt-1.5 text-sm text-red-600 font-medium flex items-center gap-1.5"><i className="fa-solid fa-circle-exclamation"></i> {errors.nama_dosen}</p>}
+                                </div>
 
-                            <div className={`form-group ${errors.lokasi ? 'has-error' : ''}`}>
-                                <label>Lokasi Pengabdian <span className="required-star">*</span></label>
-                                <input
-                                    type="text"
-                                    className="fintech-input"
-                                    placeholder="Desa, Kecamatan, Kota..."
-                                    value={data.lokasi}
-                                    onChange={(e) => setData('lokasi', e.target.value)}
-                                />
-                                {errors.lokasi && <span className="form-error-message"><i className="fa-solid fa-circle-exclamation"></i> {errors.lokasi}</span>}
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                        Lokasi Pengabdian <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={data.lokasi}
+                                        onChange={(e) => setData('lokasi', e.target.value)}
+                                        placeholder="Desa, Kecamatan, Kota..."
+                                        className={`w-full px-4 py-3 border rounded-xl outline-none focus:border-sigap-blue focus:ring-2 focus:ring-blue-100 transition-colors ${
+                                            errors.lokasi ? 'border-red-300 bg-red-50' : 'border-slate-200'
+                                        }`}
+                                    />
+                                    {errors.lokasi && <p className="mt-1.5 text-sm text-red-600 font-medium flex items-center gap-1.5"><i className="fa-solid fa-circle-exclamation"></i> {errors.lokasi}</p>}
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <hr className="form-divider" />
+                    <hr className="border-slate-200" />
 
-                    {/* SECTION 2: Team (Dynamic Arrays) */}
-                    <div className="form-section">
-                        <div className="form-section-header-flex" style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '12px', marginBottom: '16px' }}>
-                            <h3 className="form-section-title mb-0" style={{ borderBottom: 'none', paddingBottom: 0, marginBottom: 0 }}>
-                                <i className="fa-solid fa-users text-blue"></i> Tim Pelaksana
-                            </h3>
-                        </div>
-                        <p className="form-section-desc" style={{ marginBottom: '20px' }}>Masukkan nama dosen, staf, atau mahasiswa yang turut serta dalam proyek ini.</p>
-
-                        {/* DOSEN TERLIBAT */}
-                        <div className="team-sub-section" style={{ padding: '16px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
-                            <div className="form-section-header-flex" style={{ marginBottom: '16px', borderBottom: 'none' }}>
-                                <h4 style={{ fontSize: '14px', fontWeight: '700', color: '#1e293b', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', backgroundColor: '#e0f2fe', color: '#0369a1', borderRadius: '8px', fontSize: '13px' }}>
-                                        <i className="fa-solid fa-user-tie"></i>
-                                    </span>
-                                    Dosen Terlibat
-                                </h4>
-                                <button
-                                    type="button"
-                                    className="btn-add-dynamic"
-                                    onClick={() => handleAddPersonil('dosen_terlibat')}
-                                    style={{ padding: '6px 14px', fontSize: '12px', borderRadius: '8px' }}
-                                >
-                                    <i className="fa-solid fa-plus"></i> Tambah
-                                </button>
-                            </div>
-                            <div className="dynamic-array-container">
-                                {data.dosen_terlibat.map((personil, index) => (
-                                    <div key={index} className="dynamic-array-row" style={{ marginBottom: '12px' }}>
-                                        <div className="dynamic-input-wrapper">
-                                            <span className="dynamic-numbering">{index + 1}</span>
-                                            <input
-                                                type="text"
-                                                className="fintech-input"
-                                                placeholder={`Nama Dosen ${index + 1}`}
-                                                value={personil}
-                                                onChange={(e) => handlePersonilChange('dosen_terlibat', index, e.target.value)}
-                                            />
-                                        </div>
-                                        {data.dosen_terlibat.length > 1 && (
-                                            <button
-                                                type="button"
-                                                className="btn-remove-dynamic"
-                                                onClick={() => handleRemovePersonil('dosen_terlibat', index)}
-                                                aria-label="Hapus Anggota"
-                                            >
-                                                <i className="fa-regular fa-trash-can"></i>
-                                            </button>
-                                        )}
-                                    </div>
-                                ))}
-                                {errors.dosen_terlibat && <span className="form-error">{errors.dosen_terlibat}</span>}
-                            </div>
-                        </div>
-
-                        {/* STAFF TERLIBAT */}
-                        <div className="team-sub-section" style={{ padding: '16px', backgroundColor: '#fbf5ff', borderRadius: '12px', border: '1px solid #f3e8ff', marginBottom: '16px' }}>
-                            <div className="form-section-header-flex" style={{ marginBottom: '16px', borderBottom: 'none' }}>
-                                <h4 style={{ fontSize: '14px', fontWeight: '700', color: '#4c1d95', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', backgroundColor: '#f3e8ff', color: '#6d28d9', borderRadius: '8px', fontSize: '13px' }}>
-                                        <i className="fa-solid fa-id-badge"></i>
-                                    </span>
-                                    Staf Terlibat
-                                </h4>
-                                <button
-                                    type="button"
-                                    className="btn-add-dynamic"
-                                    onClick={() => handleAddPersonil('staff_terlibat')}
-                                    style={{ padding: '6px 14px', fontSize: '12px', borderRadius: '8px', color: '#6d28d9', backgroundColor: '#ede9fe' }}
-                                    onMouseEnter={(e) => {
-                                        const target = e.currentTarget;
-                                        target.style.backgroundColor = '#ddd6fe';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        const target = e.currentTarget;
-                                        target.style.backgroundColor = '#ede9fe';
-                                    }}
-                                >
-                                    <i className="fa-solid fa-plus"></i> Tambah
-                                </button>
-                            </div>
-                            <div className="dynamic-array-container">
-                                {data.staff_terlibat.map((personil, index) => (
-                                    <div key={index} className="dynamic-array-row" style={{ marginBottom: '12px' }}>
-                                        <div className="dynamic-input-wrapper">
-                                            <span className="dynamic-numbering" style={{ backgroundColor: '#f3e8ff', color: '#6d28d9' }}>{index + 1}</span>
-                                            <input
-                                                type="text"
-                                                className="fintech-input"
-                                                placeholder={`Nama Staf ${index + 1}`}
-                                                value={personil}
-                                                onChange={(e) => handlePersonilChange('staff_terlibat', index, e.target.value)}
-                                            />
-                                        </div>
-                                        {data.staff_terlibat.length > 1 && (
-                                            <button
-                                                type="button"
-                                                className="btn-remove-dynamic"
-                                                onClick={() => handleRemovePersonil('staff_terlibat', index)}
-                                                aria-label="Hapus Anggota"
-                                            >
-                                                <i className="fa-regular fa-trash-can"></i>
-                                            </button>
-                                        )}
-                                    </div>
-                                ))}
-                                {errors.staff_terlibat && <span className="form-error">{errors.staff_terlibat}</span>}
-                            </div>
-                        </div>
-
-                        {/* MAHASISWA TERLIBAT */}
-                        <div className="team-sub-section" style={{ padding: '16px', backgroundColor: '#f0fdf4', borderRadius: '12px', border: '1px solid #dcfce7' }}>
-                            <div className="form-section-header-flex" style={{ marginBottom: '16px', borderBottom: 'none' }}>
-                                <h4 style={{ fontSize: '14px', fontWeight: '700', color: '#14532d', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', backgroundColor: '#dcfce7', color: '#16a34a', borderRadius: '8px', fontSize: '13px' }}>
-                                        <i className="fa-solid fa-graduation-cap"></i>
-                                    </span>
-                                    Mahasiswa Terlibat
-                                </h4>
-                                <button
-                                    type="button"
-                                    className="btn-add-dynamic"
-                                    onClick={() => handleAddPersonil('mahasiswa_terlibat')}
-                                    style={{ padding: '6px 14px', fontSize: '12px', borderRadius: '8px', color: '#16a34a', backgroundColor: '#dcfce7' }}
-                                    onMouseEnter={(e) => {
-                                        const target = e.currentTarget;
-                                        target.style.backgroundColor = '#bbf7d0';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        const target = e.currentTarget;
-                                        target.style.backgroundColor = '#dcfce7';
-                                    }}
-                                >
-                                    <i className="fa-solid fa-plus"></i> Tambah
-                                </button>
-                            </div>
-                            <div className="dynamic-array-container">
-                                {data.mahasiswa_terlibat.map((personil, index) => (
-                                    <div key={index} className="dynamic-array-row" style={{ marginBottom: '12px' }}>
-                                        <div className="dynamic-input-wrapper">
-                                            <span className="dynamic-numbering" style={{ backgroundColor: '#dcfce7', color: '#16a34a' }}>{index + 1}</span>
-                                            <input
-                                                type="text"
-                                                className="fintech-input"
-                                                placeholder={`Nama Mahasiswa ${index + 1}`}
-                                                value={personil}
-                                                onChange={(e) => handlePersonilChange('mahasiswa_terlibat', index, e.target.value)}
-                                            />
-                                        </div>
-                                        {data.mahasiswa_terlibat.length > 1 && (
-                                            <button
-                                                type="button"
-                                                className="btn-remove-dynamic"
-                                                onClick={() => handleRemovePersonil('mahasiswa_terlibat', index)}
-                                                aria-label="Hapus Anggota"
-                                            >
-                                                <i className="fa-regular fa-trash-can"></i>
-                                            </button>
-                                        )}
-                                    </div>
-                                ))}
-                                {errors.mahasiswa_terlibat && <span className="form-error">{errors.mahasiswa_terlibat}</span>}
-                            </div>
-                        </div>
-                    </div>
-
-                    <hr className="form-divider" />
-
-                    {/* SECTION 3: Financials & Timeline */}
-                    <div className="form-section">
-                        <h3 className="form-section-title">
-                            <i className="fa-solid fa-wallet text-blue"></i> Pendanaan & Jadwal
+                    {/* Tim Pelaksana */}
+                    <div>
+                        <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
+                            <i className="fa-solid fa-users text-sigap-blue"></i>
+                            Tim Pelaksana
                         </h3>
-                        <div className="form-grid">
-                            <div className="form-group">
-                                <label>Sumber Dana</label>
+                        <p className="text-sm text-slate-500 mb-4">Masukkan nama dosen, staf, atau mahasiswa yang turut serta dalam proyek ini.</p>
+
+                        {teamSections.map((section) => {
+                            const enabledKey = section.enabledKey as keyof typeof data;
+                            const isEnabled = data[enabledKey as 'sertakan_dosen_terlibat' | 'sertakan_staff_terlibat' | 'sertakan_mahasiswa_terlibat'] as unknown as boolean;
+
+                            return renderTeamSection(
+                                section,
+                                isEnabled,
+                                (checked: boolean) => {
+                                    setData(enabledKey as 'sertakan_dosen_terlibat' | 'sertakan_staff_terlibat' | 'sertakan_mahasiswa_terlibat', checked);
+                                    if (checked && data[section.type].length === 0) {
+                                        setData(section.type, ['']);
+                                    }
+                                    if (!checked) {
+                                        clearErrors(section.type);
+                                    }
+                                }
+                            );
+                        })}
+                    </div>
+
+                    <hr className="border-slate-200" />
+
+                    {/* Pendanaan & Jadwal */}
+                    <div>
+                        <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
+                            <i className="fa-solid fa-wallet text-sigap-blue"></i>
+                            Pendanaan & Jadwal
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 mb-2">Sumber Dana</label>
                                 <select
-                                    className="fintech-input"
                                     value={data.sumber_dana}
                                     onChange={(e) => setData('sumber_dana', e.target.value)}
-                                    required
+                                    className={`w-full px-4 py-3 border rounded-xl outline-none focus:border-sigap-blue focus:ring-2 focus:ring-blue-100 transition-colors ${
+                                        errors.sumber_dana ? 'border-red-300 bg-red-50' : 'border-slate-200'
+                                    }`}
                                 >
                                     <option value="" disabled>Pilih Sumber Dana</option>
                                     <option value="DIPA Poltekpar">DIPA Poltekpar</option>
                                     <option value="Mandiri">Mandiri / Pribadi</option>
                                     <option value="Sponsor Luar">Sponsor Eksternal</option>
                                 </select>
-                                {errors.sumber_dana && <span className="form-error">{errors.sumber_dana}</span>}
+                                {errors.sumber_dana && <p className="mt-1.5 text-sm text-red-600 font-medium">{errors.sumber_dana}</p>}
                             </div>
 
-                            <div className="form-group">
-                                <label>Total Anggaran (RAB)</label>
-                                <div className="input-with-prefix">
-                                    <span className="input-prefix">Rp</span>
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 mb-2">Total Anggaran (RAB)</label>
+                                <div className="flex items-center gap-2 px-4 py-3 border border-slate-200 rounded-xl focus-within:border-sigap-blue focus-within:ring-2 focus-within:ring-blue-100 transition-colors">
+                                    <span className="text-slate-500 font-medium">Rp</span>
                                     <input
                                         type="number"
-                                        className="fintech-input"
-                                        placeholder="0"
                                         value={data.total_RAB}
                                         onChange={(e) => setData('total_RAB', e.target.value)}
-                                        required
+                                        placeholder="0"
+                                        className="flex-1 outline-none text-slate-900"
                                     />
                                 </div>
-                                {errors.total_RAB && <span className="form-error">{errors.total_RAB}</span>}
+                                {errors.total_RAB && <p className="mt-1.5 text-sm text-red-600 font-medium">{errors.total_RAB}</p>}
                             </div>
 
-                            <div className="form-group">
-                                <label>Tanggal Mulai</label>
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 mb-2">Tanggal Mulai</label>
                                 <input
                                     type="date"
-                                    className="fintech-input input-date"
                                     value={data.tanggal_mulai}
                                     onChange={(e) => setData('tanggal_mulai', e.target.value)}
-                                    required
+                                    className={`w-full px-4 py-3 border rounded-xl outline-none focus:border-sigap-blue focus:ring-2 focus:ring-blue-100 transition-colors ${
+                                        errors.tanggal_mulai ? 'border-red-300 bg-red-50' : 'border-slate-200'
+                                    }`}
                                 />
-                                {errors.tanggal_mulai && <span className="form-error">{errors.tanggal_mulai}</span>}
+                                {errors.tanggal_mulai && <p className="mt-1.5 text-sm text-red-600 font-medium">{errors.tanggal_mulai}</p>}
                             </div>
 
-                            <div className="form-group">
-                                <label>Tanggal Selesai</label>
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 mb-2">Tanggal Selesai</label>
                                 <input
                                     type="date"
-                                    className="fintech-input input-date"
                                     value={data.tanggal_selesai}
                                     onChange={(e) => setData('tanggal_selesai', e.target.value)}
-                                    required
+                                    className={`w-full px-4 py-3 border rounded-xl outline-none focus:border-sigap-blue focus:ring-2 focus:ring-blue-100 transition-colors ${
+                                        errors.tanggal_selesai ? 'border-red-300 bg-red-50' : 'border-slate-200'
+                                    }`}
                                 />
-                                {errors.tanggal_selesai && <span className="form-error">{errors.tanggal_selesai}</span>}
+                                {errors.tanggal_selesai && <p className="mt-1.5 text-sm text-red-600 font-medium">{errors.tanggal_selesai}</p>}
                             </div>
 
-                            <div className="form-group full-width">
-                                <label>Unggah Proposal (PDF)</label>
-                                <div className="file-upload-wrapper">
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-semibold text-slate-700 mb-2">Unggah Proposal (PDF)</label>
+                                <div className="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center cursor-pointer hover:border-sigap-blue hover:bg-slate-50 transition-all">
                                     <input
                                         type="file"
                                         id="proposal"
-                                        className="file-upload-input"
                                         accept=".pdf"
                                         onChange={(e) => {
                                             if (e.target.files && e.target.files[0]) {
                                                 setData('proposal', e.target.files[0]);
                                             }
                                         }}
+                                        className="hidden"
                                     />
-                                    <label htmlFor="proposal" className="file-upload-trigger">
-                                        <i className="fa-solid fa-cloud-arrow-up"></i>
-                                        <span className="file-name">
-                                            {data.proposal ? data.proposal.name : 'Pilih file PDF pengajuan...'}
-                                        </span>
+                                    <label htmlFor="proposal" className="cursor-pointer">
+                                        <div className="flex flex-col items-center">
+                                            <div className="w-14 h-14 rounded-full bg-blue-100 text-sigap-blue flex items-center justify-center mb-3">
+                                                <i className="fa-solid fa-cloud-arrow-up text-2xl"></i>
+                                            </div>
+                                            <span className="text-sm font-semibold text-slate-900">
+                                                {data.proposal ? data.proposal.name : 'Pilih file PDF pengajuan...'}
+                                            </span>
+                                        </div>
                                     </label>
                                 </div>
-                                {errors.proposal && <span className="form-error">{errors.proposal}</span>}
+                                {errors.proposal && <p className="mt-1.5 text-sm text-red-600 font-medium">{errors.proposal}</p>}
                             </div>
                         </div>
                     </div>
 
-                    <div className="fintech-modal-footer">
-                        <button type="button" className="btn-modal-cancel" onClick={onClose} disabled={isProcessing}>
+                    {/* Validation Alert */}
+                    {hasStartedSubmission && requiredSubmissionIssues.length > 0 && (
+                        <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                            <i className="fa-solid fa-triangle-exclamation text-amber-600 mt-0.5"></i>
+                            <div>
+                                <strong className="text-amber-900 text-sm">Form belum bisa dikirim</strong>
+                                <p className="text-amber-700 text-sm mt-0.5">{requiredSubmissionIssues[0]}</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-3 pt-2">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            disabled={isProcessing}
+                            className="flex-1 px-4 py-3 text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors disabled:opacity-50"
+                        >
                             Batal
                         </button>
-                        <button type="submit" className={`btn-modal-submit ${isProcessing ? 'btn-loading' : ''}`} disabled={isProcessing}>
-                            Kirim Pengajuan <i className="fa-solid fa-paper-plane"></i>
+                        <button
+                            type="submit"
+                            disabled={isSubmitDisabled}
+                            className={`flex-1 px-4 py-3 text-sm font-semibold text-white bg-sigap-blue hover:bg-sigap-darkBlue rounded-xl transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
+                                isProcessing ? 'opacity-75' : ''
+                            }`}
+                        >
+                            {isProcessing ? (
+                                <>
+                                    <i className="fa-solid fa-spinner fa-spin"></i>
+                                    <span>Memproses...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <i className="fa-solid fa-paper-plane"></i>
+                                    <span>Kirim Pengajuan</span>
+                                </>
+                            )}
                         </button>
                     </div>
                 </form>
             </div>
 
-            {/* Premium Toast Component Rendered Here */}
-            <Toast
-                show={toast.show}
-                type={toast.type}
-                title={toast.title}
-                message={toast.message}
-                onClose={() => setToast({ ...toast, show: false })}
+            <ActionFeedbackDialog
+                show={feedbackDialog.show}
+                type={feedbackDialog.type}
+                title={feedbackDialog.title}
+                message={feedbackDialog.message}
+                onClose={() => {
+                    const wasSuccess = feedbackDialog.type === 'success';
+                    setFeedbackDialog({ ...feedbackDialog, show: false });
+                    if (wasSuccess) {
+                        onClose();
+                    }
+                }}
             />
         </div>
     );
