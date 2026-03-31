@@ -83,6 +83,7 @@ Route::get('/', function () {
 })->name('landing');
 
 // Public testimonial submission
+// Testimoni publik — tidak terikat ke aktivitas tertentu (id_aktivitas nullable)
 Route::post('/testimoni/public', function (Request $request) {
     $request->validate([
         'nama_pemberi' => 'required|string|max:255',
@@ -91,16 +92,16 @@ Route::post('/testimoni/public', function (Request $request) {
     ]);
 
     Testimoni::create([
-        'id_aktivitas' => Aktivitas::first()?->id_aktivitas ?? 1,
+        'id_aktivitas' => null, // testimoni umum tidak terkait aktivitas spesifik
         'nama_pemberi' => $request->nama_pemberi,
         'rating'       => $request->rating,
         'pesan_ulasan' => $request->pesan_ulasan,
     ]);
 
     return redirect()->back()->with('success', 'Testimoni berhasil dikirim.');
-})->name('testimoni.public');
+})->middleware('throttle:10,1')->name('testimoni.public');
 
-// Geocode proxy
+// Geocode proxy — Rate limited 30 req/menit per IP agar tidak disalahgunakan
 Route::get('/api/geocode', function (Request $request) {
     $query = $request->input('q', '');
     if (strlen($query) < 2) {
@@ -131,7 +132,7 @@ Route::get('/api/geocode', function (Request $request) {
     }
 
     return response($response)->header('Content-Type', 'application/json');
-})->name('api.geocode');
+})->middleware('throttle:30,1')->name('api.geocode');
 
 // ─────────────────────────────────────────────
 // Guest routes
@@ -259,7 +260,8 @@ Route::middleware('auth')->group(function () {
             ]);
         }
 
-        $like = "%{$q}%";
+        // Sanitasi wildcard LIKE agar karakter % dan _ tidak bisa diinjeksikan
+        $like = '%' . addcslashes($q, '\\%_') . '%';
 
         return response()->json([
             'pengajuan' => Pengajuan::where('judul_kegiatan', 'like', $like)->limit($limit)->get(['id_pengajuan', 'judul_kegiatan', 'status_pengajuan'])->map($fmtPengajuan),

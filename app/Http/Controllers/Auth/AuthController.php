@@ -57,9 +57,15 @@ class AuthController extends Controller
         $role = 'masyarakat';
         $pegawaiId = null;
 
-        // Check if NIP exists in pegawai table
+        // Hanya berikan role dosen jika:
+        // 1. NIP diisi
+        // 2. NIP ditemukan di tabel pegawai
+        // 3. Pegawai tersebut BELUM terhubung ke user manapun (belum diklaim)
         if ($request->filled('nip')) {
-            $pegawai = Pegawai::where('nip', $request->nip)->first();
+            $pegawai = Pegawai::where('nip', $request->nip)
+                ->whereNull('id_user') // ← cegah duplikasi klaim NIP
+                ->first();
+
             if ($pegawai) {
                 $role = 'dosen';
                 $pegawaiId = $pegawai->id_pegawai;
@@ -73,7 +79,7 @@ class AuthController extends Controller
             'role' => $role,
         ]);
 
-        // Link user to pegawai record if dosen
+        // Hubungkan user ke record pegawai jika berhasil diverifikasi
         if ($role === 'dosen' && $pegawaiId) {
             Pegawai::where('id_pegawai', $pegawaiId)->update(['id_user' => $user->id_user]);
         }
