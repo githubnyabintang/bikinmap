@@ -3,7 +3,7 @@ import { Head } from '@inertiajs/react';
 import Layout from '@/Layouts/DefaultLayout';
 
 export default function Panduan() {
-    const pdfUrl = '/panduan/panduan-sigap.pdf';
+    const pdfUrl = '/panduan_penggunaan.pdf';
 
     return (
         <Layout>

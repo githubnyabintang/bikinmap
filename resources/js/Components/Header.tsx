@@ -132,7 +132,7 @@ export default function Header() {
                                                 <i className="fa-solid fa-chevron-down text-xs"></i>
                                             </button>
                                             <ul className="absolute top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-lg border border-slate-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0 z-50">
-                                                {item.children.map((child) => (
+                                                {item.children?.map((child) => (
                                                     <li key={child.label}>
                                                         <a
                                                             href={child.href}
@@ -210,27 +210,23 @@ export default function Header() {
                         {/* Hamburger Menu */}
                         <button
                             type="button"
-                            className={`lg:hidden relative w-10 h-10 flex flex-col items-center justify-center gap-1.5 transition-colors ${
-                                mobileMenuOpen ? 'text-poltekpar-primary' : 'text-slate-600'
-                            }`}
+                            className={`lg:hidden relative w-10 h-10 flex flex-col items-center justify-center gap-1.5 transition-colors ${mobileMenuOpen ? 'text-poltekpar-primary' : 'text-slate-600'
+                                }`}
                             onClick={toggleMobileMenu}
                             aria-label="Toggle menu"
                             aria-expanded={mobileMenuOpen}
                         >
                             <span
-                                className={`w-5 h-0.5 bg-current rounded-full transition-all duration-300 ${
-                                    mobileMenuOpen ? 'rotate-45 translate-y-2' : ''
-                                }`}
+                                className={`w-5 h-0.5 bg-current rounded-full transition-all duration-300 ${mobileMenuOpen ? 'rotate-45 translate-y-2' : ''
+                                    }`}
                             ></span>
                             <span
-                                className={`w-5 h-0.5 bg-current rounded-full transition-all duration-300 ${
-                                    mobileMenuOpen ? 'opacity-0' : ''
-                                }`}
+                                className={`w-5 h-0.5 bg-current rounded-full transition-all duration-300 ${mobileMenuOpen ? 'opacity-0' : ''
+                                    }`}
                             ></span>
                             <span
-                                className={`w-5 h-0.5 bg-current rounded-full transition-all duration-300 ${
-                                    mobileMenuOpen ? '-rotate-45 -translate-y-2' : ''
-                                }`}
+                                className={`w-5 h-0.5 bg-current rounded-full transition-all duration-300 ${mobileMenuOpen ? '-rotate-45 -translate-y-2' : ''
+                                    }`}
                             ></span>
                         </button>
                     </div>
@@ -239,9 +235,8 @@ export default function Header() {
 
             {/* Mobile Menu */}
             <div
-                className={`lg:hidden overflow-hidden transition-all duration-300 ${
-                    mobileMenuOpen ? 'max-h-screen' : 'max-h-0'
-                }`}
+                className={`lg:hidden overflow-hidden transition-all duration-300 ${mobileMenuOpen ? 'max-h-screen' : 'max-h-0'
+                    }`}
             >
                 <nav className="px-4 py-4 space-y-1">
                     {menuItems.map((item, index) => {
@@ -254,11 +249,10 @@ export default function Header() {
                                     <>
                                         <button
                                             type="button"
-                                            className={`flex items-center justify-between w-full px-3 py-3 text-sm font-medium rounded-lg transition-colors ${
-                                                isSubmenuOpen
+                                            className={`flex items-center justify-between w-full px-3 py-3 text-sm font-medium rounded-lg transition-colors ${isSubmenuOpen
                                                     ? 'bg-slate-100 text-poltekpar-primary'
                                                     : 'text-slate-700 hover:bg-slate-50'
-                                            }`}
+                                                }`}
                                             onClick={() => toggleSubmenu(index)}
                                         >
                                             <span>{item.label}</span>
@@ -267,12 +261,11 @@ export default function Header() {
                                             ></i>
                                         </button>
                                         <div
-                                            className={`overflow-hidden transition-all duration-300 ${
-                                                isSubmenuOpen ? 'max-h-96 mt-1' : 'max-h-0'
-                                            }`}
+                                            className={`overflow-hidden transition-all duration-300 ${isSubmenuOpen ? 'max-h-96 mt-1' : 'max-h-0'
+                                                }`}
                                         >
                                             <ul className="ml-4 space-y-1">
-                                                {item.children.map((child) => (
+                                                {item.children?.map((child) => (
                                                     <li key={child.label}>
                                                         <a
                                                             href={child.href}
