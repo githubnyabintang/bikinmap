@@ -6,7 +6,7 @@ export interface StatusStyle {
 }
 
 export const STATUS_STYLES: Record<string, StatusStyle> = {
-    diproses: { label: 'Diproses', icon: 'fa-clock', bg: '#dbeafe', color: '#1d4ed8' },
+    diproses: { label: 'Diproses', icon: 'fa-clock', bg: '#dbeafe', color: '#1E4A8C' },
     ditangguhkan: { label: 'Ditangguhkan', icon: 'fa-file-pen', bg: '#fef3c7', color: '#b45309' },
     ditolak: { label: 'Ditolak', icon: 'fa-circle-xmark', bg: '#fee2e2', color: '#b91c1c' },
     diterima: { label: 'Diterima', icon: 'fa-circle-check', bg: '#dcfce7', color: '#15803d' },

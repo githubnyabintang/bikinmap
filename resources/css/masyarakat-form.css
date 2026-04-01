@@ -247,7 +247,7 @@
 }
 
 .input-wrapper:focus-within {
-    border-color: #046bd2;
+    border-color: #15325F;
     box-shadow: 0 0 0 3px rgba(4, 107, 210, 0.1);
 }
 
@@ -338,7 +338,7 @@
 }
 
 .file-dropzone:hover {
-    border-color: #046bd2;
+    border-color: #15325F;
     background: #f0f7ff;
 }
 
@@ -475,7 +475,7 @@
 .btn-form-submit {
     flex: 2;
     padding: 14px;
-    background: #046bd2;
+    background: #15325F;
     border: none;
     color: white;
     border-radius: 12px;
@@ -491,7 +491,7 @@
 }
 
 .btn-form-submit:hover {
-    background: #035aa6;
+    background: #0D1F3C;
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(4, 107, 210, 0.3);
 }

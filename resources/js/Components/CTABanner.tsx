@@ -3,7 +3,7 @@ import { Link } from '@inertiajs/react';
 
 export default function CTABanner() {
     return (
-        <section className="py-16 px-6 bg-gradient-to-br from-sigap-blue to-sigap-darkBlue rounded-2xl shadow-glow overflow-hidden relative" id="cta-pengajuan">
+        <section className="py-16 px-6 bg-gradient-to-br from-poltekpar-primary to-poltekpar-navy rounded-2xl shadow-glow overflow-hidden relative" id="cta-pengajuan">
             {/* Glow effect */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
@@ -27,7 +27,7 @@ export default function CTABanner() {
                 {/* CTA Button */}
                 <Link 
                     href="/login" 
-                    className="inline-flex items-center gap-3 px-8 py-4 bg-white text-sigap-blue font-bold rounded-xl shadow-lg hover:bg-slate-50 hover:shadow-xl hover:scale-105 transition-all duration-200"
+                    className="inline-flex items-center gap-3 px-8 py-4 bg-white text-poltekpar-primary font-bold rounded-xl shadow-lg hover:bg-slate-50 hover:shadow-xl hover:scale-105 transition-all duration-200"
                 >
                     <i className="fa-solid fa-arrow-down text-lg"></i>
                     <span>Buka Form Pengajuan</span>

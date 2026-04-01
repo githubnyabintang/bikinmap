@@ -14,7 +14,7 @@ export default function MapLegend({ compact = false, className = '' }: MapLegend
         >
             {/* Header */}
             <div className="mb-4 pb-3 border-b border-slate-100">
-                <span className="text-xs font-bold text-sigap-gray uppercase tracking-wider">Legenda Peta</span>
+                <span className="text-xs font-bold text-poltekpar-gray uppercase tracking-wider">Legenda Peta</span>
                 <strong className="block text-lg font-bold text-slate-900 mt-0.5">Visual PKM</strong>
             </div>
 

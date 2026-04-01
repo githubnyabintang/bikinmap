@@ -116,38 +116,52 @@ const Dashboard: React.FC<DashboardProps> = ({
     if (!isMounted) return <AdminLayout title="Overview"><div className="h-screen bg-white animate-pulse rounded-xl" /></AdminLayout>;
 
     const statCards = [
-        { label: 'Total Pengajuan', value: stats.totalPengajuan, icon: FileText, color: 'text-zinc-600', bg: 'bg-zinc-50' },
-        { label: 'Menunggu Review', value: stats.pengajuanDiproses, icon: Clock, color: 'text-blue-600', bg: 'bg-blue-50' },
-        { label: 'Diterima', value: stats.pengajuanDiterima, icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-        { label: 'Ditolak', value: stats.pengajuanDitolak, icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50' },
+        { label: 'Total Pengajuan', value: stats.totalPengajuan, icon: FileText, color: 'text-poltekpar-primary', bg: 'bg-poltekpar-primary/10', iconBg: 'bg-poltekpar-primary', trend: '+12% dari bulan lalu' },
+        { label: 'Menunggu Review', value: stats.pengajuanDiproses, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50', iconBg: 'bg-amber-500', trend: 'Perlu tindakan segera' },
+        { label: 'Diterima', value: stats.pengajuanDiterima, icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50', iconBg: 'bg-emerald-500', trend: 'Sudah dipublikasi' },
+        { label: 'Aktivitas PKM', value: stats.totalAktivitas, icon: Activity, color: 'text-poltekpar-navy', bg: 'bg-poltekpar-navy/10', iconBg: 'bg-poltekpar-navy', trend: 'Kegiatan berlangsung' },
     ];
 
     return (
-        <AdminLayout title="Overview">
+        <AdminLayout title="System Overview">
             {/* Stats Overview */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
                 {statCards.map((card, i) => (
-                    <div key={i} className="bg-white p-5 rounded-xl border border-zinc-200 shadow-sm flex items-center justify-between">
-                        <div>
-                            <p className="text-[12px] font-medium text-zinc-500 mb-1 uppercase tracking-wider">{card.label}</p>
-                            <h3 className="text-[24px] font-bold text-zinc-900 leading-none">{card.value}</h3>
+                    <div key={i} className="group bg-white p-7 rounded-[32px] border border-slate-200/60 shadow-sm hover:shadow-xl hover:shadow-poltekpar-primary/5 transition-all duration-300 flex flex-col relative overflow-hidden">
+                        <div className={`absolute top-0 right-0 w-32 h-32 ${card.bg} rounded-full -mr-16 -mt-16 opacity-50 group-hover:scale-110 transition-transform duration-500`}></div>
+                        <div className="flex items-center justify-between relative z-10 mb-6">
+                            <div className={`w-14 h-14 rounded-2xl ${card.iconBg} text-white flex items-center justify-center shadow-lg shadow-inherit`}>
+                                <card.icon size={24} />
+                            </div>
+                            <div className="text-right">
+                                <h3 className="text-[32px] font-black text-slate-900 leading-none tracking-tight">{card.value}</h3>
+                            </div>
                         </div>
-                        <div className={`w-10 h-10 rounded-lg ${card.bg} ${card.color} flex items-center justify-center`}>
-                            <card.icon size={20} />
+                        <div className="relative z-10">
+                            <p className="text-[14px] font-extrabold text-slate-500 mb-1 uppercase tracking-widest">{card.label}</p>
+                            <p className={`text-[11px] font-bold ${card.color} opacity-80 flex items-center gap-1`}>
+                                <TrendingUp size={12} />
+                                {card.trend}
+                            </p>
                         </div>
                     </div>
                 ))}
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 mb-8">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 mb-10">
                 {/* Map Section */}
-                <div className="xl:col-span-2 bg-white rounded-xl border border-zinc-200 shadow-sm overflow-hidden flex flex-col h-[500px]">
-                    <div className="px-6 py-4 border-b border-zinc-200 bg-zinc-50/50 flex items-center justify-between">
+                <div className="xl:col-span-2 bg-white rounded-[32px] border border-slate-200/60 shadow-sm overflow-hidden flex flex-col h-[560px]">
+                    <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-white to-slate-50/50">
                         <div>
-                            <h2 className="text-[14px] font-semibold text-zinc-900">Sebaran Lokasi PKM</h2>
-                            <p className="text-[11px] text-zinc-500 mt-0.5">Lokasi pengabdian masyarakat di seluruh wilayah</p>
+                            <h2 className="text-[18px] font-black text-slate-900 tracking-tight">Sebaran Lokasi PKM</h2>
+                            <p className="text-[13px] font-bold text-slate-400 mt-0.5">Monitoring sebaran geografis kegiatan pengabdian</p>
                         </div>
-                        <Activity size={16} className="text-zinc-400" />
+                        <div className="flex items-center gap-2">
+                             <div className="flex items-center gap-1 px-3 py-1.5 bg-poltekpar-primary/10 text-poltekpar-primary rounded-full text-[11px] font-black uppercase tracking-wider">
+                                <div className="w-1.5 h-1.5 bg-poltekpar-primary rounded-full animate-pulse"></div>
+                                Live Data
+                             </div>
+                        </div>
                     </div>
                     <div className="flex-1 relative z-0">
                         <MapContainer
@@ -166,12 +180,15 @@ const Dashboard: React.FC<DashboardProps> = ({
                                     position={[pkm.lat, pkm.lng]}
                                     icon={createCustomIcon(pkm.status, pkm.warna_icon)}
                                 >
-                                    <Popup>
-                                        <div className="min-w-[150px] p-1">
-                                            <div className="font-bold text-[13px] text-zinc-900 mb-1 leading-tight">{pkm.nama}</div>
-                                            <div className="text-[11px] text-zinc-500 mb-2">{pkm.jenis_nama}</div>
-                                            <div className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold text-white ${pkm.status === 'selesai' ? 'bg-emerald-500' : 'bg-amber-500'}`}>
-                                                {pkm.status.toUpperCase()}
+                                    <Popup className="poltekpar-map-popup">
+                                        <div className="min-w-[180px] p-2">
+                                            <div className="font-black text-[14px] text-poltekpar-navy mb-1 leading-tight">{pkm.nama}</div>
+                                            <div className="text-[12px] font-bold text-slate-400 mb-3">{pkm.jenis_nama}</div>
+                                            <div className="flex items-center justify-between">
+                                                <div className={`px-3 py-1 rounded-full text-[10px] font-black text-white uppercase tracking-widest ${pkm.status === 'selesai' ? 'bg-emerald-500' : 'bg-amber-500'}`}>
+                                                    {pkm.status}
+                                                </div>
+                                                <div className="text-[11px] font-bold text-poltekpar-primary hover:underline cursor-pointer">Detail</div>
                                             </div>
                                         </div>
                                     </Popup>
@@ -182,51 +199,52 @@ const Dashboard: React.FC<DashboardProps> = ({
                 </div>
 
                 {/* Recent Activity Logs */}
-                <div className="bg-white rounded-xl border border-zinc-200 shadow-sm flex flex-col h-[500px]">
-                    <div className="px-6 py-4 border-b border-zinc-200 bg-zinc-50/50 flex items-center justify-between">
-                        <div>
-                            <h2 className="text-[14px] font-semibold text-zinc-900">Log Aktivitas Terbaru</h2>
-                            <p className="text-[11px] text-zinc-500 mt-0.5">Pembaruan status pengajuan sistem</p>
-                        </div>
-                        <TrendingUp size={16} className="text-zinc-400" />
+                <div className="bg-white rounded-[32px] border border-slate-200/60 shadow-sm flex flex-col h-[560px] overflow-hidden">
+                    <div className="px-8 py-6 border-b border-slate-100 bg-gradient-to-r from-white to-slate-50/50">
+                        <h2 className="text-[18px] font-black text-slate-900 tracking-tight">Log Aktivitas</h2>
+                        <p className="text-[13px] font-bold text-slate-400 mt-0.5">Riwayat pembaruan sistem terbaru</p>
                     </div>
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                    <div className="flex-1 overflow-y-auto p-6 space-y-6">
                         {recentLogs.length > 0 ? recentLogs.map((log: any) => (
-                            <div key={log.id} className="flex gap-3 relative">
-                                <div className="mt-1 w-2 h-2 rounded-full bg-indigo-500 shrink-0 shadow-[0_0_0_4px_rgba(99,102,241,0.1)]"></div>
-                                <div className="flex-1">
-                                    <div className="flex items-center justify-between gap-2">
-                                        <span className="text-[13px] font-bold text-zinc-900">{log.title}</span>
-                                        <span className="text-[10px] font-medium text-zinc-400 whitespace-nowrap uppercase tracking-tighter">{timeAgo(log.time)}</span>
+                            <div key={log.id} className="flex gap-4 group cursor-pointer">
+                                <div className="mt-1 w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-poltekpar-primary group-hover:text-white transition-colors flex-shrink-0">
+                                    <Activity size={18} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-start justify-between gap-2 mb-1">
+                                        <span className="text-[14px] font-black text-slate-900 truncate pr-2">{log.title}</span>
+                                        <span className="text-[10px] font-black text-slate-400 whitespace-nowrap uppercase tracking-widest mt-0.5">{timeAgo(log.time)}</span>
                                     </div>
-                                    <p className="text-[12px] text-zinc-500 mt-0.5 leading-relaxed line-clamp-2">{log.desc}</p>
+                                    <p className="text-[12px] font-bold text-slate-500 line-clamp-2 leading-relaxed">{log.desc}</p>
                                 </div>
                             </div>
                         )) : (
-                            <div className="h-full flex flex-col items-center justify-center text-center opacity-40">
-                                <Clock size={32} className="mb-2" />
-                                <p className="text-[13px]">Belum ada aktivitas</p>
+                            <div className="h-full flex flex-col items-center justify-center text-center py-10 opacity-40">
+                                <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                                    <Clock size={40} className="text-slate-300" />
+                                </div>
+                                <p className="text-[14px] font-bold text-slate-500">Belum ada aktivitas tercatat</p>
                             </div>
                         )}
                     </div>
-                    <div className="p-4 bg-zinc-50/50 border-t border-zinc-100">
-                        <button className="w-full py-2 text-[12px] font-bold text-zinc-600 hover:text-zinc-900 transition-colors">Lihat Semua Riwayat</button>
+                    <div className="p-6 bg-slate-50/30 border-t border-slate-100">
+                        <button className="w-full py-3 px-4 bg-white border border-slate-200 rounded-2xl text-[13px] font-black text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm active:scale-[0.98]">
+                            Lihat Semua Riwayat
+                        </button>
                     </div>
                 </div>
             </div>
 
             {/* Charts Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
                 {/* Pie Chart */}
-                <div className="bg-white p-6 rounded-xl border border-zinc-200 shadow-sm min-h-[350px] flex flex-col">
-                    <div className="mb-6 flex items-center justify-between">
-                        <div>
-                            <h2 className="text-[14px] font-semibold text-zinc-900">Komposisi Jenis PKM</h2>
-                            <p className="text-[11px] text-zinc-500 mt-0.5">Persentase berdasarkan kategori pengajuan</p>
-                        </div>
+                <div className="bg-white p-8 rounded-[32px] border border-slate-200/60 shadow-sm min-h-[420px] flex flex-col">
+                    <div className="mb-8">
+                        <h2 className="text-[18px] font-black text-slate-900 tracking-tight">Komposisi Program</h2>
+                        <p className="text-[13px] font-bold text-slate-400 mt-0.5">Distribusi jenis kegiatan yang berjalan</p>
                     </div>
                     <div className="flex-1 flex items-center justify-center relative">
-                        <div className="w-[220px] h-[220px]">
+                        <div className="w-[260px] h-[260px]">
                             <Doughnut 
                                 data={{
                                     labels: pieChartData.map((d: any) => d.label),
@@ -234,29 +252,49 @@ const Dashboard: React.FC<DashboardProps> = ({
                                         data: pieChartData.map((d: any) => d.count),
                                         backgroundColor: pieChartData.map((d: any) => d.color),
                                         borderColor: '#ffffff',
-                                        borderWidth: 2,
-                                        hoverOffset: 8,
+                                        borderWidth: 4,
+                                        hoverOffset: 20,
                                     }]
                                 }} 
                                 options={{
                                     responsive: true,
                                     maintainAspectRatio: false,
-                                    cutout: '70%',
+                                    cutout: '72%',
                                     plugins: {
-                                        legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, padding: 20, font: { size: 11, weight: '600' } } },
-                                        tooltip: { backgroundColor: '#18181b', padding: 10, titleFont: { size: 12 }, bodyFont: { size: 12 }, usePointStyle: true }
+                                        legend: { 
+                                            position: 'bottom', 
+                                            labels: { 
+                                                usePointStyle: true, 
+                                                pointStyle: 'circle',
+                                                padding: 24, 
+                                                font: { size: 12, weight: 700, family: "'Plus Jakarta Sans'" },
+                                                color: '#64748b'
+                                            } 
+                                        },
+                                        tooltip: { 
+                                            backgroundColor: '#0D1F3C', 
+                                            padding: 16, 
+                                            titleFont: { size: 14, weight: 800 }, 
+                                            bodyFont: { size: 13, weight: 600 }, 
+                                            usePointStyle: true,
+                                            cornerRadius: 16
+                                        }
                                     }
                                 }} 
                             />
+                        </div>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none translate-y-[-20px]">
+                            <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Total</span>
+                            <span className="text-3xl font-black text-slate-900">{stats.totalPengajuan}</span>
                         </div>
                     </div>
                 </div>
 
                 {/* Bar Chart */}
-                <div className="bg-white p-6 rounded-xl border border-zinc-200 shadow-sm min-h-[350px] flex flex-col">
-                    <div className="mb-6">
-                        <h2 className="text-[14px] font-semibold text-zinc-900">Tren Pertumbuhan PKM</h2>
-                        <p className="text-[11px] text-zinc-500 mt-0.5">Statistik pertumbuhan data tahun ke tahun</p>
+                <div className="bg-white p-8 rounded-[32px] border border-slate-200/60 shadow-sm min-h-[420px] flex flex-col">
+                    <div className="mb-8">
+                        <h2 className="text-[18px] font-black text-slate-900 tracking-tight">Tren Tahunan</h2>
+                        <p className="text-[13px] font-bold text-slate-400 mt-0.5">Pertumbuhan data kegiatan PKM</p>
                     </div>
                     <div className="flex-1">
                         {barChartData?.labels ? (
@@ -267,16 +305,37 @@ const Dashboard: React.FC<DashboardProps> = ({
                                     maintainAspectRatio: false,
                                     plugins: {
                                         legend: { display: false },
-                                        tooltip: { backgroundColor: '#18181b', padding: 10, cornerRadius: 8 }
+                                        tooltip: { 
+                                            backgroundColor: '#0D1F3C', 
+                                            padding: 16, 
+                                            cornerRadius: 16,
+                                            titleFont: { size: 14, weight: 800 },
+                                            bodyFont: { size: 13, weight: 600 }
+                                        }
                                     },
                                     scales: {
-                                        x: { grid: { display: false }, ticks: { font: { size: 11, weight: '500' } } },
-                                        y: { beginAtZero: true, border: { dash: [4, 4] }, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { stepSize: 1, font: { size: 11 } } }
+                                        x: { 
+                                            grid: { display: false }, 
+                                            ticks: { 
+                                                font: { size: 12, weight: 700, family: "'Plus Jakarta Sans'" },
+                                                color: '#94a3b8'
+                                            } 
+                                        },
+                                        y: { 
+                                            beginAtZero: true, 
+                                            border: { dash: [6, 6] }, 
+                                            grid: { color: 'rgba(148, 163, 184, 0.1)' }, 
+                                            ticks: { 
+                                                stepSize: 1, 
+                                                font: { size: 12, weight: 600 },
+                                                color: '#94a3b8'
+                                            } 
+                                        }
                                     }
                                 }} 
                             />
                         ) : (
-                            <div className="h-full flex items-center justify-center text-zinc-400 text-[13px] italic">Data tren belum tersedia</div>
+                            <div className="h-full flex items-center justify-center text-slate-400 text-[14px] font-bold italic">Data tren pengajuan belum tersedia</div>
                         )}
                     </div>
                 </div>
@@ -285,20 +344,27 @@ const Dashboard: React.FC<DashboardProps> = ({
             <style dangerouslySetInnerHTML={{__html: `
                 .custom-leaflet-marker { background: transparent; border: none; }
                 .marker-pin {
-                    width: 32px; height: 32px; border-radius: 50% 50% 50% 0;
+                    width: 36px; height: 36px; border-radius: 50% 50% 50% 0;
                     position: absolute; transform: rotate(-45deg);
-                    left: 50%; top: 50%; margin: -16px 0 0 -16px;
-                    box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+                    left: 50%; top: 50%; margin: -18px 0 0 -18px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
                     display: flex; align-items: center; justify-content: center; z-index: 2;
+                    border: 3px solid white;
                 }
                 .marker-pin i { transform: rotate(45deg); color: white; font-size: 14px; }
                 .marker-pulse {
-                    width: 40px; height: 40px; border: 2px solid; border-radius: 50%;
-                    position: absolute; left: 50%; top: 50%; margin: -20px 0 0 -20px;
+                    width: 44px; height: 44px; border: 3px solid; border-radius: 50%;
+                    position: absolute; left: 50%; top: 50%; margin: -22px 0 0 -22px;
                     animation: pulse 2s infinite ease-out; z-index: 1; opacity: 0.8;
                 }
-                @keyframes pulse { 0% { transform: scale(0.5); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
-                .leaflet-popup-content-wrapper { border-radius: 12px; }
+                @keyframes pulse { 0% { transform: scale(0.5); opacity: 1; } 100% { transform: scale(1.6); opacity: 0; } }
+                .poltekpar-map-popup .leaflet-popup-content-wrapper { 
+                    border-radius: 20px; 
+                    padding: 8px;
+                    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+                    border: 1px solid rgba(0,0,0,0.05);
+                }
+                .poltekpar-map-popup .leaflet-popup-tip-container { display: none; }
             `}} />
         </AdminLayout>
     );

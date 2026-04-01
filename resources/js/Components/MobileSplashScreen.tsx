@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-const SPLASH_SESSION_KEY = 'sigap-pkm-mobile-splash-seen';
+const SPLASH_SESSION_KEY = 'poltekpar-mobile-splash-seen';
 const POLTEKPAR_LOGO_URL = 'https://p3m.poltekparmakassar.ac.id/storage/2025/10/cropped-Screenshot_2024-01-15_101923-removebg-preview.png';
 
 type SplashPhase = 'hidden' | 'visible' | 'closing';
@@ -47,11 +47,11 @@ export default function MobileSplashScreen() {
             aria-hidden="true"
         >
             {/* Backdrop */}
-            <div className="absolute inset-0 bg-gradient-to-br from-sigap-blue via-sigap-darkBlue to-slate-900"></div>
+            <div className="absolute inset-0 bg-gradient-to-br from-poltekpar-primary via-poltekpar-navy to-slate-900"></div>
 
             {/* Orb Effects */}
             <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
-            <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-sigap-blue/20 rounded-full blur-3xl animate-pulse delay-700"></div>
+            <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-poltekpar-primary/20 rounded-full blur-3xl animate-pulse delay-700"></div>
 
             {/* Main Card */}
             <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-6">

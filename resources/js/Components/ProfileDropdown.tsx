@@ -103,7 +103,7 @@ export default function ProfileDropdown({ auth: propsAuth }: ProfileDropdownProp
         return (
             <Link 
                 href="/login" 
-                className="inline-flex items-center gap-2 px-4 py-2 bg-sigap-blue text-white font-medium rounded-lg hover:bg-sigap-darkBlue transition-colors duration-200"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-poltekpar-primary text-white font-medium rounded-lg hover:bg-poltekpar-navy transition-colors duration-200"
             >
                 <i className="fa-solid fa-right-to-bracket"></i>
                 <span>Login</span>
@@ -116,16 +116,16 @@ export default function ProfileDropdown({ auth: propsAuth }: ProfileDropdownProp
             {/* Trigger Button */}
             <button
                 type="button"
-                className={`flex items-center gap-3 p-2 pr-4 bg-white rounded-full border-2 transition-all duration-200 hover:shadow-soft focus:outline-none focus:ring-2 focus:ring-sigap-blue focus:ring-offset-2 ${
-                    isOpen ? 'border-sigap-blue shadow-soft' : 'border-slate-200'
+                className={`flex items-center gap-3 p-2 pr-4 bg-white rounded-full border-2 transition-all duration-200 hover:shadow-soft focus:outline-none focus:ring-2 focus:ring-poltekpar-primary focus:ring-offset-2 ${
+                    isOpen ? 'border-poltekpar-primary shadow-soft' : 'border-slate-200'
                 }`}
                 onClick={toggleDropdown}
                 aria-label="Buka menu profil"
                 aria-haspopup="menu"
                 aria-expanded={isOpen}
             >
-                <span className={`flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-sigap-blue to-sigap-darkBlue text-white font-bold ring-2 ring-white ${
-                    isOpen ? 'ring-sigap-blue' : ''
+                <span className={`flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-poltekpar-primary to-poltekpar-navy text-white font-bold ring-2 ring-white ${
+                    isOpen ? 'ring-poltekpar-primary' : ''
                 }`}>
                     {avatarSrc ? (
                         <img 
@@ -162,28 +162,28 @@ export default function ProfileDropdown({ auth: propsAuth }: ProfileDropdownProp
                         {userRole === 'admin' ? (
                             <Link 
                                 href="/admin/dashboard" 
-                                className="flex items-center gap-3 px-5 py-3 text-slate-700 hover:bg-slate-50 hover:text-sigap-blue transition-colors duration-150" 
+                                className="flex items-center gap-3 px-5 py-3 text-slate-700 hover:bg-slate-50 hover:text-poltekpar-primary transition-colors duration-150" 
                                 role="menuitem" 
                                 onClick={closeDropdown}
                             >
-                                <i className="fa-solid fa-gauge-high text-lg text-sigap-blue"></i>
+                                <i className="fa-solid fa-gauge-high text-lg text-poltekpar-primary"></i>
                                 <span className="font-semibold">Panel Admin</span>
                             </Link>
                         ) : (
                             <Link 
                                 href={`/pengajuan?role=${user.role}&view=status`}
-                                className="flex items-center gap-3 px-5 py-3 text-slate-700 hover:bg-slate-50 hover:text-sigap-blue transition-colors duration-150" 
+                                className="flex items-center gap-3 px-5 py-3 text-slate-700 hover:bg-slate-50 hover:text-poltekpar-primary transition-colors duration-150" 
                                 role="menuitem" 
                                 onClick={closeDropdown}
                             >
-                                <i className="fa-solid fa-rectangle-list text-lg text-sigap-blue"></i>
+                                <i className="fa-solid fa-rectangle-list text-lg text-poltekpar-primary"></i>
                                 <span className="font-medium">Status Pengajuan</span>
                             </Link>
                         )}
                         
                         <Link 
                             href={userRole === 'admin' ? "/admin/profile" : "/profile/edit"} 
-                            className="flex items-center gap-3 px-5 py-3 text-slate-700 hover:bg-slate-50 hover:text-sigap-blue transition-colors duration-150" 
+                            className="flex items-center gap-3 px-5 py-3 text-slate-700 hover:bg-slate-50 hover:text-poltekpar-primary transition-colors duration-150" 
                             role="menuitem" 
                             onClick={closeDropdown}
                         >

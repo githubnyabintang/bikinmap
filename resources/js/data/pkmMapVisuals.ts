@@ -1,24 +1,36 @@
 import L from 'leaflet';
 
-export const PKM_TYPE_META = {
+export interface PkmTypeMeta {
+    key: string;
+    label: string;
+    color: string;
+}
+
+export interface PkmStatusMeta {
+    key: string;
+    label: string;
+    markerIcon: string;
+}
+
+export const PKM_TYPE_META: Record<string, PkmTypeMeta> = {
     pendampingan_desa: {
         key: 'pendampingan_desa',
         label: 'PKM Pendampingan Desa',
-        color: '#16a34a',
+        color: '#15325F', // poltekpar-primary
     },
     bimbingan_teknis: {
         key: 'bimbingan_teknis',
         label: 'PKM Bimbingan Teknis',
-        color: '#f59e0b',
+        color: '#DCAF67', // poltekpar-gold
     },
     mahasiswa_prodi: {
         key: 'mahasiswa_prodi',
         label: 'PKM Mahasiswa / Prodi',
-        color: '#dc2626',
+        color: '#0D1F3C', // poltekpar-navy
     },
 };
 
-export const PKM_STATUS_META = {
+export const PKM_STATUS_META: Record<string, PkmStatusMeta> = {
     selesai: {
         key: 'selesai',
         label: 'PKM Selesai',
@@ -31,7 +43,7 @@ export const PKM_STATUS_META = {
     },
 };
 
-const normalizeTypeKey = (value) => {
+const normalizeTypeKey = (value: any): string => {
     const normalized = String(value ?? '').trim().toLowerCase().replace(/[_-]+/g, ' ');
 
     if (normalized.includes('pendampingan') || normalized.includes('desa')) {
@@ -49,17 +61,17 @@ const normalizeTypeKey = (value) => {
     return 'mahasiswa_prodi';
 };
 
-export const getPkmTypeMeta = (pkm) => {
+export const getPkmTypeMeta = (pkm: any): PkmTypeMeta => {
     const rawType = pkm?.jenis_pkm ?? pkm?.jenisPkm ?? pkm?.jenis ?? pkm?.type ?? pkm?.category;
     return PKM_TYPE_META[normalizeTypeKey(rawType)] ?? PKM_TYPE_META.mahasiswa_prodi;
 };
 
-export const getPkmStatusMeta = (status) => {
+export const getPkmStatusMeta = (status: any): PkmStatusMeta => {
     const statusKey = String(status ?? 'berlangsung').toLowerCase();
     return PKM_STATUS_META[statusKey] ?? PKM_STATUS_META.berlangsung;
 };
 
-export const createPkmMarkerIcon = (pkm) => {
+export const createPkmMarkerIcon = (pkm: any) => {
     const typeMeta = getPkmTypeMeta(pkm);
     const statusMeta = getPkmStatusMeta(pkm?.status);
 

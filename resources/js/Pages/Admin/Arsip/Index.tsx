@@ -158,7 +158,7 @@ const ArsipPage: React.FC<Props> = ({ listArsip, filters }) => {
                                     </td>
                                     <td className="py-4 px-6">
                                         <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[12px] font-medium bg-zinc-100 text-zinc-700 border border-zinc-200">
-                                            <FolderOpen size={12} className="opacity-70" /> {jenisLabel[a.jenis_arsip] || a.jenis_arsip}
+                                            <Folder size={12} className="opacity-70" /> {jenisLabel[a.jenis_arsip] || a.jenis_arsip}
                                         </span>
                                     </td>
                                     <td className="py-4 px-6 text-[13px] text-zinc-500">

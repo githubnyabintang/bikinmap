@@ -111,7 +111,7 @@ function MobileMenuDrawer({ isOpen, onClose }: MobileMenuDrawerProps) {
                                             {isExpanded && (
                                                 <div className="bg-slate-50 border-t border-slate-100">
                                                     {item.children!.map((child) => (
-                                                        <a key={child.label} href={child.href} target={child.target} rel={child.target === '_blank' ? 'noreferrer' : undefined} onClick={onClose} className="block px-4 py-2.5 text-sm text-slate-600 hover:text-sigap-blue hover:bg-white">{child.label}</a>
+                                                        <a key={child.label} href={child.href} target={child.target} rel={child.target === '_blank' ? 'noreferrer' : undefined} onClick={onClose} className="block px-4 py-2.5 text-sm text-slate-600 hover:text-poltekpar-primary hover:bg-white">{child.label}</a>
                                                     ))}
                                                 </div>
                                             )}
@@ -211,7 +211,7 @@ function MobileAccessPanel() {
         <section className="h-full overflow-y-auto p-6">
             <div className="bg-white rounded-2xl shadow-lg border border-slate-100 p-6">
                 <div className="text-center mb-6">
-                    <span className="text-xs font-bold text-sigap-blue uppercase tracking-wider">Akses Pengajuan</span>
+                    <span className="text-xs font-bold text-poltekpar-primary uppercase tracking-wider">Akses Pengajuan</span>
                     <h3 className="text-xl font-bold text-slate-900 mt-2">Pengajuan PKM siap diakses dari akun Anda</h3>
                     <p className="text-sm text-slate-600 mt-2">Masuk ke akun Anda untuk membuat pengajuan dan memantau status PKM.</p>
                 </div>
@@ -232,7 +232,7 @@ function MobileAccessPanel() {
                 <div className="text-center">
                     <strong className="text-sm text-slate-900 block mb-2">Form pengajuan tersedia setelah login.</strong>
                     <div className="flex items-center justify-center gap-3">
-                        <a href="/login" className="px-6 py-3 bg-sigap-blue hover:bg-sigap-darkBlue text-white text-sm font-semibold rounded-xl transition-colors shadow-md">Login</a>
+                        <a href="/login" className="px-6 py-3 bg-poltekpar-primary hover:bg-poltekpar-navy text-white text-sm font-semibold rounded-xl transition-colors shadow-md">Login</a>
                         <a href="/register" className="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-xl transition-colors">Daftar</a>
                     </div>
                 </div>
@@ -304,10 +304,10 @@ export default function LandingPageMobile({ pkmData = [] }: LandingPageMobilePro
                     ].map((tab) => {
                         const isActive = tab.id === 'menu' ? isMenuOpen : activeTab === tab.id;
                         return (
-                            <button key={tab.id} type="button" onClick={() => handleTabChange(tab.id)} className={`flex-1 flex flex-col items-center justify-center py-3 px-2 transition-all ${isActive ? 'text-sigap-blue' : 'text-slate-500 hover:text-slate-700'}`}>
+                            <button key={tab.id} type="button" onClick={() => handleTabChange(tab.id)} className={`flex-1 flex flex-col items-center justify-center py-3 px-2 transition-all ${isActive ? 'text-poltekpar-primary' : 'text-slate-500 hover:text-slate-700'}`}>
                                 <div className={`relative w-6 h-6 mb-1 ${isActive ? 'scale-110' : ''} transition-transform`}>
                                     <i className={`${tab.icon} text-lg`}></i>
-                                    {isActive && <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-sigap-blue"></span>}
+                                    {isActive && <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-poltekpar-primary"></span>}
                                 </div>
                                 <span className={`text-xs font-medium ${isActive ? 'font-semibold' : ''}`}>{tab.label}</span>
                             </button>

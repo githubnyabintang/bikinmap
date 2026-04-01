@@ -22,15 +22,27 @@ export default {
           800: '#075985',
           900: '#0c4a6e',
         },
-        sigap: {
-          blue: '#005691',
-          darkBlue: '#003d6b',
-          gray: '#64748b',
-          lightGray: '#f1f5f9',
+        poltekpar: {
+          primary: '#15325F',   // Biru utama SIGAP
+          navy:    '#0D1F3C',   // Biru tua untuk teks heading & overlay
+          accent:  '#1E4A8C',   // Biru menengah untuk hover & highlight
+          gold:    '#DCAF67',   // Kuning brand Poltekpar
+          'gold-light': '#F5E5BC', // Kuning muda untuk background badge
+          light:   '#F5F7FB',   // Background halaman
+          gray:    '#64748b'
         }
       },
+      borderRadius: {
+        'xl': '1rem',
+        '2xl': '1.5rem',
+        '3xl': '2rem',
+      },
+      spacing: {
+        '18': '4.5rem',
+        '68': '17rem',
+      },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
         'soft': '0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)',

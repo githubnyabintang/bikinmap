@@ -19,9 +19,6 @@ const getInitials = (name?: string): string => {
 };
 
 const getNavLinks = (user: User | null): NavLink[] => {
-    const pengajuanHref = user ? '/pengajuan' : '/login';
-    const statusHref = user ? '/cek-status' : '/login';
-
     const navLinks: NavLink[] = [
         { label: 'Beranda', href: '/', icon: 'fa-house' },
     ];
@@ -31,8 +28,8 @@ const getNavLinks = (user: User | null): NavLink[] => {
     }
 
     navLinks.push(
-        { label: 'Cek Status', href: statusHref, icon: 'fa-magnifying-glass' },
-        { label: 'Pengajuan', href: pengajuanHref, icon: 'fa-file-circle-plus' },
+        { label: 'Cek Status', href: '/cek-status', icon: 'fa-magnifying-glass' },
+        { label: 'Pengajuan', href: '/pengajuan', icon: 'fa-file-circle-plus' },
         { label: 'Panduan', href: '#panduan', icon: 'fa-book-open' }
     );
 
@@ -40,11 +37,17 @@ const getNavLinks = (user: User | null): NavLink[] => {
 };
 
 export default function Navbar() {
-    const { props } = usePage<PageProps>();
+    const { props, url } = usePage<PageProps>();
     const { auth } = props;
     const user = auth?.user ?? null;
     const poltekparLogoSrc = '/logo-poltekpar.png';
     const navLinks = useMemo(() => getNavLinks(user), [user]);
+
+    const isActive = useCallback((href: string) => {
+        if (href === '/') return url === '/';
+        if (href.startsWith('#')) return false;
+        return url === href || url.startsWith(href + '/');
+    }, [url]);
 
     const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -73,10 +76,10 @@ export default function Navbar() {
                             />
                         </span>
                         <div className="hidden sm:block">
-                            <span className="block text-xs font-bold text-slate-700 uppercase tracking-wide leading-tight">
+                            <span className="block text-xs font-bold text-poltekpar-navy uppercase tracking-wide leading-tight">
                                 Sistem Informasi Geospasial dan Akses Pelayanan
                                 <br />
-                                Pengabdian Kepada Masyarakat (SIGAP-PKM)
+                                Pariwisata (SIGAPPA)
                             </span>
                             <span className="block text-xs font-medium text-slate-500 mt-0.5">
                                 Politeknik Pariwisata Makassar
@@ -91,7 +94,11 @@ export default function Navbar() {
                                 <li key={item.label}>
                                     <Link
                                         href={item.href}
-                                        className="px-4 py-2 text-sm font-medium text-slate-700 hover:text-sigap-blue hover:bg-slate-50 rounded-lg transition-colors"
+                                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                                            isActive(item.href)
+                                                ? 'text-poltekpar-primary bg-blue-50 font-semibold'
+                                                : 'text-slate-700 hover:text-poltekpar-primary hover:bg-slate-50'
+                                        }`}
                                         onClick={closeMobile}
                                     >
                                         {item.label}
@@ -105,7 +112,7 @@ export default function Navbar() {
                     <div className="hidden lg:flex items-center gap-4">
                         <a
                             href="https://p3m.poltekparmakassar.ac.id/peta-sebaran-p3m"
-                            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-sigap-blue bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-poltekpar-primary bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
                         >
                             <i className="fa-solid fa-arrow-up-right-from-square text-xs"></i>
                             <span>Portal P3M</span>
@@ -120,7 +127,7 @@ export default function Navbar() {
                         <button
                             type="button"
                             className={`md:hidden relative w-10 h-10 flex flex-col items-center justify-center gap-1.5 transition-colors ${
-                                mobileOpen ? 'text-sigap-blue' : 'text-slate-600'
+                                mobileOpen ? 'text-poltekpar-primary' : 'text-slate-600'
                             }`}
                             onClick={toggleMobile}
                             aria-label="Toggle navigation"
@@ -157,7 +164,7 @@ export default function Navbar() {
                     <div className="flex items-center justify-between px-4 py-4 border-b border-slate-100">
                         <div className="flex items-center gap-3">
                             <img src={poltekparLogoSrc} alt="" className="w-8 h-8 object-contain" />
-                            <span className="text-sm font-bold text-slate-800">SIGAP-PKM</span>
+                            <span className="text-sm font-bold text-poltekpar-navy">SIGAPPA</span>
                         </div>
                         <button
                             type="button"
@@ -174,10 +181,14 @@ export default function Navbar() {
                             <li key={item.label}>
                                 <Link
                                     href={item.href}
-                                    className="flex items-center gap-3 px-3 py-3 text-sm font-medium text-slate-700 hover:text-sigap-blue hover:bg-slate-50 rounded-lg transition-colors"
+                                    className={`flex items-center gap-3 px-3 py-3 text-sm font-medium rounded-lg transition-colors ${
+                                        isActive(item.href)
+                                            ? 'text-poltekpar-primary bg-blue-50 font-semibold'
+                                            : 'text-slate-700 hover:text-poltekpar-primary hover:bg-slate-50'
+                                    }`}
                                     onClick={closeMobile}
                                 >
-                                    <i className={`fa-solid ${item.icon} text-sigap-blue w-5 text-center`}></i>
+                                    <i className={`fa-solid ${item.icon} w-5 text-center ${isActive(item.href) ? 'text-poltekpar-primary' : 'text-poltekpar-primary/60'}`}></i>
                                     <span>{item.label}</span>
                                 </Link>
                             </li>
@@ -189,11 +200,11 @@ export default function Navbar() {
                         {user ? (
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sigap-blue to-sigap-darkBlue flex items-center justify-center text-white font-bold text-sm">
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-poltekpar-primary to-poltekpar-navy flex items-center justify-center text-white font-bold text-sm">
                                         <span className="">{getInitials(user.name)}</span>
                                     </div>
                                     <div>
-                                        <p className="text-sm font-semibold text-slate-900">{user.name}</p>
+                                        <p className="text-sm font-semibold text-poltekpar-navy">{user.name}</p>
                                         <p className="text-xs text-slate-500">{user.email}</p>
                                     </div>
                                 </div>
@@ -201,7 +212,7 @@ export default function Navbar() {
                                     href="/logout"
                                     method="post"
                                     as="button"
-                                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
                                 >
                                     <i className="fa-solid fa-right-from-bracket"></i>
                                 </Link>
@@ -209,7 +220,7 @@ export default function Navbar() {
                         ) : (
                             <Link
                                 href="/login"
-                                className="flex items-center justify-center gap-2 w-full px-4 py-3 text-sm font-semibold text-white bg-sigap-blue hover:bg-sigap-darkBlue rounded-lg transition-colors"
+                                className="flex items-center justify-center gap-2 w-full px-4 py-3 text-sm font-semibold text-white bg-poltekpar-primary hover:bg-poltekpar-navy rounded-lg transition-colors"
                                 onClick={closeMobile}
                             >
                                 <i className="fa-solid fa-right-to-bracket"></i>

@@ -15,18 +15,18 @@ export default function Footer() {
                             <h3 className="text-lg font-bold mb-4 text-slate-100">Kontak Kami</h3>
                             <ul className="space-y-3">
                                 <li className="flex items-start gap-3">
-                                    <i className="fa-solid fa-map-marker-alt text-sigap-blue mt-1"></i>
+                                    <i className="fa-solid fa-map-marker-alt text-poltekpar-gold mt-1"></i>
                                     <span className="text-slate-300 text-sm leading-relaxed">
                                         Jl. Gunung Rinjani, Kota Mandiri Tanjung Bunga, Makassar 90224
                                     </span>
                                 </li>
                                 <li className="flex items-center gap-3">
-                                    <i className="fa-solid fa-phone-alt text-sigap-blue"></i>
+                                    <i className="fa-solid fa-phone-alt text-poltekpar-gold"></i>
                                     <span className="text-slate-300 text-sm">(0411) 838456</span>
                                 </li>
                                 <li className="flex items-center gap-3">
-                                    <i className="fa-solid fa-envelope text-sigap-blue"></i>
-                                    <a href="mailto:p3m@poltekparmakassar.ac.id" className="text-slate-300 text-sm hover:text-sigap-blue transition-colors">
+                                    <i className="fa-solid fa-envelope text-poltekpar-gold"></i>
+                                    <a href="mailto:p3m@poltekparmakassar.ac.id" className="text-slate-300 text-sm hover:text-poltekpar-primary transition-colors">
                                         p3m@poltekparmakassar.ac.id
                                     </a>
                                 </li>
@@ -38,7 +38,7 @@ export default function Footer() {
                                     href="https://www.instagram.com/poltekparmakassar/"
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="w-10 h-10 flex items-center justify-center rounded-lg bg-slate-800 hover:bg-sigap-blue transition-colors"
+                                    className="w-10 h-10 flex items-center justify-center rounded-lg bg-slate-800 hover:bg-poltekpar-primary transition-colors"
                                     aria-label="Instagram"
                                 >
                                     <i className="fa-brands fa-instagram"></i>
@@ -47,7 +47,7 @@ export default function Footer() {
                                     href="https://www.facebook.com/poltekparmakassar"
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="w-10 h-10 flex items-center justify-center rounded-lg bg-slate-800 hover:bg-sigap-blue transition-colors"
+                                    className="w-10 h-10 flex items-center justify-center rounded-lg bg-slate-800 hover:bg-poltekpar-primary transition-colors"
                                     aria-label="Facebook"
                                 >
                                     <i className="fa-brands fa-facebook-f"></i>
@@ -56,7 +56,7 @@ export default function Footer() {
                                     href="https://x.com/poltekpar_mks"
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="w-10 h-10 flex items-center justify-center rounded-lg bg-slate-800 hover:bg-sigap-blue transition-colors"
+                                    className="w-10 h-10 flex items-center justify-center rounded-lg bg-slate-800 hover:bg-poltekpar-primary transition-colors"
                                     aria-label="X"
                                 >
                                     <i className="fa-brands fa-x-twitter"></i>
@@ -65,7 +65,7 @@ export default function Footer() {
                                     href="https://www.youtube.com/@poltekparmakassar"
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="w-10 h-10 flex items-center justify-center rounded-lg bg-slate-800 hover:bg-sigap-blue transition-colors"
+                                    className="w-10 h-10 flex items-center justify-center rounded-lg bg-slate-800 hover:bg-poltekpar-primary transition-colors"
                                     aria-label="Youtube"
                                 >
                                     <i className="fa-brands fa-youtube"></i>
@@ -78,22 +78,22 @@ export default function Footer() {
                             <h3 className="text-lg font-bold mb-4 text-slate-100">Profil Kami</h3>
                             <ul className="space-y-2">
                                 <li>
-                                    <a href="https://p3m.poltekparmakassar.ac.id/profil/tentang-kami/" className="text-slate-300 text-sm hover:text-sigap-blue transition-colors">
+                                    <a href="https://p3m.poltekparmakassar.ac.id/profil/tentang-kami/" className="text-slate-300 text-sm hover:text-poltekpar-primary transition-colors">
                                         Tentang Kami
                                     </a>
                                 </li>
                                 <li>
-                                    <a href="https://p3m.poltekparmakassar.ac.id/profil/visi-dan-misi/" className="text-slate-300 text-sm hover:text-sigap-blue transition-colors">
+                                    <a href="https://p3m.poltekparmakassar.ac.id/profil/visi-dan-misi/" className="text-slate-300 text-sm hover:text-poltekpar-primary transition-colors">
                                         Visi dan Misi
                                     </a>
                                 </li>
                                 <li>
-                                    <a href="https://p3m.poltekparmakassar.ac.id/profil/struktur-organisasi/" className="text-slate-300 text-sm hover:text-sigap-blue transition-colors">
+                                    <a href="https://p3m.poltekparmakassar.ac.id/profil/struktur-organisasi/" className="text-slate-300 text-sm hover:text-poltekpar-primary transition-colors">
                                         Struktur Organisasi Tahun 2026
                                     </a>
                                 </li>
                                 <li>
-                                    <a href="https://p3m.poltekparmakassar.ac.id/hubungi-kami/" className="text-slate-300 text-sm hover:text-sigap-blue transition-colors">
+                                    <a href="https://p3m.poltekparmakassar.ac.id/hubungi-kami/" className="text-slate-300 text-sm hover:text-poltekpar-primary transition-colors">
                                         Hubungi Kami
                                     </a>
                                 </li>
@@ -105,22 +105,22 @@ export default function Footer() {
                             <h3 className="text-lg font-bold mb-4 text-slate-100">Kegiatan</h3>
                             <ul className="space-y-2">
                                 <li>
-                                    <a href="https://p3m.poltekparmakassar.ac.id/penelitian/" className="text-slate-300 text-sm hover:text-sigap-blue transition-colors">
+                                    <a href="https://p3m.poltekparmakassar.ac.id/penelitian/" className="text-slate-300 text-sm hover:text-poltekpar-primary transition-colors">
                                         Penelitian
                                     </a>
                                 </li>
                                 <li>
-                                    <a href="https://p3m.poltekparmakassar.ac.id/pengabdian/" className="text-slate-300 text-sm hover:text-sigap-blue transition-colors">
+                                    <a href="https://p3m.poltekparmakassar.ac.id/pengabdian/" className="text-slate-300 text-sm hover:text-poltekpar-primary transition-colors">
                                         Pengabdian
                                     </a>
                                 </li>
                                 <li>
-                                    <a href="https://p3m.poltekparmakassar.ac.id/pelatihan/" className="text-slate-300 text-sm hover:text-sigap-blue transition-colors">
+                                    <a href="https://p3m.poltekparmakassar.ac.id/pelatihan/" className="text-slate-300 text-sm hover:text-poltekpar-primary transition-colors">
                                         Pelatihan
                                     </a>
                                 </li>
                                 <li>
-                                    <a href="https://p3m.poltekparmakassar.ac.id/galeri/" className="text-slate-300 text-sm hover:text-sigap-blue transition-colors">
+                                    <a href="https://p3m.poltekparmakassar.ac.id/galeri/" className="text-slate-300 text-sm hover:text-poltekpar-primary transition-colors">
                                         Galeri
                                     </a>
                                 </li>
@@ -163,7 +163,7 @@ export default function Footer() {
 
             <button
                 type="button"
-                className="fixed bottom-6 right-6 w-12 h-12 flex items-center justify-center rounded-full bg-sigap-blue text-white shadow-lg hover:bg-sigap-darkBlue transition-all hover:shadow-xl z-40"
+                className="fixed bottom-6 right-6 w-12 h-12 flex items-center justify-center rounded-full bg-poltekpar-gold text-white shadow-lg hover:bg-poltekpar-navy transition-all hover:shadow-xl z-40"
                 aria-label="Back to top"
                 onClick={handleScrollToTop}
             >

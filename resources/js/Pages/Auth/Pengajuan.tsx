@@ -14,6 +14,22 @@ export interface PengajuanRecord {
     tanggal: string;            // created_at formatted
     status: string;             // status_pengajuan
     catatan?: string;           // catatan_admin
+    instansi_mitra?: string;
+    no_telepon?: string;
+    provinsi?: string;
+    kota_kabupaten?: string;
+    kecamatan?: string;
+    kelurahan_desa?: string;
+    alamat_lengkap?: string;
+    proposal?: string;
+    surat_permohonan?: string;
+    rab?: string;
+    sumber_dana?: string;
+    total_anggaran?: number;
+    tgl_mulai?: string;
+    tgl_selesai?: string;
+    jenis_pkm?: string;
+    tim_kegiatan?: { nama: string; peran: string }[];
 }
 
 interface PengajuanProps {
@@ -77,7 +93,7 @@ export default function Pengajuan({
             <div className="landing-page login-dosen-page">
                 <div
                     style={{
-                        maxWidth: '880px',
+                        maxWidth: activeView === 'status' ? '1000px' : '880px',
                         margin: '0 auto',
                         padding: '32px 12px 40px',
                         width: '100%',

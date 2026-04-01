@@ -26,14 +26,14 @@
 
 .verify-icon {
     font-size: 36px;
-    color: #046bd2;
+    color: #15325F;
 }
 
 /* Floating dots around the icon */
 .verify-icon-dot {
     position: absolute;
     border-radius: 50%;
-    background: #046bd2;
+    background: #15325F;
     animation: floatDot 3s ease-in-out infinite;
 }
 

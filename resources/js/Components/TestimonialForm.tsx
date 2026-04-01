@@ -140,7 +140,7 @@ export default function TestimonialForm({ onClose }: TestimonialFormProps) {
                                 Nama Lengkap <span className="text-red-500">*</span>
                             </label>
                             <div className={`flex items-center gap-3 px-4 py-3 border rounded-xl transition-colors ${
-                                errors.nama ? 'border-red-300 bg-red-50' : 'border-slate-200 focus-within:border-sigap-blue focus-within:ring-2 focus-within:ring-blue-100'
+                                errors.nama ? 'border-red-300 bg-red-50' : 'border-slate-200 focus-within:border-poltekpar-primary focus-within:ring-2 focus-within:ring-blue-100'
                             }`}>
                                 <i className="fa-solid fa-user text-slate-400"></i>
                                 <input
@@ -160,7 +160,7 @@ export default function TestimonialForm({ onClose }: TestimonialFormProps) {
                                 Jabatan / Peran <span className="text-red-500">*</span>
                             </label>
                             <div className={`flex items-center gap-3 px-4 py-3 border rounded-xl transition-colors ${
-                                errors.jabatan ? 'border-red-300 bg-red-50' : 'border-slate-200 focus-within:border-sigap-blue focus-within:ring-2 focus-within:ring-blue-100'
+                                errors.jabatan ? 'border-red-300 bg-red-50' : 'border-slate-200 focus-within:border-poltekpar-primary focus-within:ring-2 focus-within:ring-blue-100'
                             }`}>
                                 <i className="fa-solid fa-id-card text-slate-400"></i>
                                 <input
@@ -189,7 +189,7 @@ export default function TestimonialForm({ onClose }: TestimonialFormProps) {
                                 Ulasan / Pesan <span className="text-red-500">*</span>
                             </label>
                             <div className={`flex items-start gap-3 px-4 py-3 border rounded-xl transition-colors ${
-                                errors.ulasan ? 'border-red-300 bg-red-50' : 'border-slate-200 focus-within:border-sigap-blue focus-within:ring-2 focus-within:ring-blue-100'
+                                errors.ulasan ? 'border-red-300 bg-red-50' : 'border-slate-200 focus-within:border-poltekpar-primary focus-within:ring-2 focus-within:ring-blue-100'
                             }`}>
                                 <i className="fa-solid fa-comment-dots text-slate-400 mt-1"></i>
                                 <textarea
@@ -227,7 +227,7 @@ export default function TestimonialForm({ onClose }: TestimonialFormProps) {
                             <button
                                 type="submit"
                                 disabled={isSubmitDisabled}
-                                className={`flex-1 px-4 py-3 text-sm font-semibold text-white bg-sigap-blue hover:bg-sigap-darkBlue rounded-xl transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
+                                className={`flex-1 px-4 py-3 text-sm font-semibold text-white bg-poltekpar-primary hover:bg-poltekpar-navy rounded-xl transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
                                     inertiaProcessing || mockProcessing ? 'opacity-75' : ''
                                 }`}
                             >

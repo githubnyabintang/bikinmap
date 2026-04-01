@@ -63,7 +63,7 @@
     padding: 6px 12px;
     border-radius: 999px;
     background: rgba(4, 107, 210, 0.08);
-    color: #046bd2;
+    color: #15325F;
     font-size: 0.72rem;
     font-weight: 800;
     letter-spacing: 0.08em;
@@ -137,7 +137,7 @@
     font-size: 0.7rem;
     font-weight: 800;
     letter-spacing: 0.08em;
-    color: #046bd2;
+    color: #15325F;
     text-transform: uppercase;
 }
 
@@ -160,7 +160,7 @@
     border: 0;
     border-radius: 12px;
     background: #eff6ff;
-    color: #1d4ed8;
+    color: #1E4A8C;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -297,7 +297,7 @@
 }
 
 .landing-mobile-map-search-shell i {
-    color: #046bd2;
+    color: #15325F;
 }
 
 .landing-mobile-map-search-shell input {
@@ -451,7 +451,7 @@
     display: block;
     font-size: 0.95rem;
     line-height: 1;
-    color: #1d4ed8;
+    color: #1E4A8C;
 }
 
 .landing-mobile-map-overlay {
@@ -741,6 +741,6 @@
 }
 
 .landing-mobile-tabbar-item.is-active {
-    color: #046bd2;
+    color: #15325F;
     background: linear-gradient(180deg, rgba(219, 234, 254, 0.92), rgba(239, 246, 255, 0.82));
 }

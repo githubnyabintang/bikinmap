@@ -49,7 +49,7 @@ const getStatusPengajuanStyle = (status: string): StatusStyle => {
         case 'disetujui':
             return { bg: '#dcfce7', color: '#15803d', icon: 'fa-circle-check', label: 'Diterima' };
         case 'diproses':
-            return { bg: '#dbeafe', color: '#1d4ed8', icon: 'fa-clock', label: 'Diproses' };
+            return { bg: '#dbeafe', color: '#1E4A8C', icon: 'fa-clock', label: 'Diproses' };
         case 'ditangguhkan':
             return { bg: '#fef3c7', color: '#b45309', icon: 'fa-pause-circle', label: 'Ditangguhkan' };
         case 'ditolak':

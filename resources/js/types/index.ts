@@ -32,12 +32,14 @@ export interface PkmData {
     status: 'selesai' | 'berlangsung' | string;
     deskripsi: string;
     thumbnail: string | null;
+    laporan?: string | null;
+    dokumentasi?: string | null;
     provinsi: string;
     kabupaten: string;
     kecamatan: string;
     desa: string;
-    lat: number;
-    lng: number;
+    lat: number | string;
+    lng: number | string;
 }
 
 /** Digunakan oleh Admin/Dashboard untuk peta dengan info tambahan jenis PKM */

@@ -47,7 +47,7 @@ const navItems: NavItem[] = [
     },
     { label: 'Arsip', href: '/admin/arsip', icon: Folder },
     { label: 'Testimoni', href: '/admin/testimoni', icon: MessageSquare },
-];
+    ];
 
 const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
     const { url, props } = usePage();
@@ -109,28 +109,33 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
 
     return (
         <div
-            className="flex min-h-screen bg-[#fafafa] selection:bg-indigo-100 selection:text-indigo-900"
-            style={{ fontFamily: "'Inter', 'Figtree', system-ui, sans-serif" }}
+            className="flex min-h-screen bg-[#f3f6f9] selection:bg-poltekpar-primary/20 selection:text-poltekpar-navy"
+            style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}
         >
             {/* ─── Sidebar ─── */}
-            {/* Sidebar */}
             <aside
-                className="w-64 flex flex-col flex-shrink-0 fixed top-0 left-0 h-screen z-40 pt-4 bg-zinc-900 border-r border-zinc-800"
+                className="w-68 flex flex-col flex-shrink-0 fixed top-0 left-0 h-screen z-40 bg-poltekpar-navy border-r border-white/5 shadow-2xl"
                 style={{ overflowY: 'auto', overflowX: 'hidden' }}
             >
                 {/* Brand */}
-                <div className="px-5 py-4 flex items-center gap-3 border-b border-zinc-800 flex-shrink-0">
-                    <img src="/logo-poltekpar.png" alt="Poltekpar Logo" className="w-8 h-8 object-contain flex-shrink-0" />
-                    <span className="self-center text-[17px] font-bold text-white tracking-tight">SIGAP P3M</span>
+                <div className="px-6 py-8 flex items-center gap-3 border-b border-white/5 flex-shrink-0 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-poltekpar-primary via-poltekpar-gold to-poltekpar-primary"></div>
+                    <div className="w-10 h-10 bg-white rounded-xl shadow-lg flex items-center justify-center p-2 flex-shrink-0">
+                        <img src="/logo-poltekpar.png" alt="Poltekpar Logo" className="w-full h-full object-contain" />
+                    </div>
+                    <div className="flex flex-col">
+                        <span className="text-[18px] font-extrabold text-white tracking-tight leading-none">SIGAPPA</span>
+                        <span className="text-[9px] font-bold text-poltekpar-gold/80 uppercase tracking-widest mt-1">Geospasial & Pariwisata</span>
+                    </div>
                 </div>
 
                 {/* Nav Label */}
-                <div className="px-5 pt-6 pb-2 flex-shrink-0">
-                    <span className="text-[11px] font-semibold text-zinc-500 tracking-wider">Overview</span>
+                <div className="px-6 pt-8 pb-3 flex-shrink-0">
+                    <span className="text-[10px] font-extrabold text-white/30 uppercase tracking-[0.2em]">Menu Utama</span>
                 </div>
 
                 {/* Nav Items */}
-                <nav className="flex-1 px-3 py-1 space-y-0.5">
+                <nav className="flex-1 px-4 py-1 space-y-1">
                     {navItems.map((item) => {
                         const hasChildren = !!item.children;
                         const childActive = isChildrenActive(item.children);
@@ -140,30 +145,35 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
 
                         if (hasChildren) {
                             return (
-                                <div key={item.label} className="mt-4 mb-2">
+                                <div key={item.label} className="mt-2">
                                     <button
                                         onClick={() => toggleDropdown(item.label)}
-                                        className="w-full flex items-center justify-between px-3 py-2 rounded-md text-[13px] font-medium transition-colors duration-150 text-zinc-400 hover:text-white hover:bg-zinc-800"
+                                        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-[14px] font-bold transition-all duration-200 ${
+                                            active 
+                                            ? 'text-white bg-white/10' 
+                                            : 'text-white/60 hover:text-white hover:bg-white/5'
+                                        }`}
                                     >
                                         <div className="flex items-center gap-3">
-                                            <Icon size={16} className={active ? 'text-white' : 'text-zinc-500'} />
-                                            <span className={active ? 'text-white font-semibold' : ''}>{item.label}</span>
+                                            <Icon size={18} className={active ? 'text-poltekpar-gold' : 'text-white/40'} />
+                                            <span>{item.label}</span>
                                         </div>
-                                        {isOpen ? <ChevronDown size={14} className="text-zinc-500" /> : <ChevronRight size={14} className="text-zinc-500" />}
+                                        {isOpen ? <ChevronDown size={14} className="text-white/30" /> : <ChevronRight size={14} className="text-white/30" />}
                                     </button>
 
                                     {isOpen && (
-                                        <div className="mt-1 ml-4 pl-3 space-y-0.5 border-l border-zinc-700">
+                                        <div className="mt-1 ml-6 pl-4 space-y-1 border-l border-white/10">
                                             {item.children?.map(child => {
                                                 const childIsActive = isActive(child.href);
                                                 return (
                                                     <Link
                                                         key={child.label}
                                                         href={child.href}
-                                                        className={`block px-3 py-1.5 rounded-md text-[13px] transition-all duration-150 ${childIsActive
-                                                            ? 'text-white font-medium bg-zinc-800'
-                                                            : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
-                                                            }`}
+                                                        className={`block px-4 py-2 rounded-lg text-[13px] font-semibold transition-all duration-200 ${
+                                                            childIsActive
+                                                            ? 'text-poltekpar-gold bg-white/5'
+                                                            : 'text-white/50 hover:text-white hover:bg-white/5'
+                                                        }`}
                                                     >
                                                         {child.label}
                                                     </Link>
@@ -179,28 +189,32 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
                             <Link
                                 key={item.label}
                                 href={item.href || '#'}
-                                className={`flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-all duration-150 ${active
-                                    ? 'bg-zinc-800 text-white font-medium shadow-sm ring-1 ring-zinc-700'
-                                    : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
-                                    }`}
+                                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-[14px] font-bold transition-all duration-300 relative group ${
+                                    active
+                                    ? 'bg-poltekpar-primary text-white shadow-lg shadow-poltekpar-primary/20 translate-x-1'
+                                    : 'text-white/60 hover:text-white hover:bg-white/5'
+                                }`}
                             >
-                                <Icon size={16} className={active ? 'text-white' : 'text-zinc-500'} />
+                                <Icon size={18} className={active ? 'text-white' : 'text-white/40 group-hover:text-white transition-colors'} />
                                 {item.label}
+                                {active && (
+                                    <div className="absolute right-3 w-1.5 h-1.5 bg-poltekpar-gold rounded-full shadow-[0_0_8px_rgba(234,196,73,0.8)]"></div>
+                                )}
                             </Link>
                         );
                     })}
                 </nav>
 
                 {/* Bottom: Logout */}
-                <div className="p-4 border-t border-zinc-800">
+                <div className="p-6 border-t border-white/5">
                     <Link
                         href="/logout"
                         method="post"
                         as="button"
-                        className="flex items-center w-full p-3 rounded-lg text-[14px] font-medium text-red-500 bg-red-500/10 hover:bg-red-500/20 transition-all group"
+                        className="flex items-center justify-center w-full py-3 px-4 rounded-xl text-[14px] font-extrabold text-white bg-red-500/80 hover:bg-red-600 shadow-lg shadow-red-500/20 transition-all active:scale-95 gap-3"
                     >
-                        <LogOut size={20} className="text-red-500 transition duration-75" />
-                        <span className="ms-3">Sign Out</span>
+                        <LogOut size={18} />
+                        <span>Keluar Sistem</span>
                     </Link>
                 </div>
             </aside>
@@ -208,36 +222,50 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
             {/* ─── Main Content ─── */}
             <main
                 className="flex-1 flex flex-col min-h-screen"
-                style={{ marginLeft: '256px', minWidth: 0 }}
+                style={{ marginLeft: '272px', minWidth: 0 }}
             >
                 {/* Header */}
-                <header className="h-[56px] bg-white/80 backdrop-blur-md border-b border-zinc-200/80 flex items-center justify-between px-6 sticky top-0 z-40 flex-shrink-0">
+                <header className="h-[72px] bg-white/80 backdrop-blur-xl border-b border-slate-200/60 flex items-center justify-between px-8 sticky top-0 z-40 flex-shrink-0">
                     <div className="flex-1 max-w-xl">
                         <div className="relative group cursor-pointer" onClick={() => setPaletteOpen(true)}>
-                            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 group-hover:text-zinc-500 transition-colors pointer-events-none" />
+                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-poltekpar-primary transition-colors pointer-events-none">
+                                <Search size={18} />
+                            </div>
                             <input
                                 type="text"
                                 readOnly
                                 placeholder="Cari pengajuan, pengguna, aktivitas..."
-                                className="w-full bg-zinc-50 hover:bg-zinc-100 pl-9 pr-12 py-1.5 rounded-md border border-zinc-200 text-[13px] text-zinc-700 placeholder-zinc-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-200 focus:border-zinc-300 transition-all cursor-pointer"
+                                className="w-full bg-slate-100/50 hover:bg-slate-100 pl-12 pr-12 py-3 rounded-2xl border border-transparent hover:border-slate-200 text-[14px] font-bold text-slate-700 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-poltekpar-primary/5 focus:border-poltekpar-primary/20 transition-all cursor-pointer"
                             />
-                            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-60">
-                                <kbd className="hidden sm:flex items-center gap-0.5 bg-white border border-zinc-200 rounded px-1.5 py-0.5 text-[10px] font-sans font-medium text-zinc-500 shadow-sm">
-                                    <Command size={10} />K
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                                <kbd className="hidden sm:flex items-center gap-1 bg-white border border-slate-200 rounded-lg px-2 py-1 text-[10px] font-bold text-slate-500 shadow-sm">
+                                    <Command size={12} />
+                                    <span>K</span>
                                 </kbd>
                             </div>
                         </div>
                     </div>
-                    <div className="flex items-center gap-4 ml-4">
+                    <div className="flex items-center gap-6 ml-4">
+                        <div className="h-10 w-px bg-slate-200"></div>
                         <ProfileDropdown auth={(props as any).auth} />
                     </div>
                 </header>
 
                 {/* Page Content */}
-                <div className="p-6 md:p-8 flex-1 min-w-0 max-w-[1400px] mx-auto w-full">
+                <div className="p-8 md:p-10 flex-1 min-w-0 max-w-[1600px] mx-auto w-full">
                     {title && (
-                        <div className="mb-6">
-                            <h1 className="text-[22px] font-bold text-zinc-900 tracking-tight">{title}</h1>
+                        <div className="mb-10 flex items-center justify-between">
+                            <div>
+                                <h1 className="text-3xl font-black text-slate-900 tracking-tight leading-none">{title}</h1>
+                                <div className="mt-2 flex items-center gap-2 text-slate-400 text-[13px] font-bold uppercase tracking-widest">
+                                    <span>Admin</span>
+                                    <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
+                                    <span>{title}</span>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                {/* Future Actions Place Holder */}
+                            </div>
                         </div>
                     )}
                     {children}

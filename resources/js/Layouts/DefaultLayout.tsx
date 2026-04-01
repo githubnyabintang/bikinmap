@@ -10,7 +10,7 @@ interface DefaultLayoutProps {
 
 export default function DefaultLayout({ children, mainClassName = 'site-main-content', mainStyle }: DefaultLayoutProps) {
     return (
-        <div className="layout-wrapper min-h-screen flex flex-col bg-slate-50">
+        <div className="layout-wrapper min-h-screen flex flex-col bg-slate-50" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
             <Navbar />
             <main className={`flex-1 ${mainClassName}`} style={mainStyle}>
                 {children}

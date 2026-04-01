@@ -123,15 +123,35 @@ Route::get('/pengajuan', function (Request $request) {
     // Ambil pengajuan milik user dari database
     $userSubmissions = $user
         ? Pengajuan::where('id_user', $user->id_user)
+            ->with(['timKegiatan.pegawai', 'jenisPkm'])
             ->latest()
             ->get()
             ->map(fn ($p) => [
-                'id'        => $p->id_pengajuan,
-                'judul'     => $p->judul_kegiatan,
-                'ringkasan' => $p->kebutuhan ?: ($p->instansi_mitra ?: '-'),
-                'tanggal'   => optional($p->created_at)->format('d M Y') ?? '-',
-                'status'    => $p->status_pengajuan,
-                'catatan'   => $p->catatan_admin,
+                'id'               => $p->id_pengajuan,
+                'judul'            => $p->judul_kegiatan,
+                'ringkasan'        => $p->kebutuhan ?: ($p->instansi_mitra ?: '-'),
+                'tanggal'          => optional($p->created_at)->format('d M Y') ?? '-',
+                'status'           => $p->status_pengajuan,
+                'catatan'          => $p->catatan_admin,
+                'instansi_mitra'   => $p->instansi_mitra,
+                'no_telepon'       => $p->no_telepon,
+                'provinsi'         => $p->provinsi,
+                'kota_kabupaten'   => $p->kota_kabupaten,
+                'kecamatan'        => $p->kecamatan,
+                'kelurahan_desa'   => $p->kelurahan_desa,
+                'alamat_lengkap'   => $p->alamat_lengkap,
+                'proposal'         => $p->proposal,
+                'surat_permohonan' => $p->surat_permohonan,
+                'rab'              => $p->rab,
+                'sumber_dana'      => $p->sumber_dana,
+                'total_anggaran'   => $p->total_anggaran,
+                'tgl_mulai'        => optional($p->tgl_mulai)->format('Y-m-d'),
+                'tgl_selesai'      => optional($p->tgl_selesai)->format('Y-m-d'),
+                'jenis_pkm'        => $p->jenisPkm ? $p->jenisPkm->nama_jenis : null,
+                'tim_kegiatan'     => $p->timKegiatan->map(fn($t) => [
+                    'nama' => $t->pegawai ? $t->pegawai->nama_pegawai : $t->nama_mahasiswa,
+                    'peran' => $t->peran_tim
+                ]),
             ])
             ->values()
             ->toArray()
@@ -163,15 +183,35 @@ Route::get('/cek-status', function (Request $request) {
     // Ambil pengajuan milik user dari database
     $userSubmissions = $user
         ? Pengajuan::where('id_user', $user->id_user)
+            ->with(['timKegiatan.pegawai', 'jenisPkm'])
             ->latest()
             ->get()
             ->map(fn ($p) => [
-                'id'        => $p->id_pengajuan,
-                'judul'     => $p->judul_kegiatan,
-                'ringkasan' => $p->kebutuhan ?: ($p->instansi_mitra ?: '-'),
-                'tanggal'   => optional($p->created_at)->format('d M Y') ?? '-',
-                'status'    => $p->status_pengajuan,
-                'catatan'   => $p->catatan_admin,
+                'id'               => $p->id_pengajuan,
+                'judul'            => $p->judul_kegiatan,
+                'ringkasan'        => $p->kebutuhan ?: ($p->instansi_mitra ?: '-'),
+                'tanggal'          => optional($p->created_at)->format('d M Y') ?? '-',
+                'status'           => $p->status_pengajuan,
+                'catatan'          => $p->catatan_admin,
+                'instansi_mitra'   => $p->instansi_mitra,
+                'no_telepon'       => $p->no_telepon,
+                'provinsi'         => $p->provinsi,
+                'kota_kabupaten'   => $p->kota_kabupaten,
+                'kecamatan'        => $p->kecamatan,
+                'kelurahan_desa'   => $p->kelurahan_desa,
+                'alamat_lengkap'   => $p->alamat_lengkap,
+                'proposal'         => $p->proposal,
+                'surat_permohonan' => $p->surat_permohonan,
+                'rab'              => $p->rab,
+                'sumber_dana'      => $p->sumber_dana,
+                'total_anggaran'   => $p->total_anggaran,
+                'tgl_mulai'        => optional($p->tgl_mulai)->format('Y-m-d'),
+                'tgl_selesai'      => optional($p->tgl_selesai)->format('Y-m-d'),
+                'jenis_pkm'        => $p->jenisPkm ? $p->jenisPkm->nama_jenis : null,
+                'tim_kegiatan'     => $p->timKegiatan->map(fn($t) => [
+                    'nama' => $t->pegawai ? $t->pegawai->nama_pegawai : $t->nama_mahasiswa,
+                    'peran' => $t->peran_tim
+                ]),
             ])
             ->values()
             ->toArray()

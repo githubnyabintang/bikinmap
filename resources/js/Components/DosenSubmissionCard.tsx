@@ -12,7 +12,22 @@ interface Submission {
     tanggal: string;
     status: string;
     catatan?: string;
-    tim_pelaksana?: { dosen_terlibat: string[]; staff_terlibat: string[]; mahasiswa_terlibat: string[] };
+    instansi_mitra?: string;
+    no_telepon?: string;
+    provinsi?: string;
+    kota_kabupaten?: string;
+    kecamatan?: string;
+    kelurahan_desa?: string;
+    alamat_lengkap?: string;
+    proposal?: string;
+    surat_permohonan?: string;
+    rab?: string;
+    sumber_dana?: string;
+    total_anggaran?: number;
+    tgl_mulai?: string;
+    tgl_selesai?: string;
+    jenis_pkm?: string;
+    tim_kegiatan?: { nama: string; peran: string }[];
 }
 
 interface DosenSubmissionCardProps {
@@ -66,7 +81,7 @@ const getPkmStatusLabel = (status: string): string => status === 'berlangsung' ?
 
 const getSubmissionStatusStyle = (status: string) => {
     const styles: Record<string, { label: string; icon: string; bg: string; color: string }> = {
-        diproses: { label: 'Diproses', icon: 'fa-clock', bg: '#dbeafe', color: '#1d4ed8' },
+        diproses: { label: 'Diproses', icon: 'fa-clock', bg: '#dbeafe', color: '#1E4A8C' },
         ditangguhkan: { label: 'Revisi', icon: 'fa-file-pen', bg: '#fef3c7', color: '#b45309' },
         ditolak: { label: 'Ditolak', icon: 'fa-circle-xmark', bg: '#fee2e2', color: '#b91c1c' },
         diterima: { label: 'Diterima', icon: 'fa-circle-check', bg: '#dcfce7', color: '#15803d' },
@@ -145,34 +160,15 @@ export default function DosenSubmissionCard({
     };
 
     const totalRAB = useMemo(() => data.rab_items.reduce((sum, item) => sum + (item.total || 0), 0), [data.rab_items]);
-    const totalDana = Number(data.dana_perguruan_tinggi) + Number(data.dana_pemerintah) + Number(data.dana_lembaga_dalam) + Number(data.dana_lembaga_luar);
-
+    
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
         if (!data.judul_kegiatan.trim()) {
             setFeedbackDialog({ show: true, type: 'error', title: 'Form Belum Lengkap', message: 'Mohon isi judul kegiatan PKM.' });
             return;
         }
-        if (!data.nama_ketua.trim()) {
-            setFeedbackDialog({ show: true, type: 'error', title: 'Form Belum Lengkap', message: 'Mohon isi nama ketua kelompok.' });
-            return;
-        }
-        if (!data.email.trim()) {
-            setFeedbackDialog({ show: true, type: 'error', title: 'Form Belum Lengkap', message: 'Mohon isi email kampus.' });
-            return;
-        }
-        if (!data.provinsi.trim()) {
-            setFeedbackDialog({ show: true, type: 'error', title: 'Form Belum Lengkap', message: 'Mohon isi provinsi lokasi PKM.' });
-            return;
-        }
-        if (!data.kota_kabupaten.trim()) {
-            setFeedbackDialog({ show: true, type: 'error', title: 'Form Belum Lengkap', message: 'Mohon isi kota/kabupaten.' });
-            return;
-        }
-
         setIsMockSubmitting(true);
 
-        // Build payload sesuai backend PengajuanUserController::store (role dosen)
         const payload = {
             judul_kegiatan:     data.judul_kegiatan,
             nama_dosen:         data.nama_ketua,
@@ -210,45 +206,110 @@ export default function DosenSubmissionCard({
             },
             onError: () => {
                 setIsMockSubmitting(false);
-                setFeedbackDialog({ show: true, type: 'error', title: 'Gagal Mengirim', message: 'Terjadi kesalahan saat menyimpan. Coba lagi.' });
+                setFeedbackDialog({ show: true, type: 'error', title: 'Gagal Mengirim', message: 'Terjadi kesalahan saat mengirim pengajuan.' });
             },
         });
     };
 
-
     const renderDetailModal = () => {
         if (!selectedDetail) return null;
         const style = getSubmissionStatusStyle(selectedDetail.status);
+        
         return (
             <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
                 <div className="absolute inset-0" onClick={() => setSelectedDetail(null)}></div>
-                <div className="relative bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
+                <div className="relative bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                    {/* Modal Header */}
                     <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-sigap-blue text-white flex items-center justify-center shadow-md"><i className="fa-solid fa-file-invoice text-lg"></i></div>
+                            <div className="w-10 h-10 rounded-xl bg-poltekpar-primary text-white flex items-center justify-center shadow-md">
+                                <i className="fa-solid fa-file-invoice text-lg"></i>
+                            </div>
                             <div>
                                 <h3 className="text-base font-bold text-slate-900 line-clamp-1">{selectedDetail.judul}</h3>
                                 <p className="text-[11px] text-slate-500 font-medium">{selectedDetail.tanggal}</p>
                             </div>
                         </div>
-                        <button onClick={() => setSelectedDetail(null)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-200 text-slate-400 transition-colors"><i className="fa-solid fa-xmark"></i></button>
+                        <button onClick={() => setSelectedDetail(null)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-200 text-slate-400 transition-colors">
+                            <i className="fa-solid fa-xmark"></i>
+                        </button>
                     </div>
-                    <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+
+                    {/* Modal Body */}
+                    <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto custom-scrollbar">
                         <div className="flex flex-col items-center p-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50/30">
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Status Pengajuan</span>
-                            <div className="px-4 py-1.5 rounded-full font-bold text-sm flex items-center gap-2 shadow-sm" style={{ backgroundColor: style.bg, color: style.color }}><i className={`fa-solid ${style.icon}`}></i>{style.label}</div>
-                        </div>
-                        <div className="space-y-2">
-                            <div className="flex items-center gap-2 text-sigap-blue"><i className="fa-solid fa-info-circle text-xs"></i><span className="text-xs font-bold uppercase tracking-wider">Ringkasan</span></div>
-                            <p className="text-sm text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100">{selectedDetail.ringkasan}</p>
-                        </div>
-                        {selectedDetail.catatan && (
-                            <div className="space-y-2">
-                                <div className="flex items-center gap-2 text-amber-600"><i className="fa-solid fa-comment-dots text-xs"></i><span className="text-xs font-bold uppercase tracking-wider">Catatan Admin</span></div>
-                                <div className="p-4 bg-amber-50 rounded-xl border border-amber-100 flex items-start gap-3"><i className="fa-solid fa-quote-left text-amber-200 text-xl mt-1"></i><p className="text-sm text-amber-800 italic leading-relaxed">{selectedDetail.catatan}</p></div>
+                            <div className="px-4 py-1.5 rounded-full font-bold text-sm flex items-center gap-2 shadow-sm" style={{ backgroundColor: style.bg, color: style.color }}>
+                                <i className={`fa-solid ${style.icon}`}></i>
+                                {style.label}
                             </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-4">
+                                <section>
+                                    <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Informasi Umum</h4>
+                                    <div className="space-y-2 text-sm">
+                                        <p><span className="text-slate-500">Kategori:</span> <span className="text-slate-900 font-semibold">{selectedDetail.jenis_pkm || '-'}</span></p>
+                                        <p><span className="text-slate-500">Instansi:</span> <span className="text-slate-900 font-semibold">{selectedDetail.instansi_mitra || '-'}</span></p>
+                                        <p><span className="text-slate-500">WhatsApp:</span> <span className="text-slate-900 font-semibold">{selectedDetail.no_telepon || '-'}</span></p>
+                                    </div>
+                                </section>
+
+                                <section>
+                                    <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Lokasi PKM</h4>
+                                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs text-slate-600 leading-relaxed">
+                                        {selectedDetail.alamat_lengkap && <p className="mb-1">{selectedDetail.alamat_lengkap}</p>}
+                                        <p>{[selectedDetail.kelurahan_desa, selectedDetail.kecamatan, selectedDetail.kota_kabupaten, selectedDetail.provinsi].filter(Boolean).join(', ')}</p>
+                                    </div>
+                                </section>
+                            </div>
+
+                            <div className="space-y-4">
+                                <section>
+                                    <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Tim Pelaksana</h4>
+                                    <div className="space-y-2">
+                                        {selectedDetail.tim_kegiatan && selectedDetail.tim_kegiatan.length > 0 ? (
+                                            selectedDetail.tim_kegiatan.map((t, i) => (
+                                                <div key={i} className="flex items-center gap-2 text-xs">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-poltekpar-primary"></div>
+                                                    <span className="text-slate-900 font-medium">{t.nama}</span>
+                                                    <span className="text-slate-400 font-bold uppercase text-[9px] tracking-tighter">({t.peran})</span>
+                                                </div>
+                                            ))
+                                        ) : <p className="text-xs text-slate-400 italic">Data tim belum diatur.</p>}
+                                    </div>
+                                </section>
+
+                                <section>
+                                    <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Anggaran & Dokumen</h4>
+                                    <div className="space-y-3">
+                                        <div className="p-2.5 bg-blue-50 rounded-lg flex justify-between items-center border border-blue-100">
+                                            <span className="text-[10px] font-bold text-blue-700 uppercase">Total RAB</span>
+                                            <span className="text-sm font-black text-poltekpar-primary">Rp {Number(selectedDetail.total_anggaran || 0).toLocaleString('id-ID')}</span>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {selectedDetail.proposal && <a href={selectedDetail.proposal} target="_blank" className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold rounded-lg transition-colors border border-slate-200"><i className="fa-solid fa-file-pdf mr-1.5"></i>PROPOSAL</a>}
+                                            {selectedDetail.surat_permohonan && <a href={selectedDetail.surat_permohonan} target="_blank" className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold rounded-lg transition-colors border border-slate-200"><i className="fa-solid fa-file-contract mr-1.5"></i>PERMOHONAN</a>}
+                                        </div>
+                                    </div>
+                                </section>
+                            </div>
+                        </div>
+
+                        {selectedDetail.catatan && (
+                            <section>
+                                <h4 className="text-[11px] font-bold text-amber-600 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                    <i className="fa-solid fa-comment-dots"></i> Catatan Admin
+                                </h4>
+                                <div className="p-4 bg-amber-50 rounded-xl border border-amber-100">
+                                    <p className="text-sm text-amber-800 italic leading-relaxed">{selectedDetail.catatan}</p>
+                                </div>
+                            </section>
                         )}
                     </div>
+
+                    {/* Modal Footer */}
                     <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
                         <button onClick={() => setSelectedDetail(null)} className="px-6 py-2 bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl hover:bg-slate-50 transition-colors shadow-sm">Tutup</button>
                     </div>
@@ -259,14 +320,6 @@ export default function DosenSubmissionCard({
 
     const renderArchiveTab = () => (
         <div className="p-6">
-            <div className="flex items-start gap-4 p-5 bg-gradient-to-br from-blue-50 to-slate-50 rounded-2xl border border-blue-100 mb-5">
-                <span className="w-11 h-11 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center flex-shrink-0"><i className="fa-solid fa-layer-group text-lg"></i></span>
-                <div>
-                    <h4 className="text-sm font-bold text-slate-900 mb-1">Arsip & Riwayat PKM</h4>
-                    <p className="text-xs text-slate-600 leading-relaxed">Daftar kegiatan PKM yang sudah terdata dan histori pengajuan Anda.</p>
-                </div>
-            </div>
-            
             <div className="border border-slate-200 rounded-xl overflow-hidden mb-4">
                 <button type="button" className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors" onClick={() => setExpandedHubSections(p => ({ ...p, kegiatan: !p.kegiatan }))}>
                     <h4 className="text-sm font-bold text-slate-900">Daftar Kegiatan</h4>
@@ -280,250 +333,61 @@ export default function DosenSubmissionCard({
                     </div>
                 )}
             </div>
+        </div>
+    );
 
-            <div className="border border-slate-200 rounded-xl overflow-hidden">
-                <button type="button" className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors" onClick={() => setExpandedHubSections(p => ({ ...p, riwayat: !p.riwayat }))}>
-                    <h4 className="text-sm font-bold text-slate-900">Riwayat Pengajuan</h4>
-                    <i className={`fa-solid fa-chevron-${expandedHubSections.riwayat ? 'up' : 'down'} text-slate-400`}></i>
-                </button>
-                {expandedHubSections.riwayat && (
-                    <div className="border-t border-slate-100 overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                            <thead className="bg-slate-50/50 border-b border-slate-100">
+    if (onlyShowStatus) {
+        return (
+            <div className="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
+                <div className="p-6">
+                    <div className="border border-slate-200 rounded-2xl overflow-hidden overflow-x-auto">
+                        <table className="w-full text-left border-collapse min-w-[600px]">
+                            <thead className="bg-slate-50 border-b border-slate-100">
                                 <tr>
-                                    <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase">Nama Pengajuan</th>
-                                    <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase text-center">Aksi</th>
+                                    <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-widest">Nama Pengajuan</th>
+                                    <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-widest">Tanggal</th>
+                                    <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-widest text-center">Status</th>
+                                    <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-widest text-center">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {submissionHistory.length > 0 ? (
-                                    submissionHistory.map(item => (
-                                        <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
-                                            <td className="px-4 py-4"><strong className="text-sm font-semibold text-slate-900 block">{item.judul}</strong><span className="text-[11px] text-slate-500 line-clamp-1">{item.ringkasan}</span></td>
-                                            <td className="px-4 py-4 text-center">
-                                                <button type="button" className="text-[11px] font-bold text-sigap-blue hover:underline" onClick={() => setSelectedDetail(item)}>Detail</button>
-                                            </td>
-                                        </tr>
-                                    ))
+                                    submissionHistory.map(item => {
+                                        const style = getSubmissionStatusStyle(item.status);
+                                        return (
+                                            <tr key={item.id} className="hover:bg-slate-50/50 transition-colors group">
+                                                <td className="px-6 py-5">
+                                                    <strong className="text-[14px] font-bold text-slate-900 block group-hover:text-poltekpar-primary transition-colors">{item.judul}</strong>
+                                                    <span className="text-[11px] text-slate-400 font-medium line-clamp-1">{item.ringkasan}</span>
+                                                </td>
+                                                <td className="px-6 py-5 text-[13px] text-slate-600 font-medium whitespace-nowrap">{item.tanggal}</td>
+                                                <td className="px-6 py-5">
+                                                    <div className="flex justify-center">
+                                                        <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter flex items-center gap-1.5 shadow-sm" style={{ backgroundColor: style.bg, color: style.color }}>
+                                                            <i className={`fa-solid ${style.icon} text-[9px]`}></i>{style.label}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-5 text-center">
+                                                    <button type="button" className="px-4 py-1.5 bg-slate-100 hover:bg-poltekpar-primary hover:text-white text-slate-600 text-[11px] font-bold rounded-lg transition-all" onClick={() => setSelectedDetail(item)}>DETAIL</button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
                                 ) : (
-                                    <tr><td colSpan={2} className="px-4 py-8 text-center text-slate-400 text-xs italic">Belum ada riwayat pengajuan.</td></tr>
+                                    <tr>
+                                        <td colSpan={4} className="px-6 py-12 text-center text-slate-400 text-sm font-bold italic">
+                                            <div className="flex flex-col items-center gap-3">
+                                                <i className="fa-solid fa-folder-open text-4xl text-slate-200"></i>
+                                                Belum ada riwayat pengajuan.
+                                            </div>
+                                        </td>
+                                    </tr>
                                 )}
                             </tbody>
                         </table>
                     </div>
-                )}
-            </div>
-        </div>
-    );
-
-    const renderSubmissionForm = () => (
-        <div className="p-6 space-y-8">
-            {/* Identitas Pengusul */}
-            <section className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-6">
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2"><i className="fa-solid fa-id-card text-sigap-blue"></i>Identitas Pengusul</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5 md:col-span-2">
-                        <label className="text-xs font-semibold text-slate-700">Judul Kegiatan PKM <span className="text-red-500">*</span></label>
-                        <input type="text" value={data.judul_kegiatan} onChange={e => setData('judul_kegiatan', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-sigap-blue focus:ring-2 focus:ring-blue-100" placeholder="Masukkan judul pengabdian" />
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-slate-700">Nama Ketua Kelompok (Dosen) <span className="text-red-500">*</span></label>
-                        <input type="text" value={data.nama_ketua} onChange={e => setData('nama_ketua', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-sigap-blue focus:ring-2 focus:ring-blue-100" placeholder="Nama lengkap dan gelar" />
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-slate-700">Instansi / Unit Kerja</label>
-                        <input type="text" value={data.instansi} readOnly className="w-full px-3 py-2 border border-slate-100 bg-slate-50 text-slate-500 rounded-lg text-sm" />
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-slate-700">Email Kampus <span className="text-red-500">*</span></label>
-                        <input type="email" value={data.email} onChange={e => setData('email', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-sigap-blue focus:ring-2 focus:ring-blue-100" placeholder="email@poltekparmakassar.ac.id" />
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-slate-700">WhatsApp <span className="text-red-500">*</span></label>
-                        <input type="tel" value={data.whatsapp} onChange={e => setData('whatsapp', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-sigap-blue focus:ring-2 focus:ring-blue-100" placeholder="081234567890" />
-                    </div>
                 </div>
-            </section>
-
-            {/* Lokasi PKM Card */}
-            <section className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-6">
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2"><i className="fa-solid fa-map-location-dot text-sigap-blue"></i>Lokasi PKM</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5"><label className="text-xs font-semibold text-slate-700">Provinsi <span className="text-red-500">*</span></label><input type="text" value={data.provinsi} onChange={e => setData('provinsi', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-sigap-blue focus:ring-2 focus:ring-blue-100" placeholder="Provinsi" /></div>
-                    <div className="space-y-1.5"><label className="text-xs font-semibold text-slate-700">Kota / Kabupaten <span className="text-red-500">*</span></label><input type="text" value={data.kota_kabupaten} onChange={e => setData('kota_kabupaten', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-sigap-blue focus:ring-2 focus:ring-blue-100" placeholder="Kota/Kabupaten" /></div>
-                    <div className="space-y-1.5"><label className="text-xs font-semibold text-slate-700">Kecamatan</label><input type="text" value={data.kecamatan} onChange={e => setData('kecamatan', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-sigap-blue focus:ring-2 focus:ring-blue-100" placeholder="Kecamatan" /></div>
-                    <div className="space-y-1.5"><label className="text-xs font-semibold text-slate-700">Kelurahan / Desa</label><input type="text" value={data.kelurahan_desa} onChange={e => setData('kelurahan_desa', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-sigap-blue focus:ring-2 focus:ring-blue-100" placeholder="Kelurahan/Desa" /></div>
-                    <div className="md:col-span-2 space-y-1.5"><label className="text-xs font-semibold text-slate-700">Alamat Lengkap</label><textarea value={data.alamat_lengkap} onChange={e => setData('alamat_lengkap', e.target.value)} rows={2} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-sigap-blue focus:ring-2 focus:ring-blue-100 resize-none" placeholder="Detail alamat lokasi PKM..." /></div>
-                </div>
-            </section>
-
-            {/* Tim Pelaksana Section */}
-            <section className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-6">
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2"><i className="fa-solid fa-users-gear text-sigap-blue"></i>Tim Pelaksana</h3>
-                
-                <div className="space-y-3">
-                    <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">Anggota Dosen</label>
-                    {data.tim_dosen.map((m, i) => (
-                        <div key={i} className="flex gap-2">
-                            <input type="text" value={m} onChange={e => handleMemberChange('tim_dosen', i, e.target.value)} className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-sigap-blue focus:ring-2 focus:ring-blue-100" placeholder={`Nama Dosen ${i+1}`} />
-                            {data.tim_dosen.length > 1 && <button type="button" onClick={() => handleRemoveMember('tim_dosen', i)} className="w-10 h-10 flex items-center justify-center rounded-lg text-red-400 hover:bg-red-50"><i className="fa-solid fa-trash-can"></i></button>}
-                        </div>
-                    ))}
-                    <button type="button" onClick={() => handleAddMember('tim_dosen')} className="text-xs font-bold text-sigap-blue hover:underline flex items-center gap-1.5"><i className="fa-solid fa-plus-circle"></i>Tambah Dosen</button>
-                </div>
-
-                <div className="space-y-3">
-                    <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">Anggota Staff</label>
-                    {data.tim_staff.map((m, i) => (
-                        <div key={i} className="flex gap-2">
-                            <input type="text" value={m} onChange={e => handleMemberChange('tim_staff', i, e.target.value)} className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-sigap-blue focus:ring-2 focus:ring-blue-100" placeholder={`Nama Staff ${i+1}`} />
-                            {data.tim_staff.length > 1 && <button type="button" onClick={() => handleRemoveMember('tim_staff', i)} className="w-10 h-10 flex items-center justify-center rounded-lg text-red-400 hover:bg-red-50"><i className="fa-solid fa-trash-can"></i></button>}
-                        </div>
-                    ))}
-                    <button type="button" onClick={() => handleAddMember('tim_staff')} className="text-xs font-bold text-sigap-blue hover:underline flex items-center gap-1.5"><i className="fa-solid fa-plus-circle"></i>Tambah Staff</button>
-                </div>
-
-                <div className="space-y-3">
-                    <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">Anggota Mahasiswa</label>
-                    {data.tim_mahasiswa.map((m, i) => (
-                        <div key={i} className="flex gap-2">
-                            <input type="text" value={m} onChange={e => handleMemberChange('tim_mahasiswa', i, e.target.value)} className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-sigap-blue focus:ring-2 focus:ring-blue-100" placeholder={`Nama Mahasiswa ${i+1}`} />
-                            {data.tim_mahasiswa.length > 1 && <button type="button" onClick={() => handleRemoveMember('tim_mahasiswa', i)} className="w-10 h-10 flex items-center justify-center rounded-lg text-red-400 hover:bg-red-50"><i className="fa-solid fa-trash-can"></i></button>}
-                        </div>
-                    ))}
-                    <button type="button" onClick={() => handleAddMember('tim_mahasiswa')} className="text-xs font-bold text-sigap-blue hover:underline flex items-center gap-1.5"><i className="fa-solid fa-plus-circle"></i>Tambah Mahasiswa</button>
-                </div>
-            </section>
-
-            {/* RAB Section */}
-            <section className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-4">
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2"><i className="fa-solid fa-calculator text-sigap-blue"></i>Rencana Anggaran Biaya (RAB)</h3>
-                <div className="border border-slate-200 rounded-xl overflow-hidden overflow-x-auto">
-                    <table className="w-full text-left border-collapse min-w-[400px]">
-                        <thead className="bg-slate-50 text-[10px] font-bold text-slate-500 uppercase">
-                            <tr>
-                                <th className="px-3 py-2">Item</th>
-                                <th className="px-3 py-2 w-20 text-center">Jml</th>
-                                <th className="px-3 py-2 w-32">Harga (Rp)</th>
-                                <th className="px-3 py-2 w-10 text-center"></th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                            {data.rab_items.map((item, idx) => (
-                                <tr key={idx}>
-                                    <td className="p-2"><input type="text" value={item.nama_item} onChange={e => handleRabChange(idx, 'nama_item', e.target.value)} className="w-full px-2 py-1.5 border border-slate-100 rounded text-xs outline-none focus:border-sigap-blue" placeholder="Nama item..." /></td>
-                                    <td className="p-2"><input type="number" value={item.jumlah} onChange={e => handleRabChange(idx, 'jumlah', parseInt(e.target.value)||0)} className="w-full px-2 py-1.5 border border-slate-100 rounded text-xs text-center outline-none focus:border-sigap-blue" /></td>
-                                    <td className="p-2"><input type="number" value={item.harga} onChange={e => handleRabChange(idx, 'harga', parseInt(e.target.value)||0)} className="w-full px-2 py-1.5 border border-slate-100 rounded text-xs outline-none focus:border-sigap-blue" /></td>
-                                    <td className="p-2 text-center">
-                                        {data.rab_items.length > 1 && <button type="button" onClick={() => handleRemoveRab(idx)} className="text-red-400 hover:text-red-600"><i className="fa-solid fa-xmark"></i></button>}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                        <tfoot className="bg-slate-50/50">
-                            <tr>
-                                <td colSpan={2} className="px-3 py-2 text-xs font-bold text-slate-700 text-right">Estimasi Total RAB:</td>
-                                <td className="px-3 py-2 text-xs font-bold text-sigap-blue">Rp {totalRAB.toLocaleString('id-ID')}</td>
-                                <td></td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-                <button type="button" onClick={handleAddRab} className="text-xs font-bold text-sigap-blue hover:underline flex items-center gap-1.5"><i className="fa-solid fa-plus-circle"></i>Tambah Baris RAB</button>
-            </section>
-
-            {/* Sumber Dana Section */}
-            <section className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-4">
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2"><i className="fa-solid fa-hand-holding-dollar text-sigap-blue"></i>Sumber Pendanaan (Rp)</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 uppercase">Perguruan Tinggi</label><input type="number" value={data.dana_perguruan_tinggi} onChange={e => setData('dana_perguruan_tinggi', parseInt(e.target.value)||0)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-sigap-blue" placeholder="0" /></div>
-                    <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 uppercase">Pemerintah</label><input type="number" value={data.dana_pemerintah} onChange={e => setData('dana_pemerintah', parseInt(e.target.value)||0)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-sigap-blue" placeholder="0" /></div>
-                    <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 uppercase">Lembaga Dalam Negeri</label><input type="number" value={data.dana_lembaga_dalam} onChange={e => setData('dana_lembaga_dalam', parseInt(e.target.value)||0)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-sigap-blue" placeholder="0" /></div>
-                    <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 uppercase">Lembaga Luar Negeri</label><input type="number" value={data.dana_lembaga_luar} onChange={e => setData('dana_lembaga_luar', parseInt(e.target.value)||0)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-sigap-blue" placeholder="0" /></div>
-                </div>
-                <div className="p-3 bg-blue-50 rounded-lg flex justify-between items-center"><span className="text-xs font-bold text-blue-700">Total Keseluruhan Dana:</span><span className="text-sm font-bold text-sigap-blue">Rp {totalDana.toLocaleString('id-ID')}</span></div>
-            </section>
-
-            {/* Dokumen Section */}
-            <section className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-4">
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2"><i className="fa-solid fa-link text-sigap-blue"></i>Tautan Dokumen Pendukung</h3>
-                <div className="space-y-4">
-                    <div className="space-y-1.5"><label className="text-xs font-semibold text-slate-700">Link Surat Permohonan <span className="text-red-500">*</span></label><input type="url" value={data.surat_permohonan} onChange={e => setData('surat_permohonan', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-sigap-blue" placeholder="https://..." /></div>
-                    <div className="space-y-1.5"><label className="text-xs font-semibold text-slate-700">Link Proposal PKM <span className="text-red-500">*</span></label><input type="url" value={data.surat_proposal} onChange={e => setData('surat_proposal', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-sigap-blue" placeholder="https://..." /></div>
-                    <div className="space-y-3">
-                        <label className="text-xs font-semibold text-slate-700">Link Tambahan Lainnya</label>
-                        {data.link_tambahan.map((l, i) => (
-                            <div key={i} className="flex gap-2">
-                                <input type="url" value={l} onChange={e => handleLinkChange(i, e.target.value)} className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-sigap-blue" placeholder="Link tambahan..." />
-                                {data.link_tambahan.length > 1 && <button type="button" onClick={() => handleRemoveLink(i)} className="w-10 h-10 flex items-center justify-center rounded-lg bg-red-50 text-red-500"><i className="fa-solid fa-trash-can"></i></button>}
-                            </div>
-                        ))}
-                        <button type="button" onClick={handleAddLink} className="text-xs font-bold text-sigap-blue hover:underline flex items-center gap-1.5"><i className="fa-solid fa-plus-circle"></i>Tambah Tautan Lagi</button>
-                    </div>
-                </div>
-            </section>
-
-            <button type="submit" disabled={isMockSubmitting} className="w-full py-3.5 bg-sigap-blue hover:bg-sigap-darkBlue text-white font-bold rounded-xl shadow-lg disabled:opacity-50 transition-all flex items-center justify-center gap-2">
-                {isMockSubmitting ? <><i className="fa-solid fa-spinner fa-spin"></i>Memproses...</> : <><i className="fa-solid fa-paper-plane"></i>Kirim Pengajuan Dosen</>}
-            </button>
-        </div>
-    );
-
-    if (onlyShowStatus || submissionStatus !== 'belum_diajukan') {
-        const style = getSubmissionStatusStyle(submissionStatus);
-        return (
-            <div className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
-                <div className="p-5 border-b border-slate-100 flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-sigap-blue to-sigap-darkBlue flex items-center justify-center text-white shadow-md"><i className="fa-solid fa-file-signature text-lg"></i></div>
-                    <div><h3 className="text-base font-bold text-slate-900">Akses Pengajuan PKM</h3><p className="text-sm text-slate-500 mt-0.5">Kelola pengajuan dosen Anda</p></div>
-                </div>
-                {!hideMainTabNav && (
-                    <div className="flex border-b border-slate-100">
-                        <button type="button" onClick={() => setMainTab('pengajuan')} className={`flex-1 py-3 text-sm font-semibold transition-colors ${mainTab === 'pengajuan' ? 'text-sigap-blue border-b-2 border-sigap-blue' : 'text-slate-500 hover:text-slate-700'}`}>Pengajuan</button>
-                        <button type="button" onClick={() => setMainTab('arsip')} className={`flex-1 py-3 text-sm font-semibold transition-colors ${mainTab === 'arsip' ? 'text-sigap-blue border-b-2 border-sigap-blue' : 'text-slate-500 hover:text-slate-700'}`}>Arsip</button>
-                    </div>
-                )}
-                {!hideMainTabNav && mainTab === 'arsip' ? renderArchiveTab() : (
-                    <div className="p-6">
-                        <div className="flex flex-col items-center text-center py-8 border-b border-slate-100">
-                            <div className="w-20 h-20 rounded-2xl flex items-center justify-center text-3xl mb-6 shadow-lg" style={{ backgroundColor: style.bg, color: style.color }}><i className={`fa-solid ${style.icon}`}></i></div>
-                            <h4 className="text-lg font-bold text-slate-900 mb-3">{submissionStatus === 'belum_diajukan' ? 'Belum Ada Pengajuan Aktif' : 'Status Pengajuan: ' + style.label}</h4>
-                            <p className="text-sm text-slate-600 max-w-md">Detail riwayat pengajuan dosen dapat dilihat pada tabel di bawah.</p>
-                            {submissionStatus === 'ditolak' || submissionStatus === 'belum_diajukan' ? (
-                                <button type="button" onClick={() => onUpdateSubmissionStatus?.('belum_diajukan')} className="mt-6 px-8 py-3 bg-sigap-blue text-white font-bold rounded-xl shadow-md transition-transform hover:scale-105">Buat Pengajuan Baru</button>
-                            ) : null}
-                        </div>
-                        <div className="mt-8">
-                            <div className="flex items-center gap-2 mb-4"><i className="fa-solid fa-clock-rotate-left text-sigap-blue"></i><h4 className="text-sm font-bold text-slate-900">Semua Riwayat Pengajuan</h4></div>
-                            <div className="border border-slate-200 rounded-xl overflow-hidden overflow-x-auto">
-                                <table className="w-full text-left border-collapse">
-                                    <thead className="bg-slate-50/50 border-b border-slate-100 text-[10px] font-bold text-slate-500 uppercase">
-                                        <tr>
-                                            <th className="px-4 py-3">Nama Pengajuan</th>
-                                            <th className="px-4 py-3">Tanggal</th>
-                                            <th className="px-4 py-3 text-center">Aksi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-100">
-                                        {submissionHistory.length > 0 ? (
-                                            submissionHistory.map(item => (
-                                                <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
-                                                    <td className="px-4 py-4"><strong className="text-sm font-semibold text-slate-900 block">{item.judul}</strong><span className="text-[11px] text-slate-500 line-clamp-1">{item.ringkasan}</span></td>
-                                                    <td className="px-4 py-4 text-xs text-slate-600 whitespace-nowrap">{item.tanggal}</td>
-                                                    <td className="px-4 py-4 text-center">
-                                                        <button type="button" className="text-[11px] font-bold text-sigap-blue hover:underline" onClick={() => setSelectedDetail(item)}>Detail</button>
-                                                    </td>
-                                                </tr>
-                                            ))
-                                        ) : (
-                                            <tr><td colSpan={3} className="px-4 py-8 text-center text-slate-400 text-xs italic">Belum ada riwayat pengajuan.</td></tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                )}
                 <ActionFeedbackDialog show={feedbackDialog.show} type={feedbackDialog.type} title={feedbackDialog.title} message={feedbackDialog.message} onClose={() => setFeedbackDialog({ ...feedbackDialog, show: false })} />
                 {renderDetailModal()}
             </div>
@@ -533,13 +397,13 @@ export default function DosenSubmissionCard({
     return (
         <div className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
             <div className="p-5 border-b border-slate-100 flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-sigap-blue to-sigap-darkBlue flex items-center justify-center text-white shadow-md"><i className="fa-solid fa-file-signature text-lg"></i></div>
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-poltekpar-primary to-poltekpar-navy flex items-center justify-center text-white shadow-md"><i className="fa-solid fa-file-signature text-lg"></i></div>
                 <div><h3 className="text-base font-bold text-slate-900">Form Pengajuan PKM Dosen</h3><p className="text-sm text-slate-500 mt-0.5">Silakan lengkapi data usulan pengabdian</p></div>
             </div>
             {!hideMainTabNav && (
                 <div className="flex border-b border-slate-100">
-                    <button type="button" onClick={() => setMainTab('pengajuan')} className={`flex-1 py-3 text-sm font-semibold transition-colors ${mainTab === 'pengajuan' ? 'text-sigap-blue border-b-2 border-sigap-blue' : 'text-slate-500 hover:text-slate-700'}`}>Pengajuan</button>
-                    <button type="button" onClick={() => setMainTab('arsip')} className={`flex-1 py-3 text-sm font-semibold transition-colors ${mainTab === 'arsip' ? 'text-sigap-blue border-b-2 border-sigap-blue' : 'text-slate-500 hover:text-slate-700'}`}>Arsip</button>
+                    <button type="button" onClick={() => setMainTab('pengajuan')} className={`flex-1 py-3 text-sm font-semibold transition-colors ${mainTab === 'pengajuan' ? 'text-poltekpar-primary border-b-2 border-poltekpar-primary' : 'text-slate-500 hover:text-slate-700'}`}>Pengajuan</button>
+                    <button type="button" onClick={() => setMainTab('arsip')} className={`flex-1 py-3 text-sm font-semibold transition-colors ${mainTab === 'arsip' ? 'text-poltekpar-primary border-b-2 border-poltekpar-primary' : 'text-slate-500 hover:text-slate-700'}`}>Arsip</button>
                 </div>
             )}
             {!hideMainTabNav && mainTab === 'arsip' ? renderArchiveTab() : (

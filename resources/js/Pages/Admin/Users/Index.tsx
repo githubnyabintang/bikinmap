@@ -145,7 +145,7 @@ const ManajemenUser: React.FC<Props> = ({ users, filters }) => {
                                     </td>
                                     <td className="py-3 px-6">
                                         <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[12px] font-medium border ${user.role === 'admin' ? 'bg-zinc-100 text-zinc-900 border-zinc-200' : 'bg-white text-zinc-600 border-zinc-200'}`}>
-                                            {user.role === 'admin' && <Shield size={12} className="text-zinc-400" />}
+                                            {user.role === 'admin' && <Activity size={12} className="text-zinc-400" />}
                                             <span className="capitalize">{user.role}</span>
                                         </span>
                                     </td>

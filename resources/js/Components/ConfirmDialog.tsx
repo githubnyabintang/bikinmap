@@ -36,7 +36,7 @@ export default function ConfirmDialog({
     const colors = {
         danger: { bg: '#fef2f2', border: '#fecaca', text: '#dc2626', btn: '#dc2626', btnHover: '#b91c1c', iconBg: '#fee2e2', iconColor: '#dc2626' },
         warning: { bg: '#fffbeb', border: '#fde68a', text: '#b45309', btn: '#f59e0b', btnHover: '#d97706', iconBg: '#fef3c7', iconColor: '#b45309' },
-        info: { bg: '#eff6ff', border: '#bfdbfe', text: '#2563eb', btn: '#2563eb', btnHover: '#1d4ed8', iconBg: '#dbeafe', iconColor: '#2563eb' },
+        info: { bg: '#eff6ff', border: '#bfdbfe', text: '#2563eb', btn: '#2563eb', btnHover: '#1E4A8C', iconBg: '#dbeafe', iconColor: '#2563eb' },
     }[variant];
 
     return (

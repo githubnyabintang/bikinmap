@@ -126,7 +126,7 @@ export default function Header() {
                                         <>
                                             <button
                                                 type="button"
-                                                className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-slate-700 hover:text-sigap-blue transition-colors"
+                                                className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-slate-700 hover:text-poltekpar-primary transition-colors"
                                             >
                                                 <span>{item.label}</span>
                                                 <i className="fa-solid fa-chevron-down text-xs"></i>
@@ -136,7 +136,7 @@ export default function Header() {
                                                     <li key={child.label}>
                                                         <a
                                                             href={child.href}
-                                                            className="block px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 hover:text-sigap-blue transition-colors first:rounded-t-xl last:rounded-b-xl"
+                                                            className="block px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 hover:text-poltekpar-primary transition-colors first:rounded-t-xl last:rounded-b-xl"
                                                             target={child.target}
                                                             rel={child.target === '_blank' ? 'noreferrer' : undefined}
                                                         >
@@ -149,7 +149,7 @@ export default function Header() {
                                     ) : (
                                         <a
                                             href={item.href}
-                                            className="block px-3 py-2 text-sm font-medium text-slate-700 hover:text-sigap-blue transition-colors"
+                                            className="block px-3 py-2 text-sm font-medium text-slate-700 hover:text-poltekpar-primary transition-colors"
                                         >
                                             {item.label}
                                         </a>
@@ -166,14 +166,14 @@ export default function Header() {
                                 href="/logout"
                                 method="post"
                                 as="button"
-                                className="hidden sm:inline-flex items-center px-5 py-2.5 text-sm font-semibold text-white bg-sigap-blue hover:bg-sigap-darkBlue rounded-full transition-colors shadow-md"
+                                className="hidden sm:inline-flex items-center px-5 py-2.5 text-sm font-semibold text-white bg-poltekpar-primary hover:bg-poltekpar-navy rounded-full transition-colors shadow-md"
                             >
                                 Logout
                             </Link>
                         ) : (
                             <a
                                 href="/login"
-                                className="hidden sm:inline-flex items-center px-5 py-2.5 text-sm font-semibold text-white bg-sigap-blue hover:bg-sigap-darkBlue rounded-full transition-colors shadow-md"
+                                className="hidden sm:inline-flex items-center px-5 py-2.5 text-sm font-semibold text-white bg-poltekpar-primary hover:bg-poltekpar-navy rounded-full transition-colors shadow-md"
                             >
                                 Login
                             </a>
@@ -211,7 +211,7 @@ export default function Header() {
                         <button
                             type="button"
                             className={`lg:hidden relative w-10 h-10 flex flex-col items-center justify-center gap-1.5 transition-colors ${
-                                mobileMenuOpen ? 'text-sigap-blue' : 'text-slate-600'
+                                mobileMenuOpen ? 'text-poltekpar-primary' : 'text-slate-600'
                             }`}
                             onClick={toggleMobileMenu}
                             aria-label="Toggle menu"
@@ -256,7 +256,7 @@ export default function Header() {
                                             type="button"
                                             className={`flex items-center justify-between w-full px-3 py-3 text-sm font-medium rounded-lg transition-colors ${
                                                 isSubmenuOpen
-                                                    ? 'bg-slate-100 text-sigap-blue'
+                                                    ? 'bg-slate-100 text-poltekpar-primary'
                                                     : 'text-slate-700 hover:bg-slate-50'
                                             }`}
                                             onClick={() => toggleSubmenu(index)}
@@ -276,7 +276,7 @@ export default function Header() {
                                                     <li key={child.label}>
                                                         <a
                                                             href={child.href}
-                                                            className="block px-3 py-2 text-sm text-slate-600 hover:text-sigap-blue hover:bg-slate-50 rounded-lg transition-colors"
+                                                            className="block px-3 py-2 text-sm text-slate-600 hover:text-poltekpar-primary hover:bg-slate-50 rounded-lg transition-colors"
                                                             target={child.target}
                                                             rel={child.target === '_blank' ? 'noreferrer' : undefined}
                                                             onClick={closeMobileMenu}
@@ -291,7 +291,7 @@ export default function Header() {
                                 ) : (
                                     <a
                                         href={item.href}
-                                        className="block px-3 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-sigap-blue rounded-lg transition-colors"
+                                        className="block px-3 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-poltekpar-primary rounded-lg transition-colors"
                                         onClick={closeMobileMenu}
                                     >
                                         {item.label}
@@ -316,7 +316,7 @@ export default function Header() {
                         ) : (
                             <a
                                 href="/login"
-                                className="flex items-center justify-center w-full px-4 py-3 text-sm font-semibold text-white bg-sigap-blue hover:bg-sigap-darkBlue rounded-lg transition-colors"
+                                className="flex items-center justify-center w-full px-4 py-3 text-sm font-semibold text-white bg-poltekpar-primary hover:bg-poltekpar-navy rounded-lg transition-colors"
                                 onClick={closeMobileMenu}
                             >
                                 <i className="fa-solid fa-right-to-bracket mr-2"></i>

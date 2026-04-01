@@ -74,7 +74,7 @@ export default function TestimonialSidebarDisplay({ status }: TestimonialSidebar
         <div className="mt-6">
             {/* Section Title */}
             <div className="flex items-center gap-2 mb-4">
-                <i className="fa-solid fa-comments text-xl" style={{ color: '#046bd2' }}></i>
+                <i className="fa-solid fa-comments text-xl" style={{ color: '#15325F' }}></i>
                 <span className="text-base font-bold text-slate-900">Ulasan & Testimoni Masyarakat</span>
             </div>
 
@@ -84,7 +84,7 @@ export default function TestimonialSidebarDisplay({ status }: TestimonialSidebar
                     <div key={item.id} className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
                         {/* Header */}
                         <div className="flex items-center gap-3 mb-3">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sigap-blue to-sigap-darkBlue flex items-center justify-center text-white font-bold text-sm">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-poltekpar-primary to-poltekpar-navy flex items-center justify-center text-white font-bold text-sm">
                                 {item.name.charAt(0)}
                             </div>
                             <div className="flex-1">

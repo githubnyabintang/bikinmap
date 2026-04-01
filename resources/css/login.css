@@ -200,7 +200,7 @@
 
 .input-wrapper input:focus {
     outline: none;
-    border-color: #046bd2;
+    border-color: #15325F;
     background-color: #ffffff;
     box-shadow: 0 0 0 4px rgba(4, 107, 210, 0.1);
 }
@@ -208,19 +208,19 @@
 .input-wrapper select:focus,
 .input-wrapper textarea:focus {
     outline: none;
-    border-color: #046bd2;
+    border-color: #15325F;
     background-color: #ffffff;
     box-shadow: 0 0 0 4px rgba(4, 107, 210, 0.1);
 }
 
 .input-wrapper input:focus+.input-icon,
 .input-wrapper input:not(:placeholder-shown)+.input-icon {
-    color: #046bd2;
+    color: #15325F;
 }
 
 .input-wrapper select:focus+.input-icon,
 .input-wrapper textarea:focus+.input-icon {
-    color: #046bd2;
+    color: #15325F;
 }
 
 /* Error States */
@@ -403,8 +403,8 @@
 }
 
 .custom-checkbox input:checked~.checkmark {
-    background-color: #046bd2;
-    border-color: #046bd2;
+    background-color: #15325F;
+    border-color: #15325F;
 }
 
 .checkmark::after {
@@ -424,7 +424,7 @@
 
 .forgot-link {
     font-size: 13px;
-    color: #046bd2;
+    color: #15325F;
     text-decoration: none;
     font-weight: 600;
 }
@@ -436,7 +436,7 @@
 .btn-login {
     width: 100%;
     padding: 14px;
-    background: linear-gradient(135deg, #046bd2, #0355a7);
+    background: linear-gradient(135deg, #15325F, #0D1F3C);
     color: white;
     border: none;
     border-radius: 12px;
@@ -497,7 +497,7 @@
 }
 
 .register-link {
-    color: #046bd2;
+    color: #15325F;
     font-weight: 600;
     text-decoration: none;
     margin-left: 4px;
@@ -694,7 +694,7 @@
     }
 
     .input-wrapper input:focus {
-        border-color: #046bd2;
+        border-color: #15325F;
         background-color: #ffffff;
         box-shadow: 0 4px 20px rgba(4, 107, 210, 0.08);
     }
@@ -807,8 +807,8 @@
 }
 
 .role-switch-link:hover {
-    border-color: #046bd2;
-    color: #046bd2;
+    border-color: #15325F;
+    color: #15325F;
     background: rgba(4, 107, 210, 0.04);
 }
 

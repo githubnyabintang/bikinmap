@@ -166,7 +166,7 @@ function MobileMenuDrawer({ isOpen, onClose, statusInfo, menuAccount = defaultMe
                                             {isExpanded && (
                                                 <div className="bg-slate-50 border-t border-slate-100">
                                                     {item.children!.map((child) => (
-                                                        <a key={child.label} href={child.href} target={child.target} rel={child.target === '_blank' ? 'noreferrer' : undefined} onClick={onClose} className="block px-4 py-2.5 text-sm text-slate-600 hover:text-sigap-blue hover:bg-white">{child.label}</a>
+                                                        <a key={child.label} href={child.href} target={child.target} rel={child.target === '_blank' ? 'noreferrer' : undefined} onClick={onClose} className="block px-4 py-2.5 text-sm text-slate-600 hover:text-poltekpar-primary hover:bg-white">{child.label}</a>
                                                     ))}
                                                 </div>
                                             )}
@@ -331,10 +331,10 @@ export default function LoginDosenMobile({
                     ].map((tab) => {
                         const isActive = tab.id === 'menu' ? isMenuOpen : activeTab === tab.id;
                         return (
-                            <button key={tab.id} type="button" onClick={() => handleTabChange(tab.id)} className={`flex-1 flex flex-col items-center justify-center py-3 px-2 transition-all ${isActive ? 'text-sigap-blue' : 'text-slate-500 hover:text-slate-700'}`}>
+                            <button key={tab.id} type="button" onClick={() => handleTabChange(tab.id)} className={`flex-1 flex flex-col items-center justify-center py-3 px-2 transition-all ${isActive ? 'text-poltekpar-primary' : 'text-slate-500 hover:text-slate-700'}`}>
                                 <div className={`relative w-6 h-6 mb-1 ${isActive ? 'scale-110' : ''} transition-transform`}>
                                     <i className={`${tab.icon} text-lg`}></i>
-                                    {isActive && <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-sigap-blue"></span>}
+                                    {isActive && <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-poltekpar-primary"></span>}
                                 </div>
                                 <span className={`text-xs font-medium ${isActive ? 'font-semibold' : ''}`}>{tab.label}</span>
                             </button>

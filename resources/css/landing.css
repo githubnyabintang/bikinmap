@@ -38,7 +38,7 @@
     display: inline-block;
     padding: 6px 14px;
     background-color: rgba(4, 107, 210, 0.1);
-    color: #046bd2;
+    color: #15325F;
     font-size: 13px;
     font-weight: 700;
     border-radius: 100px;
@@ -130,7 +130,7 @@
 .btn-hero-primary {
     padding: 16px 32px;
     background: #ffffff;
-    color: #046bd2;
+    color: #15325F;
     font-size: 16px;
     font-weight: 700;
     border-radius: 100px;
@@ -145,7 +145,7 @@
 .btn-hero-primary:hover {
     transform: translateY(-3px);
     box-shadow: 0 20px 40px -5px rgba(0, 0, 0, 0.2);
-    color: #0355a7;
+    color: #0D1F3C;
 }
 
 .btn-hero-secondary {
@@ -214,7 +214,7 @@
     width: 64px;
     height: 64px;
     background: linear-gradient(135deg, rgba(4, 107, 210, 0.1), rgba(4, 107, 210, 0.05));
-    color: #046bd2;
+    color: #15325F;
     border-radius: 16px;
     display: flex;
     align-items: center;
@@ -225,7 +225,7 @@
 }
 
 .feature-card:hover .feature-icon-wrapper {
-    background: linear-gradient(135deg, #046bd2, #0355a7);
+    background: linear-gradient(135deg, #15325F, #0D1F3C);
     color: white;
     transform: scale(1.05) rotate(-5deg);
 }
@@ -289,7 +289,7 @@
     border-radius: 100px;
     font-size: 12px;
     font-weight: 700;
-    color: #046bd2;
+    color: #15325F;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 }
 
@@ -327,7 +327,7 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    color: #046bd2;
+    color: #15325F;
     font-weight: 600;
     font-size: 14px;
     text-decoration: none;
@@ -416,7 +416,7 @@
     height: 48px;
     min-width: 48px;
     background: linear-gradient(135deg, rgba(4, 107, 210, 0.12), rgba(4, 107, 210, 0.05));
-    color: #046bd2;
+    color: #15325F;
     border-radius: 14px;
     display: flex;
     align-items: center;
@@ -426,7 +426,7 @@
 }
 
 .chart-card:hover .chart-card-icon {
-    background: linear-gradient(135deg, #046bd2, #0355a7);
+    background: linear-gradient(135deg, #15325F, #0D1F3C);
     color: #ffffff;
     transform: scale(1.05) rotate(-5deg);
 }
@@ -712,7 +712,7 @@
 }
 
 .public-inline-link {
-    color: #1d4ed8;
+    color: #1E4A8C;
     text-decoration: none;
     font-size: 0.95rem;
     font-weight: 700;
@@ -837,7 +837,7 @@
 
 .sigap-map-legend__status-icon {
     background: rgba(239, 246, 255, 0.9);
-    color: #046bd2;
+    color: #15325F;
     border: 1px solid rgba(191, 219, 254, 0.9);
     font-size: 0.7rem;
 }
@@ -973,7 +973,7 @@
     display: block;
     font-size: 1.7rem;
     line-height: 1;
-    color: #1d4ed8;
+    color: #1E4A8C;
 }
 
 .landing-map-summary-card {
@@ -1760,7 +1760,7 @@
     position: relative;
     width: 60px;
     height: 60px;
-    background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+    background: linear-gradient(135deg, #2563eb, #1E4A8C) !important;
     color: #ffffff !important;
     border-radius: 50%;
     display: flex;
@@ -1776,7 +1776,7 @@
 .fab:hover {
     transform: scale(1.05);
     box-shadow: 0 8px 20px rgba(37, 99, 235, 0.5);
-    background: linear-gradient(135deg, #1d4ed8, #1e40af) !important;
+    background: linear-gradient(135deg, #1E4A8C, #1e40af) !important;
 }
 
 .fab:active {
@@ -1791,7 +1791,7 @@
     top: 50%;
     transform: translateY(-50%) translateX(20px);
     white-space: nowrap;
-    background: linear-gradient(135deg, #1e40af, #1d4ed8);
+    background: linear-gradient(135deg, #1e40af, #1E4A8C);
     color: #ffffff;
     font-size: 13px;
     font-weight: 600;
@@ -1811,7 +1811,7 @@
     transform: translateY(-50%) rotate(45deg);
     width: 12px;
     height: 12px;
-    background: #1d4ed8;
+    background: #1E4A8C;
     border-radius: 2px;
 }
 
@@ -1890,7 +1890,7 @@
     padding: 8px 14px;
     border-radius: 999px;
     background: linear-gradient(135deg, rgba(37, 99, 235, 0.14), rgba(14, 165, 233, 0.08));
-    color: #1d4ed8;
+    color: #1E4A8C;
     border: 1px solid rgba(147, 197, 253, 0.7);
     font-size: 0.86rem;
     font-weight: 700;
@@ -2025,7 +2025,7 @@
     border: 1px solid #dbeafe;
     border-radius: 10px;
     background: #eff6ff;
-    color: #1d4ed8;
+    color: #1E4A8C;
     font-size: 0.8rem;
     font-weight: 700;
     cursor: pointer;
@@ -2183,7 +2183,7 @@
     justify-content: center;
     border-radius: 12px;
     background: #dbeafe;
-    color: #1d4ed8;
+    color: #1E4A8C;
     font-size: 1rem;
     flex: 0 0 auto;
 }
@@ -2311,7 +2311,7 @@
     padding: 13px 18px;
     border: none;
     border-radius: 14px;
-    background: linear-gradient(135deg, #046bd2, #1d4ed8);
+    background: linear-gradient(135deg, #15325F, #1E4A8C);
     color: #ffffff;
     font-size: 0.9rem;
     font-weight: 700;
@@ -2577,7 +2577,7 @@
         padding: 6px 12px;
         border-radius: 999px;
         background: rgba(4, 107, 210, 0.08);
-        color: #046bd2;
+        color: #15325F;
         font-size: 0.72rem;
         font-weight: 800;
         letter-spacing: 0.08em;
@@ -2656,7 +2656,7 @@
         justify-content: center;
         border-radius: 14px;
         background: linear-gradient(135deg, #dbeafe, #eff6ff);
-        color: #1d4ed8;
+        color: #1E4A8C;
         font-size: 1rem;
     }
 
@@ -2725,7 +2725,7 @@
         font-size: 0.7rem;
         font-weight: 800;
         letter-spacing: 0.08em;
-        color: #046bd2;
+        color: #15325F;
         text-transform: uppercase;
     }
 
@@ -2748,7 +2748,7 @@
         border: 0;
         border-radius: 12px;
         background: #eff6ff;
-        color: #1d4ed8;
+        color: #1E4A8C;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -2877,7 +2877,7 @@
     }
 
     .landing-mobile-tab.is-active {
-        color: #046bd2;
+        color: #15325F;
         background: linear-gradient(180deg, rgba(219, 234, 254, 0.85), rgba(239, 246, 255, 0.75));
     }
 }

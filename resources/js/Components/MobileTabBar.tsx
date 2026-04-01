@@ -41,7 +41,7 @@ export default function MobileTabBar({ activeTab = 'peta', onTabChange }: Mobile
                             type="button"
                             className={`flex flex-col items-center justify-center flex-1 py-3 px-2 transition-all duration-200 ${
                                 isActive
-                                    ? 'text-sigap-blue'
+                                    ? 'text-poltekpar-primary'
                                     : 'text-slate-500 hover:text-slate-700'
                             }`}
                             onClick={() => handleTabClick(tab)}
@@ -49,7 +49,7 @@ export default function MobileTabBar({ activeTab = 'peta', onTabChange }: Mobile
                             <div className={`relative w-6 h-6 mb-1 ${isActive ? 'scale-110' : ''} transition-transform`}>
                                 <i className={`${tab.icon} text-lg absolute inset-0 flex items-center justify-center`}></i>
                                 {isActive && (
-                                    <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-sigap-blue"></span>
+                                    <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-poltekpar-primary"></span>
                                 )}
                             </div>
                             <span className={`text-xs font-medium ${isActive ? 'font-semibold' : ''}`}>

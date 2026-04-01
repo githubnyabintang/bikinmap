@@ -39,7 +39,7 @@
 .gallery-see-more {
     background: none;
     border: 1px solid #e0e7ff;
-    color: #046bd2;
+    color: #15325F;
     background-color: #f0f7ff;
     font-size: 0.75rem;
     font-weight: 700;
@@ -54,9 +54,9 @@
 }
 
 .gallery-see-more:hover {
-    background-color: #046bd2;
+    background-color: #15325F;
     color: white;
-    border-color: #046bd2;
+    border-color: #15325F;
 }
 
 .gallery-see-more i {

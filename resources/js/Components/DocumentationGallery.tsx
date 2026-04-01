@@ -70,7 +70,7 @@ export default function DocumentationGallery({ status, driveLink = '' }: Documen
         <div className="mt-6">
             {/* Section Title */}
             <div className="flex items-center gap-2 mb-4">
-                <i className="fa-solid fa-folder-open text-xl" style={{ color: '#046bd2' }}></i>
+                <i className="fa-solid fa-folder-open text-xl" style={{ color: '#15325F' }}></i>
                 <span className="text-base font-bold text-slate-900">Dokumentasi Lampiran</span>
             </div>
 
@@ -103,7 +103,7 @@ export default function DocumentationGallery({ status, driveLink = '' }: Documen
                     <h4 className="text-sm font-bold text-slate-900">Video Kegiatan</h4>
                     <button
                         type="button"
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-sigap-blue hover:bg-blue-50 rounded-lg transition-colors"
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-poltekpar-primary hover:bg-blue-50 rounded-lg transition-colors"
                         onClick={openVideoModal}
                     >
                         Layar Penuh

@@ -1,6 +1,6 @@
 import React from 'react';
 import AdminLayout from '../../../Layouts/AdminLayout';
-import { Star, MessageSquare } from 'lucide-react';
+import { Activity, MessageSquare } from 'lucide-react';
 
 interface TestimoniItem {
     id_testimoni: number;
@@ -74,7 +74,7 @@ const TestimoniPage: React.FC<Props> = ({ listTestimoni }) => {
                         <div key={t.id_testimoni} className="bg-white rounded-xl p-6 border border-zinc-200 shadow-sm hover:shadow-md transition-shadow flex flex-col h-full">
                             <div className="flex gap-1 mb-4">
                                 {[1, 2, 3, 4, 5].map((s) => (
-                                    <Star key={s} size={14} className={s <= t.rating ? 'text-zinc-900 fill-zinc-900' : 'text-zinc-200 fill-zinc-100'} />
+                                    <Activity key={s} size={14} className={s <= t.rating ? 'text-zinc-900' : 'text-zinc-200'} />
                                 ))}
                             </div>
                             <p className="text-zinc-700 text-[14px] leading-relaxed flex-1 italic">"{t.pesan_ulasan}"</p>

@@ -30,119 +30,171 @@ export default function Testimoni({ namaKegiatan = 'NAMA KEGIATAN PKM', kode }: 
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-            <Head title="Testimoni" />
+        <div className="min-h-screen bg-[#f8fafc] flex flex-col" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+            <Head title="Testimoni Pengunjung | SIGAPPA" />
 
             <Navbar />
 
-            <main className="flex-grow flex items-start justify-center pt-28 pb-20 px-4 sm:px-6 lg:px-8">
-                <div className="w-full max-w-3xl bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
+            <main className="flex-grow flex items-start justify-center pt-32 pb-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+                {/* Decorative Elements */}
+                <div className="absolute top-0 left-0 w-full h-[400px] bg-gradient-to-b from-poltekpar-navy/5 to-transparent -z-10"></div>
+                <div className="absolute -top-24 -right-24 w-96 h-96 bg-amber-400/5 rounded-full blur-3xl -z-10"></div>
+                <div className="absolute top-1/2 -left-24 w-80 h-80 bg-poltekpar-primary/5 rounded-full blur-3xl -z-10"></div>
 
-                    {/* Header Setup like Cek Status */}
-                    <div className="p-5 border-b border-slate-100 flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center text-white shadow-md">
-                            <i className="fa-solid fa-star text-lg"></i>
+                <div className="w-full max-w-4xl bg-white rounded-[40px] shadow-2xl shadow-poltekpar-navy/5 border border-slate-100 overflow-hidden">
+
+                    {/* Premium Header */}
+                    <div className="p-10 border-b border-slate-50 flex flex-col md:flex-row md:items-center gap-6 bg-gradient-to-br from-white to-slate-50/50">
+                        <div className="w-16 h-16 rounded-[22px] bg-gradient-to-br from-poltekpar-gold to-amber-600 flex items-center justify-center text-white shadow-xl shadow-amber-500/20 flex-shrink-0">
+                            <i className="fa-solid fa-star text-2xl"></i>
                         </div>
                         <div>
-                            <h3 className="text-base font-bold text-slate-900">Testimoni Kegiatan</h3>
-                            <p className="text-sm text-slate-500 mt-0.5">Berikan ulasan dan masukan Anda untuk program kami</p>
+                            <h1 className="text-2xl font-black text-slate-900 tracking-tight">Testimoni & Review</h1>
+                            <p className="text-slate-500 font-bold text-sm mt-1 uppercase tracking-widest flex items-center gap-2">
+                                <span className="w-2 h-2 bg-poltekpar-gold rounded-full"></span>
+                                Feedback Pengunjung Sistem SIGAPPA
+                            </p>
+                        </div>
+                        <div className="md:ml-auto">
+                             <div className="bg-slate-100 px-4 py-2 rounded-2xl flex items-center gap-2">
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">ID Kode</span>
+                                <span className="text-sm font-black text-poltekpar-navy tracking-widest">{kode}</span>
+                             </div>
                         </div>
                     </div>
 
                     {/* Form Content */}
-                    <div className="p-6 space-y-6">
-                        <form onSubmit={submit} className="space-y-8">
+                    <div className="p-10">
+                        <form onSubmit={submit} className="space-y-10">
 
-                            {/* Identitas Section style */}
-                            <section>
-                                <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
-                                    <i className="fa-solid fa-bookmark text-sigap-blue"></i>
-                                    Informasi Kegiatan
-                                </h3>
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-semibold text-slate-700">Nama Kegiatan</label>
-                                    <div className="w-full px-3 py-2 border border-slate-200 bg-slate-50 rounded-lg text-sm font-semibold text-slate-900">
-                                        {namaKegiatan}
+                            {/* Info Section */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+                                <div className="md:col-span-1">
+                                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-poltekpar-primary">
+                                            <i className="fa-solid fa-bookmark"></i>
+                                        </div>
+                                        Konteks
+                                    </h3>
+                                    <p className="text-xs font-bold text-slate-400 mt-3 leading-relaxed">
+                                        Data testimoni Anda akan dipublikasikan sebagai bahan evaluasi kegiatan.
+                                    </p>
+                                </div>
+                                <div className="md:col-span-2">
+                                    <div className="p-6 bg-slate-50 rounded-3xl border border-dashed border-slate-200">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 block">Nama Kegiatan Terkait</label>
+                                        <div className="text-lg font-black text-poltekpar-navy leading-tight">
+                                            {namaKegiatan}
+                                        </div>
                                     </div>
                                 </div>
-                            </section>
+                            </div>
 
-                            <hr className="border-slate-100" />
+                            <div className="h-px bg-slate-100 w-full"></div>
 
-                            {/* Form Testimoni */}
-                            <section>
-                                <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
-                                    <i className="fa-solid fa-comment-dots text-sigap-blue"></i>
-                                    Isi Testimoni
-                                </h3>
-                                <div className="space-y-6">
-
-                                    <div className="space-y-1.5">
-                                        <label className="text-xs font-semibold text-slate-700">
-                                            Nama Pemberi Testimoni <span className="text-red-500">*</span>
+                            {/* Main Form Fields */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+                                <div className="md:col-span-1">
+                                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-poltekpar-primary">
+                                            <i className="fa-solid fa-pen-nib"></i>
+                                        </div>
+                                        Isi Ulasan
+                                    </h3>
+                                    <p className="text-xs font-bold text-slate-400 mt-3 leading-relaxed">
+                                        Berikan rating dan ulasan jujur mengenai pengalaman Anda.
+                                    </p>
+                                </div>
+                                <div className="md:col-span-2 space-y-8">
+                                    <div className="space-y-2">
+                                        <label className="text-[11px] font-black text-slate-600 uppercase tracking-widest ml-1">
+                                            Nama Lengkap Anda <span className="text-red-500">*</span>
                                         </label>
                                         <input
                                             type="text"
                                             value={data.nama_pemberi}
                                             onChange={e => setData('nama_pemberi', e.target.value)}
-                                            className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-sigap-blue focus:ring-2 focus:ring-blue-100"
-                                            placeholder="Contoh: Budi Santoso / Warga Desa..."
+                                            className="w-full px-6 py-4 bg-white border-2 border-slate-100 rounded-2xl text-sm font-bold placeholder:text-slate-300 focus:border-poltekpar-primary focus:ring-4 focus:ring-poltekpar-primary/5 transition-all outline-none"
+                                            placeholder="Contoh: Budi Santoso / Perwakilan Warga..."
                                             required
                                         />
                                     </div>
 
-                                    {/* Star Rating Centered */}
-                                    <div className="flex flex-col items-center justify-center space-y-2 py-4">
-                                        <div className="flex gap-2 w-full mx-auto justify-between">
+                                    {/* Star Rating Premium */}
+                                    <div className="bg-slate-50/50 p-8 rounded-3xl border border-slate-100 flex flex-col items-center justify-center">
+                                        <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-6">BERIKAN RATING BINTANG</label>
+                                        <div className="flex gap-4">
                                             {[...Array(5)].map((_, index) => {
                                                 const starValue = index + 1;
+                                                const isSelected = starValue <= (hover || data.rating);
                                                 return (
                                                     <button
                                                         type="button"
                                                         key={starValue}
-                                                        className={`text-5xl transition-all hover:scale-110 active:scale-95 ${starValue <= (hover || data.rating) ? 'text-amber-400 drop-shadow-sm' : 'text-slate-200'}`}
+                                                        className={`text-5xl transition-all duration-300 hover:scale-125 active:scale-90 ${isSelected ? 'text-poltekpar-gold drop-shadow-[0_0_15px_rgba(234,196,73,0.4)]' : 'text-slate-200'}`}
                                                         onClick={() => setData('rating', starValue)}
                                                         onMouseEnter={() => setHover(starValue)}
                                                         onMouseLeave={() => setHover(0)}
                                                     >
-                                                        <i className="fa-solid fa-star"></i>
+                                                        <i className={`fa-solid fa-star ${isSelected ? 'fa-star' : 'fa-star'}`}></i>
                                                     </button>
                                                 );
                                             })}
                                         </div>
+                                        <div className="mt-4 h-5">
+                                             {data.rating > 0 && (
+                                                <span className="text-sm font-black text-poltekpar-gold uppercase tracking-widest animate-in fade-in slide-in-from-bottom-1">
+                                                    {['Sangat Kurang', 'Kurang', 'Cukup', 'Puas', 'Sangat Puas'][data.rating - 1]}
+                                                </span>
+                                             )}
+                                        </div>
                                     </div>
 
-                                    <div className="space-y-1.5">
-                                        <label className="text-xs font-semibold text-slate-700">
+                                    <div className="space-y-2">
+                                        <label className="text-[11px] font-black text-slate-600 uppercase tracking-widest ml-1">
                                             Pesan dan Kesan <span className="text-red-500">*</span>
                                         </label>
                                         <textarea
                                             value={data.pesan_kesan}
                                             onChange={e => setData('pesan_kesan', e.target.value)}
-                                            className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-sigap-blue focus:ring-2 focus:ring-blue-100 min-h-[100px]"
-                                            placeholder="Tuliskan pengalaman Anda..."
+                                            className="w-full px-6 py-4 bg-white border-2 border-slate-100 rounded-2xl text-sm font-bold placeholder:text-slate-300 focus:border-poltekpar-primary focus:ring-4 focus:ring-poltekpar-primary/5 transition-all outline-none min-h-[140px]"
+                                            placeholder="Tuliskan pengalaman atau kesan Anda selama mengikuti kegiatan ini..."
                                             required
                                         />
                                     </div>
 
-                                    <div className="space-y-1.5">
-                                        <label className="text-xs font-semibold text-slate-700">
-                                            Saran (Opsional)
+                                    <div className="space-y-2">
+                                        <label className="text-[11px] font-black text-slate-600 uppercase tracking-widest ml-1">
+                                            Saran Konstruktif (Opsional)
                                         </label>
                                         <textarea
                                             value={data.saran}
                                             onChange={e => setData('saran', e.target.value)}
-                                            className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-sigap-blue focus:ring-2 focus:ring-blue-100 min-h-[100px]"
-                                            placeholder="Tuliskan saran untuk perbaikan ke depannya..."
+                                            className="w-full px-6 py-4 bg-white border-2 border-slate-100 rounded-2xl text-sm font-bold placeholder:text-slate-300 focus:border-poltekpar-primary focus:ring-4 focus:ring-poltekpar-primary/5 transition-all outline-none min-h-[100px]"
+                                            placeholder="Masukan atau saran untuk pengembangan program selanjutnya..."
                                         />
                                     </div>
 
                                 </div>
-                            </section>
+                            </div>
 
-                            <button type="submit" disabled={processing} className="w-full py-3.5 bg-sigap-blue hover:bg-sigap-darkBlue text-white font-bold rounded-xl shadow-lg disabled:opacity-50 transition-all flex items-center justify-center gap-2 mt-4">
-                                <i className="fa-solid fa-paper-plane"></i>Kirim Testimoni
-                            </button>
+                            <div className="pt-8">
+                                <button type="submit" disabled={processing} className="w-full py-5 bg-gradient-to-r from-poltekpar-primary to-poltekpar-navy hover:to-poltekpar-primary text-white font-black rounded-2xl shadow-2xl shadow-poltekpar-primary/20 disabled:opacity-50 transition-all hover:-translate-y-1 active:scale-[0.98] flex items-center justify-center gap-3 text-lg">
+                                    <i className="fa-solid fa-paper-plane"></i>
+                                    KIRIM TESTIMONI
+                                </button>
+                                <div className="mt-8 p-6 bg-amber-50 rounded-3xl border border-amber-100 flex items-start gap-4">
+                                     <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-poltekpar-gold shadow-sm flex-shrink-0">
+                                         <i className="fa-solid fa-shield-halved"></i>
+                                     </div>
+                                     <div>
+                                         <span className="block text-[11px] font-black text-amber-900 uppercase tracking-widest mb-1 leading-none">Privacy Note</span>
+                                         <p className="text-[11px] font-bold text-amber-800/80 leading-relaxed">
+                                             Terima kasih telah meluangkan waktu. Setiap masukan yang Anda berikan sangat berarti bagi kami untuk meningkatkan kualitas pelayanan pariwisata.
+                                         </p>
+                                     </div>
+                                </div>
+                            </div>
 
                         </form>
                     </div>
