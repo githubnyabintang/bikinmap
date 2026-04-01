@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Head, useForm, usePage } from '@inertiajs/react';
+import { Head, useForm } from '@inertiajs/react';
 import Navbar from '@/Components/Navbar';
 import Footer from '@/Components/Footer';
 
@@ -9,15 +9,14 @@ interface Props {
 }
 
 export default function Testimoni({ namaKegiatan = 'NAMA KEGIATAN PKM', kode }: Props) {
-    const { auth } = usePage<any>().props;
     const { data, setData, post, processing } = useForm({
         nama_pemberi: '',
         rating: 0,
-        pesan_kesan: '',
-        saran: ''
+        pesan_ulasan: '',
     });
 
     const [hover, setHover] = useState(0);
+    const [submitted, setSubmitted] = useState(false);
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -25,8 +24,9 @@ export default function Testimoni({ namaKegiatan = 'NAMA KEGIATAN PKM', kode }: 
             alert('Mohon berikan rating (bintang) terlebih dahulu.');
             return;
         }
-        // Nanti ganti dengan metode submit sebenarnya
-        alert(`Berhasil Submit Testimoni untuk kode: ${kode}`);
+        post('/testimoni/public', {
+            onSuccess: () => setSubmitted(true),
+        });
     };
 
     return (
@@ -65,6 +65,15 @@ export default function Testimoni({ namaKegiatan = 'NAMA KEGIATAN PKM', kode }: 
 
                     {/* Form Content */}
                     <div className="p-10">
+                        {submitted ? (
+                            <div className="text-center py-16">
+                                <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
+                                    <i className="fa-solid fa-check text-3xl text-green-600"></i>
+                                </div>
+                                <h2 className="text-2xl font-black text-slate-900 mb-2">Terima Kasih!</h2>
+                                <p className="text-slate-500 font-bold">Testimoni Anda berhasil dikirim.</p>
+                            </div>
+                        ) : (
                         <form onSubmit={submit} className="space-y-10">
 
                             {/* Info Section */}
@@ -155,23 +164,11 @@ export default function Testimoni({ namaKegiatan = 'NAMA KEGIATAN PKM', kode }: 
                                             Pesan dan Kesan <span className="text-red-500">*</span>
                                         </label>
                                         <textarea
-                                            value={data.pesan_kesan}
-                                            onChange={e => setData('pesan_kesan', e.target.value)}
+                                            value={data.pesan_ulasan}
+                                            onChange={e => setData('pesan_ulasan', e.target.value)}
                                             className="w-full px-6 py-4 bg-white border-2 border-slate-100 rounded-2xl text-sm font-bold placeholder:text-slate-300 focus:border-poltekpar-primary focus:ring-4 focus:ring-poltekpar-primary/5 transition-all outline-none min-h-[140px]"
-                                            placeholder="Tuliskan pengalaman atau kesan Anda selama mengikuti kegiatan ini..."
+                                            placeholder="Tuliskan pengalaman, kesan, dan saran Anda selama mengikuti kegiatan ini..."
                                             required
-                                        />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label className="text-[11px] font-black text-slate-600 uppercase tracking-widest ml-1">
-                                            Saran Konstruktif (Opsional)
-                                        </label>
-                                        <textarea
-                                            value={data.saran}
-                                            onChange={e => setData('saran', e.target.value)}
-                                            className="w-full px-6 py-4 bg-white border-2 border-slate-100 rounded-2xl text-sm font-bold placeholder:text-slate-300 focus:border-poltekpar-primary focus:ring-4 focus:ring-poltekpar-primary/5 transition-all outline-none min-h-[100px]"
-                                            placeholder="Masukan atau saran untuk pengembangan program selanjutnya..."
                                         />
                                     </div>
 
@@ -197,6 +194,7 @@ export default function Testimoni({ namaKegiatan = 'NAMA KEGIATAN PKM', kode }: 
                             </div>
 
                         </form>
+                        )}
                     </div>
                 </div>
             </main>

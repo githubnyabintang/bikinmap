@@ -12,11 +12,22 @@ interface Pegawai {
     posisi?: string;
 }
 
-interface Props {
-    listPegawai: Pegawai[];
+interface PaginatedData {
+    data: Pegawai[];
+    current_page: number;
+    last_page: number;
+    total: number;
 }
 
-const PegawaiPage: React.FC<Props> = ({ listPegawai }) => {
+interface Props {
+    listPegawai: PaginatedData;
+    filters: {
+        search: string;
+    };
+}
+
+const PegawaiPage: React.FC<Props> = ({ listPegawai, filters }) => {
+    const data = listPegawai.data || [];
     const [modalOpen, setModalOpen] = useState(false);
     const [form, setForm] = useState({ nip: '', nama_pegawai: '', jabatan: '', posisi: '' });
     const [editId, setEditId] = useState<number | null>(null);
@@ -66,7 +77,7 @@ const PegawaiPage: React.FC<Props> = ({ listPegawai }) => {
         input.click();
     };
 
-    const filtered = listPegawai.filter(p => p.nama_pegawai.toLowerCase().includes(search.toLowerCase()) || (p.nip || '').includes(search));
+    const filtered = data.filter((p: Pegawai) => p.nama_pegawai.toLowerCase().includes(search.toLowerCase()) || (p.nip || '').includes(search));
 
     return (
         <AdminLayout title="">
@@ -141,7 +152,7 @@ const PegawaiPage: React.FC<Props> = ({ listPegawai }) => {
                     </table>
                 </div>
                 <div className="px-6 py-3 border-t border-zinc-200 bg-zinc-50/50 flex items-center justify-between">
-                    <span className="text-[12px] font-medium text-zinc-500">{filtered.length} pegawai yang ditampilkan</span>
+                    <span className="text-[12px] font-medium text-zinc-500">{filtered.length} dari {listPegawai.total} pegawai yang ditampilkan</span>
                 </div>
             </div>
 

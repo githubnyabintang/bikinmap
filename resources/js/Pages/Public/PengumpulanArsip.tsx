@@ -1,5 +1,5 @@
-import React from 'react';
-import { Head, useForm, usePage } from '@inertiajs/react';
+import React, { useState } from 'react';
+import { Head, useForm } from '@inertiajs/react';
 import Navbar from '@/Components/Navbar';
 import Footer from '@/Components/Footer';
 
@@ -9,12 +9,13 @@ interface Props {
 }
 
 export default function PengumpulanArsip({ namaKegiatan = 'NAMA KEGIATAN PKM', kode }: Props) {
-    const { auth } = usePage<any>().props;
     const { data, setData, post, processing } = useForm({
         laporan: '',
         dokumentasi: '',
         dokumen_lainnya: ['']
     });
+
+    const [submitted, setSubmitted] = useState(false);
 
     const handleAddLink = () => {
         setData('dokumen_lainnya', [...data.dokumen_lainnya, '']);
@@ -32,8 +33,9 @@ export default function PengumpulanArsip({ namaKegiatan = 'NAMA KEGIATAN PKM', k
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        // Nanti ganti dengan metode submit sebenarnya
-        alert(`Berhasil Submit Data untuk kode: ${kode}`);
+        post('/kumpul-arsip/public', {
+            onSuccess: () => setSubmitted(true),
+        });
     };
 
     return (
@@ -72,6 +74,15 @@ export default function PengumpulanArsip({ namaKegiatan = 'NAMA KEGIATAN PKM', k
 
                     {/* Form Content */}
                     <div className="p-10">
+                        {submitted ? (
+                            <div className="text-center py-16">
+                                <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
+                                    <i className="fa-solid fa-check text-3xl text-green-600"></i>
+                                </div>
+                                <h2 className="text-2xl font-black text-slate-900 mb-2">Berhasil Dikumpulkan!</h2>
+                                <p className="text-slate-500 font-bold">Data arsip Anda telah tersimpan.</p>
+                            </div>
+                        ) : (
                         <form onSubmit={submit} className="space-y-10">
                             
                             {/* Information Section */}
@@ -197,6 +208,7 @@ export default function PengumpulanArsip({ namaKegiatan = 'NAMA KEGIATAN PKM', k
                             </div>
 
                         </form>
+                        )}
                     </div>
                 </div>
             </main>

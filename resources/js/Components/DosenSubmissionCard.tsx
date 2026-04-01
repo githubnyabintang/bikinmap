@@ -74,6 +74,7 @@ interface FormData {
     surat_permohonan: string;
     surat_proposal: string;
     link_tambahan: string[];
+    sumber_dana: string[];
 }
 
 const createSubmittedLabel = (): string => new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date());
@@ -131,6 +132,7 @@ export default function DosenSubmissionCard({
         surat_permohonan: '',
         surat_proposal: '',
         link_tambahan: [''],
+        sumber_dana: [],
     });
 
     const handleAddMember = (type: 'tim_dosen' | 'tim_staff' | 'tim_mahasiswa') => setData(type, [...data[type], '']);
@@ -182,7 +184,11 @@ export default function DosenSubmissionCard({
             dosen_terlibat:     data.tim_dosen.filter(v => v.trim() !== ''),
             staff_terlibat:     data.tim_staff.filter(v => v.trim() !== ''),
             mahasiswa_terlibat: data.tim_mahasiswa.filter(v => v.trim() !== ''),
-            sumber_dana:        'Perguruan Tinggi',
+            sumber_dana:        data.sumber_dana.join(', ') || '',
+            dana_perguruan_tinggi: data.dana_perguruan_tinggi > 0 ? data.dana_perguruan_tinggi : null,
+            dana_pemerintah:    data.dana_pemerintah > 0 ? data.dana_pemerintah : null,
+            dana_lembaga_dalam: data.dana_lembaga_dalam > 0 ? data.dana_lembaga_dalam : null,
+            dana_lembaga_luar:  data.dana_lembaga_luar > 0 ? data.dana_lembaga_luar : null,
             total_anggaran:     totalRAB || 0,
             proposal_url:       data.surat_proposal,
             surat_permohonan_url: data.surat_permohonan,
@@ -332,6 +338,204 @@ export default function DosenSubmissionCard({
                         ))}
                     </div>
                 )}
+            </div>
+        </div>
+    );
+
+    const renderSubmissionForm = () => (
+        <div className="p-5 space-y-6">
+            {/* Informasi Ketua */}
+            <div className="space-y-4">
+                <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest">Informasi Ketua Pengusul</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label className="text-[11px] font-bold text-slate-600 mb-1 block">Nama Lengkap <span className="text-red-500">*</span></label>
+                        <input type="text" value={data.nama_ketua} onChange={e => setData('nama_ketua', e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-poltekpar-primary/20 focus:border-poltekpar-primary" placeholder="Nama lengkap & gelar" required />
+                    </div>
+                    <div>
+                        <label className="text-[11px] font-bold text-slate-600 mb-1 block">Instansi</label>
+                        <input type="text" value={data.instansi} onChange={e => setData('instansi', e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-poltekpar-primary/20 focus:border-poltekpar-primary" />
+                    </div>
+                    <div>
+                        <label className="text-[11px] font-bold text-slate-600 mb-1 block">Email <span className="text-red-500">*</span></label>
+                        <input type="email" value={data.email} onChange={e => setData('email', e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-poltekpar-primary/20 focus:border-poltekpar-primary" placeholder="email@contoh.com" required />
+                    </div>
+                    <div>
+                        <label className="text-[11px] font-bold text-slate-600 mb-1 block">No. WhatsApp <span className="text-red-500">*</span></label>
+                        <input type="tel" value={data.whatsapp} onChange={e => setData('whatsapp', e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-poltekpar-primary/20 focus:border-poltekpar-primary" placeholder="08xxxxxxxxxx" required />
+                    </div>
+                </div>
+            </div>
+
+            {/* Judul Kegiatan */}
+            <div className="space-y-4">
+                <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest">Detail Kegiatan</h4>
+                <div>
+                    <label className="text-[11px] font-bold text-slate-600 mb-1 block">Judul Kegiatan PKM <span className="text-red-500">*</span></label>
+                    <textarea value={data.judul_kegiatan} onChange={e => setData('judul_kegiatan', e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-poltekpar-primary/20 focus:border-poltekpar-primary min-h-[80px]" placeholder="Masukkan judul kegiatan pengabdian masyarakat..." required />
+                </div>
+            </div>
+
+            {/* Lokasi */}
+            <div className="space-y-4">
+                <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest">Lokasi Kegiatan</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label className="text-[11px] font-bold text-slate-600 mb-1 block">Provinsi</label>
+                        <input type="text" value={data.provinsi} onChange={e => setData('provinsi', e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-poltekpar-primary/20 focus:border-poltekpar-primary" placeholder="Provinsi" />
+                    </div>
+                    <div>
+                        <label className="text-[11px] font-bold text-slate-600 mb-1 block">Kota/Kabupaten</label>
+                        <input type="text" value={data.kota_kabupaten} onChange={e => setData('kota_kabupaten', e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-poltekpar-primary/20 focus:border-poltekpar-primary" placeholder="Kota/Kabupaten" />
+                    </div>
+                    <div>
+                        <label className="text-[11px] font-bold text-slate-600 mb-1 block">Kecamatan</label>
+                        <input type="text" value={data.kecamatan} onChange={e => setData('kecamatan', e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-poltekpar-primary/20 focus:border-poltekpar-primary" placeholder="Kecamatan" />
+                    </div>
+                    <div>
+                        <label className="text-[11px] font-bold text-slate-600 mb-1 block">Kelurahan/Desa</label>
+                        <input type="text" value={data.kelurahan_desa} onChange={e => setData('kelurahan_desa', e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-poltekpar-primary/20 focus:border-poltekpar-primary" placeholder="Kelurahan/Desa" />
+                    </div>
+                </div>
+                <div>
+                    <label className="text-[11px] font-bold text-slate-600 mb-1 block">Alamat Lengkap</label>
+                    <textarea value={data.alamat_lengkap} onChange={e => setData('alamat_lengkap', e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-poltekpar-primary/20 focus:border-poltekpar-primary min-h-[60px]" placeholder="Alamat lengkap lokasi kegiatan..." />
+                </div>
+            </div>
+
+            {/* Tim */}
+            <div className="space-y-4">
+                <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest">Tim Pelaksana</h4>
+                {(['tim_dosen', 'tim_staff', 'tim_mahasiswa'] as const).map(type => (
+                    <div key={type}>
+                        <label className="text-[11px] font-bold text-slate-600 mb-1 block">
+                            {type === 'tim_dosen' ? 'Dosen Terlibat' : type === 'tim_staff' ? 'Staf Terlibat' : 'Mahasiswa Terlibat'}
+                        </label>
+                        {data[type].map((member, idx) => (
+                            <div key={idx} className="flex gap-2 mb-2">
+                                <input type="text" value={member} onChange={e => handleMemberChange(type, idx, e.target.value)} className="flex-1 px-4 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-poltekpar-primary/20 focus:border-poltekpar-primary" placeholder={`Nama ${type === 'tim_dosen' ? 'dosen' : type === 'tim_staff' ? 'staf' : 'mahasiswa'}...`} />
+                                {data[type].length > 1 && (
+                                    <button type="button" onClick={() => handleRemoveMember(type, idx)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all">
+                                        <i className="fa-solid fa-xmark"></i>
+                                    </button>
+                                )}
+                            </div>
+                        ))}
+                        <button type="button" onClick={() => handleAddMember(type)} className="text-[11px] font-bold text-poltekpar-primary flex items-center gap-1 hover:opacity-70">
+                            <i className="fa-solid fa-plus"></i> Tambah
+                        </button>
+                    </div>
+                ))}
+            </div>
+
+            {/* RAB */}
+            <div className="space-y-4">
+                <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest">Rencana Anggaran Biaya (RAB)</h4>
+                {data.rab_items.map((item, idx) => (
+                    <div key={idx} className="grid grid-cols-12 gap-2 items-end">
+                        <div className="col-span-5">
+                            <label className="text-[10px] font-bold text-slate-500 mb-1 block">Nama Item</label>
+                            <input type="text" value={item.nama_item} onChange={e => handleRabChange(idx, 'nama_item', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-poltekpar-primary/20 focus:border-poltekpar-primary" placeholder="Item..." />
+                        </div>
+                        <div className="col-span-2">
+                            <label className="text-[10px] font-bold text-slate-500 mb-1 block">Jumlah</label>
+                            <input type="number" value={item.jumlah} onChange={e => handleRabChange(idx, 'jumlah', Number(e.target.value))} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-poltekpar-primary/20 focus:border-poltekpar-primary" min={1} />
+                        </div>
+                        <div className="col-span-2">
+                            <label className="text-[10px] font-bold text-slate-500 mb-1 block">Harga</label>
+                            <input type="number" value={item.harga} onChange={e => handleRabChange(idx, 'harga', Number(e.target.value))} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-poltekpar-primary/20 focus:border-poltekpar-primary" min={0} />
+                        </div>
+                        <div className="col-span-2">
+                            <label className="text-[10px] font-bold text-slate-500 mb-1 block">Total</label>
+                            <div className="px-3 py-2 bg-slate-50 rounded-lg text-sm font-semibold text-slate-700 border border-slate-100">
+                                Rp {item.total.toLocaleString('id-ID')}
+                            </div>
+                        </div>
+                        <div className="col-span-1">
+                            {data.rab_items.length > 1 && (
+                                <button type="button" onClick={() => handleRemoveRab(idx)} className="w-9 h-9 flex items-center justify-center rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all">
+                                    <i className="fa-solid fa-xmark"></i>
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                ))}
+                <div className="flex items-center justify-between">
+                    <button type="button" onClick={handleAddRab} className="text-[11px] font-bold text-poltekpar-primary flex items-center gap-1 hover:opacity-70">
+                        <i className="fa-solid fa-plus"></i> Tambah Item
+                    </button>
+                    <div className="text-sm font-bold text-poltekpar-primary">
+                        Total RAB: Rp {totalRAB.toLocaleString('id-ID')}
+                    </div>
+                </div>
+            </div>
+
+            {/* Sumber Dana */}
+            <div className="space-y-4">
+                <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest">Sumber Dana</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {[
+                        { label: 'Perguruan Tinggi', key: 'dana_perguruan_tinggi' },
+                        { label: 'Pemerintah', key: 'dana_pemerintah' },
+                        { label: 'Lembaga Dalam Negeri', key: 'dana_lembaga_dalam' },
+                        { label: 'Lembaga Luar Negeri', key: 'dana_lembaga_luar' },
+                    ].map(option => (
+                        <div key={option.key} className="px-4 py-3 rounded-xl bg-slate-50 focus-within:bg-white focus-within:ring-2 focus-within:ring-poltekpar-primary/20 transition-all">
+                            <label className="text-[11px] font-bold text-slate-600 mb-1.5 block">{option.label}</label>
+                            <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">Rp</span>
+                                <input
+                                    type="number"
+                                    value={data[option.key as keyof FormData] as number}
+                                    onChange={e => setData(option.key as any, Number(e.target.value))}
+                                    className="w-full pl-8 pr-3 py-2 bg-transparent rounded-lg text-sm font-semibold outline-none text-slate-900 placeholder-slate-400"
+                                    placeholder="0"
+                                    min={0}
+                                />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Dokumen */}
+            <div className="space-y-4">
+                <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest">Dokumen & Tautan</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label className="text-[11px] font-bold text-slate-600 mb-1 block">Link Surat Permohonan</label>
+                        <input type="url" value={data.surat_permohonan} onChange={e => setData('surat_permohonan', e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-poltekpar-primary/20 focus:border-poltekpar-primary" placeholder="https://drive.google.com/..." />
+                    </div>
+                    <div>
+                        <label className="text-[11px] font-bold text-slate-600 mb-1 block">Link Proposal</label>
+                        <input type="url" value={data.surat_proposal} onChange={e => setData('surat_proposal', e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-poltekpar-primary/20 focus:border-poltekpar-primary" placeholder="https://drive.google.com/..." />
+                    </div>
+                </div>
+                <div>
+                    <div className="flex items-center justify-between mb-1">
+                        <label className="text-[11px] font-bold text-slate-600">Tautan Tambahan</label>
+                        <button type="button" onClick={handleAddLink} className="text-[11px] font-bold text-poltekpar-primary flex items-center gap-1 hover:opacity-70">
+                            <i className="fa-solid fa-plus"></i> Tambah
+                        </button>
+                    </div>
+                    {data.link_tambahan.map((link, idx) => (
+                        <div key={idx} className="flex gap-2 mb-2">
+                            <input type="url" value={link} onChange={e => handleLinkChange(idx, e.target.value)} className="flex-1 px-4 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-poltekpar-primary/20 focus:border-poltekpar-primary" placeholder="https://..." />
+                            {data.link_tambahan.length > 1 && (
+                                <button type="button" onClick={() => handleRemoveLink(idx)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all">
+                                    <i className="fa-solid fa-xmark"></i>
+                                </button>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Submit */}
+            <div className="pt-2">
+                <button type="submit" disabled={isMockSubmitting} className="w-full py-3 bg-gradient-to-r from-poltekpar-primary to-poltekpar-navy text-white font-bold rounded-xl shadow-lg shadow-poltekpar-primary/20 disabled:opacity-50 transition-all hover:-translate-y-0.5 active:scale-[0.98] flex items-center justify-center gap-2">
+                    {isMockSubmitting ? 'Mengirim...' : 'Kirim Pengajuan'}
+                </button>
             </div>
         </div>
     );

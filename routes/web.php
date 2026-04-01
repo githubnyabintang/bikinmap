@@ -13,6 +13,7 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\User\PengajuanUserController;
 use App\Models\Aktivitas;
+use App\Models\Arsip;
 use App\Models\Pengajuan;
 use App\Models\Testimoni;
 use Illuminate\Http\Request;
@@ -42,6 +43,46 @@ Route::post('/testimoni/public', function (Request $request) {
 
     return redirect()->back()->with('success', 'Testimoni berhasil dikirim.');
 })->middleware('throttle:10,1')->name('testimoni.public');
+
+// Arsip publik — tanpa auth
+Route::post('/kumpul-arsip/public', function (Request $request) {
+    $request->validate([
+        'laporan' => 'required|url|max:2048',
+        'dokumentasi' => 'required|url|max:2048',
+        'dokumen_lainnya' => 'nullable|array|max:5',
+        'dokumen_lainnya.*' => 'url|max:2048',
+    ]);
+
+    Arsip::create([
+        'id_pengajuan' => null,
+        'nama_dokumen' => 'Laporan Akhir',
+        'jenis_arsip' => 'laporan_akhir',
+        'url_dokumen' => $request->laporan,
+        'keterangan' => 'Dikumpulkan via form publik',
+    ]);
+
+    Arsip::create([
+        'id_pengajuan' => null,
+        'nama_dokumen' => 'Dokumentasi Kegiatan',
+        'jenis_arsip' => 'foto_kegiatan',
+        'url_dokumen' => $request->dokumentasi,
+        'keterangan' => 'Dikumpulkan via form publik',
+    ]);
+
+    foreach (($request->dokumen_lainnya ?? []) as $link) {
+        if (! empty($link)) {
+            Arsip::create([
+                'id_pengajuan' => null,
+                'nama_dokumen' => 'Dokumen Tambahan',
+                'jenis_arsip' => 'dokumen_lain',
+                'url_dokumen' => $link,
+                'keterangan' => 'Dikumpulkan via form publik',
+            ]);
+        }
+    }
+
+    return redirect()->back()->with('success', 'Arsip berhasil dikumpulkan.');
+})->middleware('throttle:10,1')->name('arsip.kumpul.public');
 
 // Geocode proxy — Rate limited 30 req/menit per IP
 Route::get('/api/geocode', function (Request $request) {
@@ -83,7 +124,7 @@ Route::get('/kumpul-arsip/{kode}', function ($kode) {
     // Nantinya $kode ini dapat memanggil title kegiatan dari database
     return Inertia::render('Public/PengumpulanArsip', [
         'kode' => $kode,
-        'namaKegiatan' => 'PENGEMBANGAN WEBSITE SIGAP (CONTOH)'
+        'namaKegiatan' => 'PENGEMBANGAN WEBSITE SIGAP (CONTOH)',
     ]);
 })->name('arsip.kumpul.public');
 
@@ -93,7 +134,7 @@ Route::get('/kumpul-arsip/{kode}', function ($kode) {
 Route::get('/testimoni/{kode}', function ($kode) {
     return Inertia::render('Public/Testimoni', [
         'kode' => $kode,
-        'namaKegiatan' => 'PENGEMBANGAN WEBSITE SIGAP (CONTOH)'
+        'namaKegiatan' => 'PENGEMBANGAN WEBSITE SIGAP (CONTOH)',
     ]);
 })->name('testimoni.public');
 
@@ -127,30 +168,30 @@ Route::get('/pengajuan', function (Request $request) {
             ->latest()
             ->get()
             ->map(fn ($p) => [
-                'id'               => $p->id_pengajuan,
-                'judul'            => $p->judul_kegiatan,
-                'ringkasan'        => $p->kebutuhan ?: ($p->instansi_mitra ?: '-'),
-                'tanggal'          => optional($p->created_at)->format('d M Y') ?? '-',
-                'status'           => $p->status_pengajuan,
-                'catatan'          => $p->catatan_admin,
-                'instansi_mitra'   => $p->instansi_mitra,
-                'no_telepon'       => $p->no_telepon,
-                'provinsi'         => $p->provinsi,
-                'kota_kabupaten'   => $p->kota_kabupaten,
-                'kecamatan'        => $p->kecamatan,
-                'kelurahan_desa'   => $p->kelurahan_desa,
-                'alamat_lengkap'   => $p->alamat_lengkap,
-                'proposal'         => $p->proposal,
+                'id' => $p->id_pengajuan,
+                'judul' => $p->judul_kegiatan,
+                'ringkasan' => $p->kebutuhan ?: ($p->instansi_mitra ?: '-'),
+                'tanggal' => optional($p->created_at)->format('d M Y') ?? '-',
+                'status' => $p->status_pengajuan,
+                'catatan' => $p->catatan_admin,
+                'instansi_mitra' => $p->instansi_mitra,
+                'no_telepon' => $p->no_telepon,
+                'provinsi' => $p->provinsi,
+                'kota_kabupaten' => $p->kota_kabupaten,
+                'kecamatan' => $p->kecamatan,
+                'kelurahan_desa' => $p->kelurahan_desa,
+                'alamat_lengkap' => $p->alamat_lengkap,
+                'proposal' => $p->proposal,
                 'surat_permohonan' => $p->surat_permohonan,
-                'rab'              => $p->rab,
-                'sumber_dana'      => $p->sumber_dana,
-                'total_anggaran'   => $p->total_anggaran,
-                'tgl_mulai'        => optional($p->tgl_mulai)->format('Y-m-d'),
-                'tgl_selesai'      => optional($p->tgl_selesai)->format('Y-m-d'),
-                'jenis_pkm'        => $p->jenisPkm ? $p->jenisPkm->nama_jenis : null,
-                'tim_kegiatan'     => $p->timKegiatan->map(fn($t) => [
+                'rab' => $p->rab,
+                'sumber_dana' => $p->sumber_dana,
+                'total_anggaran' => $p->total_anggaran,
+                'tgl_mulai' => optional($p->tgl_mulai)->format('Y-m-d'),
+                'tgl_selesai' => optional($p->tgl_selesai)->format('Y-m-d'),
+                'jenis_pkm' => $p->jenisPkm ? $p->jenisPkm->nama_jenis : null,
+                'tim_kegiatan' => $p->timKegiatan->map(fn ($t) => [
                     'nama' => $t->pegawai ? $t->pegawai->nama_pegawai : $t->nama_mahasiswa,
-                    'peran' => $t->peran_tim
+                    'peran' => $t->peran_tim,
                 ]),
             ])
             ->values()
@@ -161,16 +202,16 @@ Route::get('/pengajuan', function (Request $request) {
         'auth' => [
             'user' => $user
                 ? [
-                    'id'     => $user->id_user,
-                    'name'   => $user->name,
-                    'email'  => $user->email,
-                    'role'   => $user->role ?? $role,
+                    'id' => $user->id_user,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->role ?? $role,
                     'avatar' => $user->avatar ?? null,
                 ]
                 : null,
         ],
-        'role'            => $role,
-        'initialView'     => 'form',
+        'role' => $role,
+        'initialView' => 'form',
         'userSubmissions' => $userSubmissions,
     ]);
 })->name('pengajuan.form');
@@ -187,30 +228,30 @@ Route::get('/cek-status', function (Request $request) {
             ->latest()
             ->get()
             ->map(fn ($p) => [
-                'id'               => $p->id_pengajuan,
-                'judul'            => $p->judul_kegiatan,
-                'ringkasan'        => $p->kebutuhan ?: ($p->instansi_mitra ?: '-'),
-                'tanggal'          => optional($p->created_at)->format('d M Y') ?? '-',
-                'status'           => $p->status_pengajuan,
-                'catatan'          => $p->catatan_admin,
-                'instansi_mitra'   => $p->instansi_mitra,
-                'no_telepon'       => $p->no_telepon,
-                'provinsi'         => $p->provinsi,
-                'kota_kabupaten'   => $p->kota_kabupaten,
-                'kecamatan'        => $p->kecamatan,
-                'kelurahan_desa'   => $p->kelurahan_desa,
-                'alamat_lengkap'   => $p->alamat_lengkap,
-                'proposal'         => $p->proposal,
+                'id' => $p->id_pengajuan,
+                'judul' => $p->judul_kegiatan,
+                'ringkasan' => $p->kebutuhan ?: ($p->instansi_mitra ?: '-'),
+                'tanggal' => optional($p->created_at)->format('d M Y') ?? '-',
+                'status' => $p->status_pengajuan,
+                'catatan' => $p->catatan_admin,
+                'instansi_mitra' => $p->instansi_mitra,
+                'no_telepon' => $p->no_telepon,
+                'provinsi' => $p->provinsi,
+                'kota_kabupaten' => $p->kota_kabupaten,
+                'kecamatan' => $p->kecamatan,
+                'kelurahan_desa' => $p->kelurahan_desa,
+                'alamat_lengkap' => $p->alamat_lengkap,
+                'proposal' => $p->proposal,
                 'surat_permohonan' => $p->surat_permohonan,
-                'rab'              => $p->rab,
-                'sumber_dana'      => $p->sumber_dana,
-                'total_anggaran'   => $p->total_anggaran,
-                'tgl_mulai'        => optional($p->tgl_mulai)->format('Y-m-d'),
-                'tgl_selesai'      => optional($p->tgl_selesai)->format('Y-m-d'),
-                'jenis_pkm'        => $p->jenisPkm ? $p->jenisPkm->nama_jenis : null,
-                'tim_kegiatan'     => $p->timKegiatan->map(fn($t) => [
+                'rab' => $p->rab,
+                'sumber_dana' => $p->sumber_dana,
+                'total_anggaran' => $p->total_anggaran,
+                'tgl_mulai' => optional($p->tgl_mulai)->format('Y-m-d'),
+                'tgl_selesai' => optional($p->tgl_selesai)->format('Y-m-d'),
+                'jenis_pkm' => $p->jenisPkm ? $p->jenisPkm->nama_jenis : null,
+                'tim_kegiatan' => $p->timKegiatan->map(fn ($t) => [
                     'nama' => $t->pegawai ? $t->pegawai->nama_pegawai : $t->nama_mahasiswa,
-                    'peran' => $t->peran_tim
+                    'peran' => $t->peran_tim,
                 ]),
             ])
             ->values()
@@ -221,16 +262,16 @@ Route::get('/cek-status', function (Request $request) {
         'auth' => [
             'user' => $user
                 ? [
-                    'id'     => $user->id_user,
-                    'name'   => $user->name,
-                    'email'  => $user->email,
-                    'role'   => $user->role ?? $role,
+                    'id' => $user->id_user,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->role ?? $role,
                     'avatar' => $user->avatar ?? null,
                 ]
                 : null,
         ],
-        'role'            => $role,
-        'initialView'     => 'status',
+        'role' => $role,
+        'initialView' => 'status',
         'userSubmissions' => $userSubmissions,
     ]);
 })->name('pengajuan.status');
