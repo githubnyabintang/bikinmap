@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Aktivitas;
+use App\Models\Arsip;
 use App\Models\JenisPkm;
 use App\Models\Pengajuan;
 use App\Models\Testimoni;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
@@ -82,5 +85,122 @@ class LandingController extends Controller
             'chartStats'    => $chartStats,
             'testimonials'  => $testimonials,
         ]);
+    }
+
+    /**
+     * Tampilkan form pengumpulan arsip publik.
+     */
+    public function showArsipKumpul($kode)
+    {
+        $pengajuan = Pengajuan::where('id_pengajuan', $kode)->firstOrFail();
+
+        return Inertia::render('Public/PengumpulanArsip', [
+            'kode' => $kode,
+            'namaKegiatan' => $pengajuan->judul_kegiatan,
+        ]);
+    }
+
+    /**
+     * Simpan arsip publik.
+     */
+    public function storeArsipKumpul(Request $request, $kode)
+    {
+        $pengajuan = Pengajuan::where('id_pengajuan', $kode)->firstOrFail();
+        $aktivitas = Aktivitas::where('id_pengajuan', $pengajuan->id_pengajuan)->first();
+
+        $request->validate([
+            'laporan' => 'required|url|max:2048',
+            'dokumentasi' => 'required|url|max:2048',
+            'dokumen_lainnya' => 'nullable|array|max:5',
+            'dokumen_lainnya.*' => 'url|max:2048',
+        ]);
+
+        $commonData = [
+            'id_pengajuan' => $pengajuan->id_pengajuan,
+            'id_aktivitas' => $aktivitas?->id_aktivitas,
+            'keterangan' => 'Dikumpulkan via form publik',
+        ];
+
+        Arsip::create(array_merge($commonData, [
+            'nama_dokumen' => 'Laporan Akhir',
+            'jenis_arsip' => 'laporan_akhir',
+            'url_dokumen' => $request->laporan,
+        ]));
+
+        Arsip::create(array_merge($commonData, [
+            'nama_dokumen' => 'Dokumentasi Kegiatan',
+            'jenis_arsip' => 'foto_kegiatan',
+            'url_dokumen' => $request->dokumentasi,
+        ]));
+
+        foreach (($request->dokumen_lainnya ?? []) as $link) {
+            if (! empty($link)) {
+                Arsip::create(array_merge($commonData, [
+                    'nama_dokumen' => 'Dokumen Tambahan',
+                    'jenis_arsip' => 'dokumen_lain',
+                    'url_dokumen' => $link,
+                ]));
+            }
+        }
+
+        return redirect()->back()->with('success', 'Arsip berhasil dikumpulkan.');
+    }
+
+    /**
+     * Tampilkan form testimoni publik.
+     */
+    public function showTestimoni($kode)
+    {
+        $pengajuan = Pengajuan::where('id_pengajuan', $kode)->firstOrFail();
+
+        return Inertia::render('Public/Testimoni', [
+            'kode' => $kode,
+            'namaKegiatan' => $pengajuan->judul_kegiatan,
+        ]);
+    }
+
+    /**
+     * Simpan testimoni publik.
+     */
+    public function storeTestimoni(Request $request, $kode)
+    {
+        $pengajuan = Pengajuan::where('id_pengajuan', $kode)->firstOrFail();
+        $aktivitas = Aktivitas::where('id_pengajuan', $pengajuan->id_pengajuan)->first();
+
+        $request->validate([
+            'nama_pemberi' => 'required|string|max:255',
+            'rating' => 'required|integer|min:1|max:5',
+            'pesan_ulasan' => 'nullable|string|max:2000',
+        ]);
+
+        Testimoni::create([
+            'id_aktivitas' => $aktivitas?->id_aktivitas,
+            'nama_pemberi' => $request->nama_pemberi,
+            'rating' => $request->rating,
+            'pesan_ulasan' => $request->pesan_ulasan,
+        ]);
+
+        return redirect()->back()->with('success', 'Testimoni berhasil dikirim.');
+    }
+
+    /**
+     * Store general public testimony (not tied to specific activity).
+     */
+    public function storePublicTestimoni(Request $request)
+    {
+        $request->validate([
+            'nama_pemberi' => 'required|string|max:255',
+            'rating' => 'required|integer|min:1|max:5',
+            'pesan_ulasan' => 'nullable|string|max:2000',
+        ]);
+
+        Testimoni::create([
+            'id_aktivitas' => null,
+            'nama_pemberi' => $request->nama_pemberi,
+            'rating' => $request->rating,
+            'pesan_ulasan' => $request->pesan_ulasan,
+        ]);
+
+        return redirect()->back()->with('success', 'Testimoni berhasil dikirim.');
     }
 }

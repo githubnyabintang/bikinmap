@@ -9,7 +9,6 @@ interface ArsipItem {
     nama_dokumen: string;
     jenis_arsip: string;
     url_dokumen?: string;
-    url_arsip?: string;
     keterangan?: string;
     created_at: string;
     updated_at: string;
@@ -90,7 +89,7 @@ const ArsipPage: React.FC<Props> = ({ listArsip, filters }) => {
             id_pengajuan: a.pengajuan?.id_pengajuan?.toString() || '',
             nama_dokumen: a.nama_dokumen,
             jenis_arsip: a.jenis_arsip,
-            url_dokumen: a.url_dokumen || a.url_arsip || '',
+            url_dokumen: a.url_dokumen || '',
             keterangan: a.keterangan || '',
         });
         setModalOpen(true);
@@ -256,7 +255,7 @@ const ArsipPage: React.FC<Props> = ({ listArsip, filters }) => {
                             <div>
                                 <div className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1.5">Link Akses Dokumen</div>
                                 <div className="bg-zinc-50 rounded-md border border-zinc-200 p-3">
-                                    <p className="text-[12px] text-zinc-700 break-all font-mono">{previewItem.url_dokumen || previewItem.url_arsip || '-'}</p>
+                                    <p className="text-[12px] text-zinc-700 break-all font-mono">{previewItem.url_dokumen || '-'}</p>
                                 </div>
                             </div>
                             {previewItem.keterangan && (
@@ -269,9 +268,9 @@ const ArsipPage: React.FC<Props> = ({ listArsip, filters }) => {
                             )}
 
                             <div className="pt-2 flex gap-3">
-                                {(previewItem.url_dokumen || previewItem.url_arsip) && (
+                                {previewItem.url_dokumen && (
                                     <a
-                                        href={previewItem.url_dokumen || previewItem.url_arsip}
+                                        href={previewItem.url_dokumen}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-[13px] font-medium text-white bg-zinc-900 hover:bg-zinc-800 transition-colors shadow-sm"

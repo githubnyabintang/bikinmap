@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Aktivitas;
+use App\Models\Arsip;
 use App\Models\JenisPkm;
 use App\Models\Pegawai;
 use App\Models\Pengajuan;
@@ -84,7 +85,7 @@ class PengajuanController extends Controller
             'alamat_lengkap' => 'nullable|string',
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
-            'status_pengajuan' => 'nullable|in:diproses,direvisi,diterima,ditolak',
+            'status_pengajuan' => 'nullable|in:diproses,direvisi,diterima,ditolak,selesai',
             'catatan_admin' => 'nullable|string|max:1000',
             'proposal' => 'nullable|string|max:2048',
             'surat_permohonan' => 'nullable|string|max:2048',
@@ -110,9 +111,10 @@ class PengajuanController extends Controller
     {
         $pengajuan = Pengajuan::findOrFail($id);
 
-        // Cascading soft deletes to related tables
-        Aktivitas::where('id_pengajuan', $id)->get()->each->delete();
-        TimKegiatan::where('id_pengajuan', $id)->get()->each->delete();
+        // Cascading soft deletes — bulk update avoids N+1 queries
+        Aktivitas::where('id_pengajuan', $id)->update(['deleted_at' => now()]);
+        TimKegiatan::where('id_pengajuan', $id)->update(['deleted_at' => now()]);
+        Arsip::where('id_pengajuan', $id)->update(['deleted_at' => now()]);
 
         $pengajuan->delete();
 
@@ -122,7 +124,7 @@ class PengajuanController extends Controller
     public function updateStatus(Request $request, int $id)
     {
         $request->validate([
-            'status_pengajuan' => 'required|in:diproses,direvisi,diterima,ditolak',
+            'status_pengajuan' => 'required|in:diproses,direvisi,diterima,ditolak,selesai',
             'catatan_admin' => 'nullable|string|max:1000',
         ]);
 

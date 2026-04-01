@@ -6,6 +6,7 @@ import '../../../css/login.css';
 
 interface RegisterFormData {
     name: string;
+    nip: string;
     email: string;
     password: string;
     password_confirmation: string;
@@ -18,6 +19,7 @@ export default function Register(): JSX.Element {
     // Initialize Inertia's useForm hook for state management and validation handling
     const { data, setData, post, processing, errors, reset } = useForm<RegisterFormData>({
         name: '',
+        nip: '',
         email: '',
         password: '',
         password_confirmation: '',
@@ -89,6 +91,27 @@ export default function Register(): JSX.Element {
                                 </div>
                                 {errors.name && (
                                     <span className="invalid-feedback">{errors.name}</span>
+                                )}
+                            </div>
+
+                            {/* NIP Input (Opsional untuk Dosen) */}
+                            <div className="input-group">
+                                <label htmlFor="nip">NIP (Opsional)</label>
+                                <div className="input-wrapper">
+                                    <input
+                                        type="text"
+                                        id="nip"
+                                        name="nip"
+                                        placeholder="Khusus Dosen/Pegawai Poltekpar"
+                                        value={data.nip}
+                                        onChange={(e) => setData('nip', e.target.value)}
+                                        className={errors.nip ? 'is-invalid' : ''}
+                                        autoComplete="off"
+                                    />
+                                    <i className="fa-regular fa-id-card input-icon"></i>
+                                </div>
+                                {errors.nip && (
+                                    <span className="invalid-feedback">{errors.nip}</span>
                                 )}
                             </div>
 

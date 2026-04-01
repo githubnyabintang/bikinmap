@@ -46,7 +46,6 @@ interface Arsip {
     nama_dokumen: string;
     jenis_arsip: string;
     url_dokumen?: string;
-    url_arsip?: string;
     keterangan?: string;
 }
 
@@ -363,8 +362,8 @@ const Detail: React.FC<Props> = ({ aktivitas }) => {
                                             <div className="text-[13px] font-medium text-zinc-900 truncate">{arsip.nama_dokumen}</div>
                                             <div className="text-[11px] text-zinc-400">{arsip.jenis_arsip} {arsip.keterangan ? `• ${arsip.keterangan}` : ''}</div>
                                         </div>
-                                        {(arsip.url_dokumen || arsip.url_arsip) && (
-                                            <a href={arsip.url_dokumen || arsip.url_arsip} target="_blank" rel="noopener noreferrer"
+                                        {arsip.url_dokumen && (
+                                            <a href={arsip.url_dokumen} target="_blank" rel="noopener noreferrer"
                                                 className="text-[12px] text-blue-600 font-medium hover:underline">Buka</a>
                                         )}
                                     </div>

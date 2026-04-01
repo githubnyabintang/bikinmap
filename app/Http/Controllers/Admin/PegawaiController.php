@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Pegawai;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class PegawaiController extends Controller
@@ -67,84 +68,101 @@ class PegawaiController extends Controller
     public function import(Request $request)
     {
         $request->validate([
-            'file' => 'required|file|mimes:csv,txt,xlsx|max:4096',
+            'file' => 'required|file|mimes:csv,txt,xlsx,xls|max:8192',
+        ], [
+            'file.mimes' => 'Format file harus .csv atau .xlsx (Excel).',
         ]);
 
         $file = $request->file('file');
+        $path = $file->getRealPath();
         $extension = strtolower($file->getClientOriginalExtension());
+        $data = [];
 
         if (in_array($extension, ['xlsx', 'xls'])) {
-            // Parse XLSX as tab-separated (simple fallback without library)
-            $tmpFile = tempnam(sys_get_temp_dir(), 'xls');
-            $file->moveAs(dirname($tmpFile), basename($tmpFile));
-            $content = file_get_contents($tmpFile);
-
-            // Try CSV fallback
-            $lines = file($tmpFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-            if (! $lines) {
-                @unlink($tmpFile);
-
-                return redirect()->back()->withErrors(['file' => 'Format file tidak didukung. Gunakan CSV dengan kolom: NO, NAMA, NIP, JABATAN, Posisi.']);
+            // Parse Excel dengan PhpSpreadsheet
+            try {
+                $spreadsheet = IOFactory::load($path);
+                $sheet = $spreadsheet->getActiveSheet();
+                $data = $sheet->toArray(null, true, true, true);
+            } catch (\Exception $e) {
+                return redirect()->back()->withErrors(['file' => 'Gagal membaca file Excel: '.$e->getMessage()]);
             }
-
-            $data = [];
-            foreach ($lines as $line) {
-                $fields = str_getcsv($line, "\t");
-                if (count($fields) < 2) {
-                    $fields = str_getcsv($line, ',');
-                }
-                $data[] = $fields;
-            }
-            @unlink($tmpFile);
         } else {
-            $data = [];
-            $handle = fopen($file->getRealPath(), 'r');
-            while (($row = fgetcsv($handle, 1000, ',')) !== false) {
+            // Parse CSV
+            $firstLine = fgets(fopen($path, 'r'));
+            $delimiter = (str_contains($firstLine, ';') && ! str_contains($firstLine, ',')) ? ';' : ',';
+            $handle = fopen($path, 'r');
+            while (($row = fgetcsv($handle, 1000, $delimiter)) !== false) {
                 $data[] = $row;
             }
             fclose($handle);
         }
 
         if (empty($data) || count($data) < 2) {
-            return redirect()->back()->withErrors(['file' => 'File kosong atau tidak ada data.']);
+            return redirect()->back()->withErrors(['file' => 'File kosong atau tidak memiliki baris data.']);
         }
 
-        // Read headers and map columns
-        $headers = array_map(fn ($h) => trim(strtoupper($h)), $data[0]);
+        // Mapping header (case-insensitive, support: NO, NAMA, NIP, JABATAN, POSISI)
+        $rawHeaders = is_string($data[0][1] ?? null) ? $data[0] : array_values($data[0]);
+        $headers = array_map(fn ($h) => strtoupper(trim($h ?? '')), $rawHeaders);
+
         $colMap = [];
-        foreach ($headers as $i => $h) {
-            $key = preg_replace('/[^A-Z]/', '', $h);
-            if (str_contains($key, 'NAMA')) {
-                $colMap['nama'] = $i;
-            } elseif (str_contains($key, 'NIP')) {
-                $colMap['nip'] = $i;
-            } elseif (str_contains($key, 'JABATAN')) {
-                $colMap['jabatan'] = $i;
-            } elseif (str_contains($key, 'POSISI')) {
-                $colMap['posisi'] = $i;
+        foreach ($headers as $idx => $h) {
+            $clean = preg_replace('/[^A-Z]/', '', $h);
+            if ($clean === 'NAMA' || $clean === 'NAMAPEGAWAI' || $clean === 'NAMAPEOPLE') {
+                $colMap['nama'] = $idx;
+            } elseif ($clean === 'NIP') {
+                $colMap['nip'] = $idx;
+            } elseif ($clean === 'JABATAN') {
+                $colMap['jabatan'] = $idx;
+            } elseif ($clean === 'POSISI') {
+                $colMap['posisi'] = $idx;
             }
         }
 
-        // If no header mapping found, fallback to positional
-        if (empty($colMap)) {
-            $colMap = ['nama' => 0, 'nip' => 1, 'jabatan' => 2, 'posisi' => 3];
+        // Fallback positional
+        if (! isset($colMap['nama'])) {
+            $colMap['nama'] = 1;
+        }
+        if (! isset($colMap['nip'])) {
+            $colMap['nip'] = 2;
+        }
+        if (! isset($colMap['jabatan'])) {
+            $colMap['jabatan'] = 3;
+        }
+        if (! isset($colMap['posisi'])) {
+            $colMap['posisi'] = 4;
         }
 
         $count = 0;
-        for ($rowIdx = 1; $rowIdx < count($data); $rowIdx++) {
-            $row = $data[$rowIdx];
-            $nama = trim($row[$colMap['nama']] ?? '');
-            if (empty($nama)) {
-                continue;
-            }
+        DB::beginTransaction();
+        try {
+            foreach ($data as $i => $row) {
+                if ($i === 0) {
+                    continue;
+                } // skip header
 
-            Pegawai::create([
-                'nama_pegawai' => $nama,
-                'nip' => trim($row[$colMap['nip']] ?? ''),
-                'jabatan' => trim($row[$colMap['jabatan']] ?? ''),
-                'posisi' => trim($row[$colMap['posisi']] ?? ''),
-            ]);
-            $count++;
+                // Normalize row to array
+                $rowArr = is_array($row) ? array_values($row) : [];
+                $nama = trim($rowArr[$colMap['nama'] - 1] ?? '');
+
+                if (empty($nama) || strtoupper($nama) === 'NAMA' || strtoupper($nama) === 'NAMA_PEGAWAI') {
+                    continue;
+                }
+
+                Pegawai::create([
+                    'nama_pegawai' => $nama,
+                    'nip' => trim($rowArr[$colMap['nip'] - 1] ?? ''),
+                    'jabatan' => trim($rowArr[$colMap['jabatan'] - 1] ?? ''),
+                    'posisi' => trim($rowArr[$colMap['posisi'] - 1] ?? ''),
+                ]);
+                $count++;
+            }
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return redirect()->back()->withErrors(['file' => 'Gagal memproses data: '.$e->getMessage()]);
         }
 
         return redirect()->back()->with('success', "Berhasil mengimpor {$count} data pegawai.");

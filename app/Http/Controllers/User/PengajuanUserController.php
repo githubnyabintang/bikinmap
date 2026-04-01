@@ -4,13 +4,67 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\JenisPkm;
+use App\Models\Pegawai;
 use App\Models\Pengajuan;
 use App\Models\TimKegiatan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
 
 class PengajuanUserController extends Controller
 {
+    /**
+     * Display the submission page for the authenticated user.
+     */
+    public function index(Request $request)
+    {
+        $user = $request->user();
+        $role = $user ? ($user->role ?? 'masyarakat') : 'masyarakat';
+
+        // Ambil pengajuan milik user dari database
+        $userSubmissions = $user
+            ? Pengajuan::where('id_user', $user->id_user)
+                ->with(['timKegiatan.pegawai', 'jenisPkm'])
+                ->latest()
+                ->get()
+                ->map(fn ($p) => [
+                    'id' => $p->id_pengajuan,
+                    'judul' => $p->judul_kegiatan,
+                    'ringkasan' => $p->kebutuhan ?: ($p->instansi_mitra ?: '-'),
+                    'tanggal' => optional($p->created_at)->format('d M Y') ?? '-',
+                    'status' => $p->status_pengajuan,
+                    'catatan' => $p->catatan_admin,
+                    'instansi_mitra' => $p->instansi_mitra,
+                    'no_telepon' => $p->no_telepon,
+                    'provinsi' => $p->provinsi,
+                    'kota_kabupaten' => $p->kota_kabupaten,
+                    'kecamatan' => $p->kecamatan,
+                    'kelurahan_desa' => $p->kelurahan_desa,
+                    'alamat_lengkap' => $p->alamat_lengkap,
+                    'proposal' => $p->proposal,
+                    'surat_permohonan' => $p->surat_permohonan,
+                    'rab' => $p->rab,
+                    'sumber_dana' => $p->sumber_dana,
+                    'total_anggaran' => $p->total_anggaran,
+                    'tgl_mulai' => optional($p->tgl_mulai)->format('Y-m-d'),
+                    'tgl_selesai' => optional($p->tgl_selesai)->format('Y-m-d'),
+                    'jenis_pkm' => $p->jenisPkm ? $p->jenisPkm->nama_jenis : null,
+                    'tim_kegiatan' => $p->timKegiatan->map(fn ($t) => [
+                        'nama' => $t->pegawai ? $t->pegawai->nama_pegawai : $t->nama_mahasiswa,
+                        'peran' => $t->peran_tim,
+                    ]),
+                ])
+                ->values()
+                ->toArray()
+            : [];
+
+        return Inertia::render('Auth/Pengajuan', [
+            'role' => $role,
+            'initialView' => $request->routeIs('pengajuan.status') ? 'status' : 'form',
+            'userSubmissions' => $userSubmissions,
+        ]);
+    }
+
     /**
      * Store a newly created submission.
      */
@@ -60,6 +114,7 @@ class PengajuanUserController extends Controller
             'kelurahan_desa'   => $request->kelurahan_desa ?? '',
             'alamat_lengkap'   => $request->alamat_lengkap ?? '',
             'judul_kegiatan'   => $request->judul_kegiatan,
+            'kebutuhan'        => $request->kebutuhan ?? '',
             'instansi_mitra'   => $request->instansi_mitra ?? '',
             'no_telepon'       => $request->no_telepon ?? '',
             'sumber_dana'      => $request->sumber_dana ?? '',
@@ -72,11 +127,24 @@ class PengajuanUserController extends Controller
             'status_pengajuan' => 'diproses',
         ]);
 
+        // Cari data pegawai milik user (Dosen) yang sedang login
+        $pegawai = Pegawai::where('id_user', $user->id_user)->first();
+
         // Dosen pengusul utama dimasukkan ke tim sebagai Ketua
         $teamMembers = [];
-        $namaDosen = trim($request->nama_dosen ?? '');
-        if ($namaDosen !== '') {
-            $teamMembers[] = ['nama_mahasiswa' => $namaDosen, 'peran_tim' => 'Ketua/Dosen Pengusul'];
+        if ($pegawai) {
+            $teamMembers[] = [
+                'id_pegawai' => $pegawai->id_pegawai,
+                'nama_mahasiswa' => null,
+                'peran_tim' => 'Ketua/Dosen Pengusul'
+            ];
+        } else {
+            // Fallback jika data pegawai belum di-link ke user
+            $teamMembers[] = [
+                'id_pegawai' => null,
+                'nama_mahasiswa' => trim($request->nama_dosen),
+                'peran_tim' => 'Ketua/Dosen Pengusul'
+            ];
         }
 
         $this->addTeamMembers($teamMembers, $request->dosen_terlibat, 'Dosen');
@@ -149,6 +217,7 @@ class PengajuanUserController extends Controller
             foreach ($members as $name) {
                 if (!empty(trim($name))) {
                     $teamMembers[] = [
+                        'id_pegawai' => null,
                         'nama_mahasiswa' => $name,
                         'peran_tim'      => $role,
                     ];

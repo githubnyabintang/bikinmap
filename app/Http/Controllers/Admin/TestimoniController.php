@@ -33,7 +33,7 @@ class TestimoniController extends Controller
             ->get()
             ->map(fn ($a) => [
                 'id_aktivitas' => $a->id_aktivitas,
-                'judul_kegiatan' => $a->pengajuan->judul_kegiatan ?? 'Tanpa Judul',
+                'judul_kegiatan' => $a->pengajuan?->judul_kegiatan ?? 'Tanpa Judul',
             ]);
 
         return Inertia::render('Admin/Testimoni/Index', [

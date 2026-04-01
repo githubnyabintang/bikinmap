@@ -45,9 +45,8 @@ export default function Login(): JSX.Element {
                         />
                         <div className="login-brand-text login-brand-text-wide">
                             <span className="brand-heading brand-heading-wide">
-                                Sistem Informasi Geospasial dan Akses Pelayanan Pengabdian Kepada Masyarakat
+                                Sistem Informasi Geospasial dan Akses Pelayanan Pengabdian (SIGAPPA)
                             </span>
-                            <span className="brand-heading brand-heading-wide">(SIGAP PKM)</span>
                             <span className="brand-subheading brand-subheading-wide">Politeknik Pariwisata Makassar</span>
                         </div>
                     </div>

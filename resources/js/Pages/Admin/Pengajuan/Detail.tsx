@@ -12,7 +12,7 @@ import {
 interface Pegawai { id_pegawai: number; nama_pegawai: string; nip?: string; }
 interface TimKegiatan { id_tim: number; nama_mahasiswa?: string; peran_tim?: string; pegawai?: { nama_pegawai: string }; }
 interface Aktivitas { id_aktivitas: number; status_pelaksanaan: string; catatan_pelaksanaan?: string; }
-interface Arsip { id_arsip: number; nama_dokumen: string; jenis_arsip: string; url_dokumen?: string; url_arsip?: string; }
+interface Arsip { id_arsip: number; nama_dokumen: string; jenis_arsip: string; url_dokumen?: string; }
 
 interface Pengajuan {
     id_pengajuan: number;
@@ -348,6 +348,14 @@ const Detail: React.FC<Props> = ({ pengajuan, listPegawai, listJenisPkm }) => {
                                             Ditolak
                                         </div>
                                     </button>
+                                    {pengajuan.status_pengajuan === 'diterima' && (
+                                        <button onClick={() => setSelectedAction('selesai')} className={`flex items-center justify-between px-4 py-3 rounded-lg border text-[14px] font-medium transition-all ${selectedAction === 'selesai' ? 'bg-indigo-50 text-indigo-800 border-indigo-300 shadow-sm' : 'bg-indigo-50/30 text-indigo-700 border-indigo-200'}`}>
+                                            <div className="flex items-center gap-3">
+                                                <CheckCircle size={18} />
+                                                Selesai
+                                            </div>
+                                        </button>
+                                    )}
                                 </div>
 
                                 {selectedAction === 'direvisi' && (

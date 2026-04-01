@@ -54,6 +54,7 @@ interface FormData {
     email: string;
     whatsapp: string;
     judul_kegiatan: string;
+    kebutuhan: string;
     provinsi: string;
     kota_kabupaten: string;
     kecamatan: string;
@@ -116,6 +117,7 @@ export default function DosenSubmissionCard({
         email: '',
         whatsapp: '',
         judul_kegiatan: '',
+        kebutuhan: '',
         provinsi: '',
         kota_kabupaten: '',
         kecamatan: '',
@@ -173,6 +175,7 @@ export default function DosenSubmissionCard({
 
         const payload = {
             judul_kegiatan:     data.judul_kegiatan,
+            kebutuhan:          data.kebutuhan,
             nama_dosen:         data.nama_ketua,
             instansi_mitra:     data.instansi,
             no_telepon:         data.whatsapp,
@@ -367,12 +370,18 @@ export default function DosenSubmissionCard({
                 </div>
             </div>
 
-            {/* Judul Kegiatan */}
+            {/* Judul & Kebutuhan */}
             <div className="space-y-4">
                 <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest">Detail Kegiatan</h4>
-                <div>
-                    <label className="text-[13px] font-bold text-slate-600 mb-1 block">Judul Kegiatan PKM <span className="text-red-500">*</span></label>
-                    <textarea value={data.judul_kegiatan} onChange={e => setData('judul_kegiatan', e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-poltekpar-primary/20 focus:border-poltekpar-primary min-h-[80px]" placeholder="Masukkan judul kegiatan pengabdian masyarakat..." required />
+                <div className="space-y-4">
+                    <div>
+                        <label className="text-[13px] font-bold text-slate-600 mb-1 block">Judul Kegiatan PKM <span className="text-red-500">*</span></label>
+                        <textarea value={data.judul_kegiatan} onChange={e => setData('judul_kegiatan', e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-poltekpar-primary/20 focus:border-poltekpar-primary min-h-[60px]" placeholder="Masukkan judul kegiatan pengabdian masyarakat..." required />
+                    </div>
+                    <div>
+                        <label className="text-[13px] font-bold text-slate-600 mb-1 block">Kebutuhan / Deskripsi Singkat <span className="text-red-500">*</span></label>
+                        <textarea value={data.kebutuhan} onChange={e => setData('kebutuhan', e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-poltekpar-primary/20 focus:border-poltekpar-primary min-h-[80px]" placeholder="Jelaskan secara singkat kebutuhan atau tujuan utama kegiatan ini..." required />
+                    </div>
                 </div>
             </div>
 

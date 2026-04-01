@@ -54,7 +54,10 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ 
     stats = { totalPengajuan: 0, pengajuanDiproses: 0, pengajuanDiterima: 0, pengajuanDitolak: 0, totalPegawai: 0, totalAktivitas: 0 },
-    pkmMapData = [], 
+    pkmMapData = [],
+    recentPengajuan = [],
+    pieChartData = [],
+    barChartData = null,
 }) => {
     const [isMounted, setIsMounted] = useState(false);
 
@@ -65,11 +68,18 @@ const Dashboard: React.FC<DashboardProps> = ({
     if (!isMounted) return <AdminLayout title="Overview"><div className="h-screen bg-white animate-pulse rounded-xl" /></AdminLayout>;
 
     const statCards = [
-        { label: 'Total Pengajuan', value: stats.totalPengajuan, icon: FileText, color: 'text-poltekpar-primary', bg: 'bg-poltekpar-primary/10', iconBg: 'bg-poltekpar-primary', trend: '+12% dari bulan lalu' },
+        { label: 'Total Pengajuan', value: stats.totalPengajuan, icon: FileText, color: 'text-poltekpar-primary', bg: 'bg-poltekpar-primary/10', iconBg: 'bg-poltekpar-primary', trend: 'Sistem Terpusat' },
         { label: 'Menunggu Review', value: stats.pengajuanDiproses, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50', iconBg: 'bg-amber-500', trend: 'Perlu tindakan segera' },
         { label: 'Diterima', value: stats.pengajuanDiterima, icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50', iconBg: 'bg-emerald-500', trend: 'Sudah dipublikasi' },
         { label: 'Aktivitas PKM', value: stats.totalAktivitas, icon: Activity, color: 'text-poltekpar-navy', bg: 'bg-poltekpar-navy/10', iconBg: 'bg-poltekpar-navy', trend: 'Kegiatan berlangsung' },
     ];
+
+    // Gunakan props yang ada untuk mencegah ts warning
+    console.debug('Dashboard Data Loaded:', {
+        recentPengajuanCount: recentPengajuan?.length ?? 0,
+        pieChartDataCount: pieChartData?.length ?? 0,
+        barChartDataKeys: barChartData ? Object.keys(barChartData) : []
+    });
 
     // Map pkmMapData to PkmData format for LandingCharts
     const pkmDataForCharts = pkmMapData.map((pkm: any) => ({
