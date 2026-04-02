@@ -99,8 +99,15 @@ Route::get('/api/reverse-geocode', function (Request $request) {
 })->middleware('throttle:30,1')->name('api.reverse-geocode');
 
 // ─────────────────────────────────────────────
-// Pengumpulan Arsip Publik (Spesifik Kegiatan)
+// Pengumpulan Arsip Publik
 // ─────────────────────────────────────────────
+Route::get('/kumpul-arsip', function () {
+    return Inertia::render('Public/PengumpulanArsip', [
+        'namaKegiatan' => 'Pengumpulan Arsip PKM',
+        'kode' => '',
+    ]);
+})->name('arsip.kumpul.index');
+
 Route::get('/kumpul-arsip/{kode}', [LandingController::class, 'showArsipKumpul'])->name('arsip.kumpul.public');
 Route::post('/kumpul-arsip/{kode}', [LandingController::class, 'storeArsipKumpul'])->middleware('throttle:10,1')->name('arsip.kumpul.public.store');
 

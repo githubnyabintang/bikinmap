@@ -65,10 +65,12 @@ export default function PengumpulanArsip({ namaKegiatan = 'NAMA KEGIATAN PKM', k
                             </p>
                         </div>
                         <div className="md:ml-auto">
-                             <div className="bg-slate-100 px-4 py-2 rounded-2xl flex items-center gap-2">
-                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Kode Unik</span>
-                                <span className="text-sm font-black text-poltekpar-navy tracking-widest">{kode}</span>
-                             </div>
+                            {kode && (
+                                <div className="bg-slate-100 px-4 py-2 rounded-2xl flex items-center gap-2">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Kode Unik</span>
+                                    <span className="text-sm font-black text-poltekpar-navy tracking-widest">{kode}</span>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -86,6 +88,7 @@ export default function PengumpulanArsip({ namaKegiatan = 'NAMA KEGIATAN PKM', k
                         <form onSubmit={submit} className="space-y-10">
                             
                             {/* Information Section */}
+                            {kode && (
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
                                 <div className="md:col-span-1">
                                     <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-3">
@@ -107,8 +110,9 @@ export default function PengumpulanArsip({ namaKegiatan = 'NAMA KEGIATAN PKM', k
                                     </div>
                                 </div>
                             </div>
+                            )}
 
-                            <div className="h-px bg-slate-100 w-full"></div>
+                            {kode && <div className="h-px bg-slate-100 w-full"></div>}
 
                             {/* Links Section */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
