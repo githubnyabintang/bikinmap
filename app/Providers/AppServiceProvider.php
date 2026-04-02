@@ -23,6 +23,16 @@ class AppServiceProvider extends ServiceProvider
             DB::connection()->getPdo()->sqliteCreateFunction('YEAR', function ($string) {
                 return substr($string, 0, 4);
             }, 1);
+
+            DB::connection()->getPdo()->sqliteCreateFunction('FIELD', function () {
+                $args = func_get_args();
+                if (count($args) < 2)
+                    return 0;
+
+                $value = array_shift($args);
+                $index = array_search($value, $args);
+                return $index === false ? 0 : $index + 1;
+            }, -1);
         }
 
         RateLimiter::for('auth', function (Request $request) {
