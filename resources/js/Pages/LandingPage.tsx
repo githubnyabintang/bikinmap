@@ -243,9 +243,9 @@ export default function LandingPage({ publicPkmData = null }: { publicPkmData?: 
                                         </div>
 
                                         {/* Tim Pelaksana */}
-                                        {sidebarPkm.tim_kegiatan && sidebarPkm.tim_kegiatan.length > 0 && (
-                                            <div className="pt-4 border-t border-slate-100">
-                                                <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Tim Pelaksana</span>
+                                        <div className="pt-4 border-t border-slate-100">
+                                            <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Tim Pelaksana</span>
+                                            {sidebarPkm.tim_kegiatan && sidebarPkm.tim_kegiatan.length > 0 ? (
                                                 <div className="space-y-2">
                                                     {sidebarPkm.tim_kegiatan.map((t, i) => (
                                                         <div key={i} className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-xl border border-slate-100">
@@ -257,19 +257,21 @@ export default function LandingPage({ publicPkmData = null }: { publicPkmData?: 
                                                         </div>
                                                     ))}
                                                 </div>
-                                            </div>
-                                        )}
+                                            ) : (
+                                                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-center">
+                                                    <span className="text-xs font-bold text-slate-400">Belum ada data tim pelaksana</span>
+                                                </div>
+                                            )}
+                                        </div>
 
                                         {/* Anggaran */}
-                                        {sidebarPkm.total_anggaran != null && Number(sidebarPkm.total_anggaran) > 0 && (
-                                            <div className="pt-4 border-t border-slate-100">
-                                                <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Total Anggaran</span>
-                                                <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-xl bg-poltekpar-primary/10 text-poltekpar-primary flex items-center justify-center"><i className="fa-solid fa-money-bill-wave"></i></div>
-                                                    <span className="text-lg font-black text-poltekpar-primary">Rp {Number(sidebarPkm.total_anggaran).toLocaleString('id-ID')}</span>
-                                                </div>
+                                        <div className="pt-4 border-t border-slate-100">
+                                            <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Total Anggaran</span>
+                                            <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-xl bg-poltekpar-primary/10 text-poltekpar-primary flex items-center justify-center"><i className="fa-solid fa-money-bill-wave"></i></div>
+                                                <span className="text-lg font-black text-poltekpar-primary">Rp {Number(sidebarPkm.total_anggaran || 0).toLocaleString('id-ID')}</span>
                                             </div>
-                                        )}
+                                        </div>
 
                                         {/* Testimoni */}
                                         {sidebarPkm.testimoni && sidebarPkm.testimoni.length > 0 && (
@@ -334,9 +336,9 @@ export default function LandingPage({ publicPkmData = null }: { publicPkmData?: 
                                             </div>
 
                                             {/* Tim Pelaksana */}
-                                            {listSelectedPkm.tim_kegiatan && listSelectedPkm.tim_kegiatan.length > 0 && (
-                                                <div className="pt-4 border-t border-slate-100">
-                                                    <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Tim Pelaksana</span>
+                                            <div className="pt-4 border-t border-slate-100">
+                                                <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Tim Pelaksana</span>
+                                                {listSelectedPkm.tim_kegiatan && listSelectedPkm.tim_kegiatan.length > 0 ? (
                                                     <div className="space-y-2">
                                                         {listSelectedPkm.tim_kegiatan.map((t, i) => (
                                                             <div key={i} className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-xl border border-slate-100">
@@ -348,19 +350,21 @@ export default function LandingPage({ publicPkmData = null }: { publicPkmData?: 
                                                             </div>
                                                         ))}
                                                     </div>
-                                                </div>
-                                            )}
+                                                ) : (
+                                                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-center">
+                                                        <span className="text-xs font-bold text-slate-400">Belum ada data tim pelaksana</span>
+                                                    </div>
+                                                )}
+                                            </div>
 
                                             {/* Anggaran */}
-                                            {listSelectedPkm.total_anggaran != null && Number(listSelectedPkm.total_anggaran) > 0 && (
-                                                <div className="pt-4 border-t border-slate-100">
-                                                    <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Total Anggaran</span>
-                                                    <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex items-center gap-3">
-                                                        <div className="w-10 h-10 rounded-xl bg-poltekpar-primary/10 text-poltekpar-primary flex items-center justify-center"><i className="fa-solid fa-money-bill-wave"></i></div>
-                                                        <span className="text-lg font-black text-poltekpar-primary">Rp {Number(listSelectedPkm.total_anggaran).toLocaleString('id-ID')}</span>
-                                                    </div>
+                                            <div className="pt-4 border-t border-slate-100">
+                                                <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Total Anggaran</span>
+                                                <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-xl bg-poltekpar-primary/10 text-poltekpar-primary flex items-center justify-center"><i className="fa-solid fa-money-bill-wave"></i></div>
+                                                    <span className="text-lg font-black text-poltekpar-primary">Rp {Number(listSelectedPkm.total_anggaran || 0).toLocaleString('id-ID')}</span>
                                                 </div>
-                                            )}
+                                            </div>
 
                                             {/* Testimoni */}
                                             {listSelectedPkm.testimoni && listSelectedPkm.testimoni.length > 0 && (
