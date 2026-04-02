@@ -1,20 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import AdminLayout from '../../Layouts/AdminLayout';
-import { 
-    FileText, 
-    CheckCircle, 
-    Clock, 
+import {
+    FileText,
+    CheckCircle,
+    Clock,
     Activity,
     TrendingUp
 } from 'lucide-react';
-import { MapContainer, Marker, TileLayer, Popup } from 'react-leaflet';
+import { MapContainer, Marker, TileLayer, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import LandingCharts from '../../Components/LandingCharts';
+import MapLegend from '../../Components/MapLegend';
+import { createPkmMarkerIcon } from '../../data/pkmMapVisuals';
+import { PkmData } from '../../types';
+import '../../../css/landing.css';
 
-// Fix leaflet icons natively
+// Leaflet Setup
 if (typeof window !== 'undefined' && L && L.Icon && L.Icon.Default) {
-    delete (L.Icon.Default.prototype as any)._getIconUrl;
+    (L.Icon.Default.prototype as any)._getIconUrl = undefined;
     L.Icon.Default.mergeOptions({
         iconRetinaUrl: new URL('leaflet/dist/images/marker-icon-2x.png', import.meta.url).href,
         iconUrl: new URL('leaflet/dist/images/marker-icon.png', import.meta.url).href,
@@ -22,19 +26,73 @@ if (typeof window !== 'undefined' && L && L.Icon && L.Icon.Default) {
     });
 }
 
-const createCustomIcon = (status: string, color: string) => {
-    const markerColor = status === 'berlangsung' ? '#f59e0b' : color;
-    return L.divIcon({
-        className: 'custom-leaflet-marker',
-        html: `
-            <div class="marker-pin" style="background-color: ${markerColor}">
-                <i class="fa-solid fa-hands-holding-child"></i>
+function MapSizeInvalidator({ watchKey }: { watchKey: string }): null {
+    const map = useMap();
+    useEffect(() => {
+        const runInvalidate = () => { map.invalidateSize(); };
+        const timeoutId = window.setTimeout(runInvalidate, 200);
+        return () => window.clearTimeout(timeoutId);
+    }, [map, watchKey]);
+    return null;
+}
+
+const MapSummaryOverlay: React.FC<{ total: number; selesai: number; berlangsung: number }> = ({ total, selesai, berlangsung }) => {
+    const [isCollapsed, setIsCollapsed] = useState(false);
+
+    return (
+        <div className="absolute bottom-8 left-8 z-[1000] flex items-end gap-3 pointer-events-none">
+            <button
+                onClick={() => setIsCollapsed(!isCollapsed)}
+                className="w-10 h-10 mb-1 bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl border border-white/40 flex items-center justify-center text-slate-500 hover:text-poltekpar-primary hover:scale-105 active:scale-95 transition-all outline-none z-10 pointer-events-auto"
+            >
+                <i className={`fa-solid ${isCollapsed ? 'fa-chart-pie' : 'fa-chevron-left'} transition-transform duration-300`}></i>
+            </button>
+
+            <div className={`flex items-end gap-3 transition-all duration-500 ease-in-out origin-bottom-left ${isCollapsed ? 'opacity-0 scale-0 -translate-x-10 translate-y-6 pointer-events-none absolute left-12 bottom-0' : 'opacity-100 scale-100 translate-x-0 translate-y-0 relative'}`}>
+                {/* Legend Card */}
+                <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-1 shadow-2xl border border-white/40 whitespace-nowrap pointer-events-auto">
+                    <MapLegend className="bg-transparent border-none shadow-none" compact />
+                </div>
+
+                {/* Summary Card */}
+                <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-3 shadow-2xl border border-white/40 flex items-center gap-5 whitespace-nowrap mb-1 pointer-events-auto">
+                    <div className="flex items-center gap-2 px-1">
+                        <div className="w-8 h-8 bg-gradient-to-br from-poltekpar-primary/20 to-poltekpar-primary/5 rounded-lg flex items-center justify-center text-poltekpar-primary shadow-sm">
+                            <i className="fa-solid fa-layer-group text-[10px]"></i>
+                        </div>
+                        <div>
+                            <div className="text-base font-black text-slate-900 leading-none">{total}</div>
+                            <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Total PKM</div>
+                        </div>
+                    </div>
+
+                    <div className="w-px h-8 bg-slate-200/50"></div>
+
+                    <div className="flex items-center gap-2 px-1">
+                        <div className="w-8 h-8 bg-gradient-to-br from-green-500/20 to-green-500/5 rounded-lg flex items-center justify-center text-green-600 shadow-sm">
+                            <i className="fa-solid fa-circle-check text-[10px]"></i>
+                        </div>
+                        <div>
+                            <div className="text-base font-black text-slate-900 leading-none">{selesai}</div>
+                            <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Selesai</div>
+                        </div>
+                    </div>
+
+                    <div className="w-px h-8 bg-slate-200/50"></div>
+
+                    <div className="flex items-center gap-2 px-1">
+                        <div className="w-8 h-8 bg-gradient-to-br from-amber-500/20 to-amber-500/5 rounded-lg flex items-center justify-center text-amber-600 shadow-sm">
+                            <i className="fa-solid fa-clock text-[10px]"></i>
+                        </div>
+                        <div>
+                            <div className="text-base font-black text-slate-900 leading-none">{berlangsung}</div>
+                            <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Berlangsung</div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="marker-pulse" style="border-color: ${markerColor}"></div>
-        `,
-        iconSize: [40, 40],
-        iconAnchor: [20, 40],
-    });
+        </div>
+    );
 };
 
 interface DashboardProps {
@@ -52,7 +110,7 @@ interface DashboardProps {
     barChartData: any;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ 
+const Dashboard: React.FC<DashboardProps> = ({
     stats = { totalPengajuan: 0, pengajuanDiproses: 0, pengajuanDiterima: 0, pengajuanDitolak: 0, totalPegawai: 0, totalAktivitas: 0 },
     pkmMapData = [],
     recentPengajuan = [],
@@ -60,6 +118,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     barChartData = null,
 }) => {
     const [isMounted, setIsMounted] = useState(false);
+    const [sidebarPkm, setSidebarPkm] = useState<any>(null);
 
     useEffect(() => {
         setIsMounted(true);
@@ -74,29 +133,25 @@ const Dashboard: React.FC<DashboardProps> = ({
         { label: 'Aktivitas PKM', value: stats.totalAktivitas, icon: Activity, color: 'text-poltekpar-navy', bg: 'bg-poltekpar-navy/10', iconBg: 'bg-poltekpar-navy', trend: 'Kegiatan berlangsung' },
     ];
 
-    // Gunakan props yang ada untuk mencegah ts warning
-    console.debug('Dashboard Data Loaded:', {
-        recentPengajuanCount: recentPengajuan?.length ?? 0,
-        pieChartDataCount: pieChartData?.length ?? 0,
-        barChartDataKeys: barChartData ? Object.keys(barChartData) : []
-    });
-
-    // Map pkmMapData to PkmData format for LandingCharts
-    const pkmDataForCharts = pkmMapData.map((pkm: any) => ({
+    // Map pkmMapData to PkmData format
+    const pkmData: PkmData[] = pkmMapData.map((pkm: any) => ({
         id: pkm.id,
         nama: pkm.nama,
         tahun: pkm.tahun,
         status: pkm.status,
         deskripsi: '',
         thumbnail: null,
-        provinsi: '',
+        provinsi: pkm.provinsi || '',
         kabupaten: pkm.kabupaten || '',
-        kecamatan: '',
-        desa: '',
+        kecamatan: pkm.kecamatan || '',
+        desa: pkm.desa || '',
         lat: pkm.lat,
         lng: pkm.lng,
-        jenis_pkm: pkm.jenis_nama || pkm.jenis_pkm,
     }));
+
+    const totalPkm = pkmData.length;
+    const totalSelesai = pkmData.filter(item => item.status === 'selesai').length;
+    const totalBerlangsung = pkmData.filter(item => item.status === 'berlangsung').length;
 
     return (
         <AdminLayout title="System Overview">
@@ -124,83 +179,77 @@ const Dashboard: React.FC<DashboardProps> = ({
                 ))}
             </div>
 
-            {/* Map Section — Full Width */}
-            <div className="bg-white rounded-[32px] border border-slate-200/60 shadow-sm overflow-hidden flex flex-col h-[560px] mb-10">
-                <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-white to-slate-50/50">
-                    <div>
-                        <h2 className="text-[18px] font-black text-slate-900 tracking-tight">Sebaran Lokasi PKM</h2>
-                        <p className="text-[13px] font-bold text-slate-400 mt-0.5">Monitoring sebaran geografis kegiatan pengabdian</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                         <div className="flex items-center gap-1 px-3 py-1.5 bg-poltekpar-primary/10 text-poltekpar-primary rounded-full text-[11px] font-black uppercase tracking-wider">
-                            <div className="w-1.5 h-1.5 bg-poltekpar-primary rounded-full animate-pulse"></div>
-                            Live Data
-                         </div>
-                    </div>
+            {/* Combined Map + Dashboard Card — SAMA PERSIS dengan user */}
+            <div className="bg-white rounded-[48px] shadow-2xl shadow-poltekpar-navy/5 border border-slate-100 overflow-hidden mb-8 p-6">
+                {/* Dashboard Evaluasi PKM Header */}
+                <div className="mb-4">
+                    <h2 className="text-2xl font-bold text-slate-900">
+                        Dashboard Evaluasi <span className="text-poltekpar-primary">PKM</span>
+                    </h2>
                 </div>
-                <div className="flex-1 relative z-0">
+
+                {/* Map Section */}
+                <div className="relative w-full h-[115vh] overflow-hidden z-10">
                     <MapContainer
-                        center={[-1.5, 121]}
+                        center={[-2.5, 118]}
                         zoom={5}
-                        style={{ height: '100%', width: '100%' }}
-                        scrollWheelZoom={true}
+                        className="w-full h-full"
+                        zoomControl={true}
                     >
                         <TileLayer
-                            attribution='Map data &copy; <a href="https://www.google.com/maps">Google</a>'
-                            url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                         />
-                        {pkmMapData.map((pkm: any) => (
+                        {pkmData.map((pkm) => (
                             <Marker
-                                key={`map-admin-${pkm.id}`}
-                                position={[pkm.lat, pkm.lng]}
-                                icon={createCustomIcon(pkm.status, pkm.warna_icon)}
-                            >
-                                <Popup className="poltekpar-map-popup">
-                                    <div className="min-w-[180px] p-2">
-                                        <div className="font-black text-[14px] text-poltekpar-navy mb-1 leading-tight">{pkm.nama}</div>
-                                        <div className="text-[12px] font-bold text-slate-400 mb-3">{pkm.jenis_nama}</div>
-                                        <div className="flex items-center justify-between">
-                                            <div className={`px-3 py-1 rounded-full text-[10px] font-black text-white uppercase tracking-widest ${pkm.status === 'selesai' ? 'bg-emerald-500' : 'bg-amber-500'}`}>
-                                                {pkm.status}
-                                            </div>
-                                            <div className="text-[11px] font-bold text-poltekpar-primary hover:underline cursor-pointer">Detail</div>
-                                        </div>
-                                    </div>
-                                </Popup>
-                            </Marker>
+                                key={pkm.id}
+                                position={[parseFloat(String(pkm.lat)), parseFloat(String(pkm.lng))]}
+                                icon={createPkmMarkerIcon(pkm)}
+                                eventHandlers={{ click: () => setSidebarPkm(pkm) }}
+                            />
                         ))}
+                        <MapSizeInvalidator watchKey="admin-map" />
                     </MapContainer>
+
+                    {/* Summary & Legend Overlay */}
+                    <MapSummaryOverlay total={totalPkm} selesai={totalSelesai} berlangsung={totalBerlangsung} />
+
+                    {/* Sidebar PKM Detail — same as user */}
+                    <div className={`pk-detail-sidebar absolute top-8 bottom-8 right-8 w-[400px] max-w-[calc(100%-64px)] bg-white/95 backdrop-blur-xl rounded-[40px] shadow-2xl z-[1100] p-8 overflow-y-auto transition-transform duration-700 border border-white/60 ${!sidebarPkm ? 'translate-x-[120%]' : 'translate-x-0'}`}>
+                        {sidebarPkm && (
+                            <div className="space-y-8 animate-in fade-in slide-in-from-right-8 duration-500">
+                                <div className="flex items-center justify-between">
+                                    <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${sidebarPkm.status === 'berlangsung' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>{sidebarPkm.status}</span>
+                                    <button onClick={() => setSidebarPkm(null)} className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all flex items-center justify-center"><i className="fa-solid fa-xmark"></i></button>
+                                </div>
+                                <div className="aspect-video rounded-[32px] overflow-hidden shadow-xl border border-slate-100 bg-slate-50 group">
+                                    {sidebarPkm.thumbnail ? (
+                                        <img src={sidebarPkm.thumbnail} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-slate-200"><i className="fa-solid fa-mountain-sun text-5xl"></i></div>
+                                    )}
+                                </div>
+                                <div className="space-y-6">
+                                    <h3 className="text-2xl font-black text-slate-900 leading-tight tracking-tight">{sidebarPkm.nama}</h3>
+                                    <div className="p-6 bg-slate-50 rounded-[28px] border border-slate-100">
+                                        <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Ringkasan Kegiatan</span>
+                                        <p className="text-sm font-bold text-slate-600 leading-relaxed text-justify">{sidebarPkm.deskripsi || '-'}</p>
+                                    </div>
+                                    <div className="flex flex-col gap-3 text-[12px] font-bold text-slate-400 uppercase tracking-widest">
+                                        <div className="flex items-center gap-3"><div className="w-8 h-8 rounded-lg bg-poltekpar-primary/10 text-poltekpar-primary flex items-center justify-center"><i className="fa-solid fa-location-dot"></i></div> {sidebarPkm.desa}, {sidebarPkm.kecamatan}, {sidebarPkm.kabupaten}, {sidebarPkm.provinsi}</div>
+                                        <div className="flex items-center gap-3"><div className="w-8 h-8 rounded-lg bg-poltekpar-primary/10 text-poltekpar-primary flex items-center justify-center"><i className="fa-solid fa-calendar"></i></div> Tahun {sidebarPkm.tahun}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Dashboard Evaluasi PKM Charts */}
+                <div className="border-t border-slate-100">
+                    <LandingCharts pkmData={pkmData} />
                 </div>
             </div>
-
-            {/* Charts — Same as User Landing */}
-            <LandingCharts pkmData={pkmDataForCharts} />
-
-            <style dangerouslySetInnerHTML={{__html: `
-                .custom-leaflet-marker { background: transparent; border: none; }
-                .marker-pin {
-                    width: 36px; height: 36px; border-radius: 50% 50% 50% 0;
-                    position: absolute; transform: rotate(-45deg);
-                    left: 50%; top: 50%; margin: -18px 0 0 -18px;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                    display: flex; align-items: center; justify-content: center; z-index: 2;
-                    border: 3px solid white;
-                }
-                .marker-pin i { transform: rotate(45deg); color: white; font-size: 14px; }
-                .marker-pulse {
-                    width: 44px; height: 44px; border: 3px solid; border-radius: 50%;
-                    position: absolute; left: 50%; top: 50%; margin: -22px 0 0 -22px;
-                    animation: pulse 2s infinite ease-out; z-index: 1; opacity: 0.8;
-                }
-                @keyframes pulse { 0% { transform: scale(0.5); opacity: 1; } 100% { transform: scale(1.6); opacity: 0; } }
-                .poltekpar-map-popup .leaflet-popup-content-wrapper { 
-                    border-radius: 20px; 
-                    padding: 8px;
-                    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-                    border: 1px solid rgba(0,0,0,0.05);
-                }
-                .poltekpar-map-popup .leaflet-popup-tip-container { display: none; }
-            `}} />
         </AdminLayout>
     );
 };
