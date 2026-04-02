@@ -1459,6 +1459,19 @@ h6 {
     width: 30px;
     height: 40px;
     cursor: pointer;
+    animation: markerDropIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    transform-origin: center bottom;
+}
+
+@keyframes markerDropIn {
+    0% {
+        transform: scale(0) translateY(-40px);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
 }
 
 .pkm-map-marker__inner {
