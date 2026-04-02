@@ -171,7 +171,7 @@ export default function ProfileDropdown({ auth: propsAuth }: ProfileDropdownProp
                             </Link>
                         ) : (
                             <Link 
-                                href={`/pengajuan?role=${user.role}&view=status`}
+                                href="/cek-status"
                                 className="flex items-center gap-3 px-5 py-3 text-slate-700 hover:bg-slate-50 hover:text-poltekpar-primary transition-colors duration-150" 
                                 role="menuitem" 
                                 onClick={closeDropdown}

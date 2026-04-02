@@ -452,7 +452,7 @@ export default function DosenSubmissionCard({
                         </div>
                         <div className="col-span-2">
                             <label className="text-[12px] font-bold text-slate-500 mb-1 block">Harga</label>
-                            <input type="number" value={item.harga} onChange={e => handleRabChange(idx, 'harga', Number(e.target.value))} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-poltekpar-primary/20 focus:border-poltekpar-primary" min={0} />
+                            <input type="number" value={item.harga || ''} onChange={e => handleRabChange(idx, 'harga', Number(e.target.value))} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-poltekpar-primary/20 focus:border-poltekpar-primary" min={0} placeholder="0" />
                         </div>
                         <div className="col-span-2">
                             <label className="text-[12px] font-bold text-slate-500 mb-1 block">Total</label>
@@ -495,8 +495,8 @@ export default function DosenSubmissionCard({
                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">Rp</span>
                                 <input
                                     type="number"
-                                    value={data[option.key as keyof FormData] as number}
-                                    onChange={e => setData(option.key as any, Number(e.target.value))}
+                                    value={(data[option.key as keyof FormData] as number) || ''}
+                                    onChange={e => setData(option.key as any, e.target.value ? Number(e.target.value) : 0)}
                                     className="w-full pl-8 pr-3 py-2 bg-transparent rounded-lg text-sm font-semibold outline-none text-slate-900 placeholder-slate-400"
                                     placeholder="0"
                                     min={0}

@@ -7,6 +7,7 @@ use App\Models\Pegawai;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class PegawaiController extends Controller
 {
@@ -83,7 +84,7 @@ class PegawaiController extends Controller
             try {
                 $spreadsheet = IOFactory::load($path);
                 $sheet = $spreadsheet->getActiveSheet();
-                $data = $sheet->toArray(null, true, true, true);
+                $data = $sheet->toArray(null, true, true);
             } catch (\Exception $e) {
                 return redirect()->back()->withErrors(['file' => 'Gagal membaca file Excel: '.$e->getMessage()]);
             }
@@ -103,8 +104,11 @@ class PegawaiController extends Controller
         }
 
         // Mapping header (case-insensitive, support: NO, NAMA, NIP, JABATAN, POSISI)
-        $rawHeaders = is_string($data[0][1] ?? null) ? $data[0] : array_values($data[0]);
-        $headers = array_map(fn ($h) => strtoupper(trim($h ?? '')), $rawHeaders);
+        $firstRow = array_values($data[0] ?? []);
+        if (empty($firstRow)) {
+            return redirect()->back()->withErrors(['file' => 'File tidak memiliki header.']);
+        }
+        $headers = array_map(fn ($h) => strtoupper(trim($h ?? '')), $firstRow);
 
         $colMap = [];
         foreach ($headers as $idx => $h) {

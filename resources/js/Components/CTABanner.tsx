@@ -26,7 +26,7 @@ export default function CTABanner() {
                 
                 {/* CTA Button */}
                 <Link 
-                    href="/login" 
+                    href="/cek-status" 
                     className="inline-flex items-center gap-3 px-8 py-4 bg-white text-poltekpar-primary font-bold rounded-xl shadow-lg hover:bg-slate-50 hover:shadow-xl hover:scale-105 transition-all duration-200"
                 >
                     <i className="fa-solid fa-arrow-down text-lg"></i>
