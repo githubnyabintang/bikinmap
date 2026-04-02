@@ -112,8 +112,15 @@ Route::get('/kumpul-arsip/{kode}', [LandingController::class, 'showArsipKumpul']
 Route::post('/kumpul-arsip/{kode}', [LandingController::class, 'storeArsipKumpul'])->middleware('throttle:10,1')->name('arsip.kumpul.public.store');
 
 // ─────────────────────────────────────────────
-// Pengisian Testimoni Publik (Spesifik Kegiatan)
+// Pengisian Testimoni Publik
 // ─────────────────────────────────────────────
+Route::get('/testimoni', function () {
+    return Inertia::render('Public/Testimoni', [
+        'namaKegiatan' => 'Testimoni PKM',
+        'kode' => '',
+    ]);
+})->name('testimoni.index');
+
 Route::get('/testimoni/{kode}', [LandingController::class, 'showTestimoni'])->name('testimoni.public');
 Route::post('/testimoni/{kode}', [LandingController::class, 'storeTestimoni'])->middleware('throttle:10,1')->name('testimoni.public.store_activity');
 
