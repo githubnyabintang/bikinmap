@@ -37,27 +37,36 @@ class AuthController extends Controller
             return redirect($this->dashboardUrl());
         }
 
-        $user = $request->user();
+        return Inertia::render('Auth/LoginDosenPortal');
+    }
 
-        return Inertia::render('Auth/LoginDosen', [
-            'auth' => [
-                'user' => $user
-                    ? [
-                        'id'     => $user->id_user,
-                        'name'   => $user->name,
-                        'email'  => $user->email,
-                        'role'   => $user->role ?? 'dosen',
-                        'avatar' => $user->avatar ?? null,
-                    ]
-                    : [
-                        'id'     => 'preview-dosen',
-                        'name'   => 'Akun Dosen SIGAP',
-                        'email'  => 'dosen@poltekparmakassar.ac.id',
-                        'role'   => 'dosen',
-                        'avatar' => null,
-                    ],
-            ],
-            'pkmData' => [],
+    public function checkNip(Request $request)
+    {
+        $request->validate(['nip' => 'required|string']);
+
+        $pegawai = Pegawai::where('nip', $request->nip)->first();
+
+        if (!$pegawai) {
+            return response()->json([
+                'status' => 'not_found',
+                'message' => 'NIP tidak terdaftar di sistem Pegawai Poltekpar Makassar.'
+            ]);
+        }
+
+        if ($pegawai->id_user) {
+            $user = User::where('id_user', $pegawai->id_user)->first();
+            return response()->json([
+                'status' => 'registered',
+                'email' => $user->email,
+                'name' => $user->name,
+                'message' => 'NIP sudah terdaftar. Silakan masukkan kata sandi.'
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'claimable',
+            'name' => $pegawai->nama_pegawai,
+            'message' => 'NIP ditemukan. Silakan lengkapi data registrasi Anda.'
         ]);
     }
 
@@ -73,17 +82,17 @@ class AuthController extends Controller
             'auth' => [
                 'user' => $user
                     ? [
-                        'id'     => $user->id_user,
-                        'name'   => $user->name,
-                        'email'  => $user->email,
-                        'role'   => $user->role ?? 'masyarakat',
+                        'id' => $user->id_user,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'role' => $user->role ?? 'masyarakat',
                         'avatar' => $user->avatar ?? null,
                     ]
                     : [
-                        'id'     => 'preview-masyarakat',
-                        'name'   => 'Akun Masyarakat SIGAP',
-                        'email'  => 'masyarakat@poltekparmakassar.ac.id',
-                        'role'   => 'masyarakat',
+                        'id' => 'preview-masyarakat',
+                        'name' => 'Akun Masyarakat SIGAP',
+                        'email' => 'masyarakat@poltekparmakassar.ac.id',
+                        'role' => 'masyarakat',
                         'avatar' => null,
                     ],
             ],
@@ -126,7 +135,7 @@ class AuthController extends Controller
     {
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
             'nip' => ['nullable', 'string', 'max:30'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);

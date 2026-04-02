@@ -141,6 +141,24 @@ export default function Login(): JSX.Element {
                             </button>
                         </form>
 
+                        <div className="login-divider-text">ATAU</div>
+
+                        <Link
+                            href="/login/dosen"
+                            className="btn-login-dosen-secondary group"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                    <i className="fa-solid fa-user-tie"></i>
+                                </div>
+                                <div className="text-left">
+                                    <div className="text-sm font-bold text-slate-700 group-hover:text-blue-600 transition-colors">Masuk sebagai Dosen?</div>
+                                    <div className="text-[11px] text-slate-400 font-medium">Khusus Staff & Dosen Poltekpar Makassar</div>
+                                </div>
+                            </div>
+                            <i className="fa-solid fa-chevron-right text-slate-300 group-hover:text-blue-600 group-hover:translate-x-1 transition-all"></i>
+                        </Link>
+
                         <div className="login-divider"></div>
 
                         {/* Registration Prompt Link */}

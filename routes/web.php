@@ -40,7 +40,7 @@ Route::get('/api/geocode', function (Request $request) {
     }
 
     $params = http_build_query([
-        'q' => $query.', Indonesia',
+        'q' => $query . ', Indonesia',
         'format' => 'json',
         'limit' => '8',
         'countrycodes' => 'id',
@@ -69,7 +69,7 @@ Route::get('/api/geocode', function (Request $request) {
 Route::get('/api/reverse-geocode', function (Request $request) {
     $lat = $request->input('lat');
     $lon = $request->input('lon');
-    if (! $lat || ! $lon) {
+    if (!$lat || !$lon) {
         return response()->json([]);
     }
 
@@ -130,6 +130,7 @@ Route::post('/testimoni/{kode}', [LandingController::class, 'storeTestimoni'])->
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:auth');
+    Route::post('/check-nip', [AuthController::class, 'checkNip'])->name('check-nip');
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:auth');
 
@@ -159,7 +160,7 @@ Route::middleware('auth')->group(function () {
     // Admin routes
     // ─────────────────────────────────────────
     Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
-        Route::get('/', fn () => redirect()->route('admin.dashboard'));
+        Route::get('/', fn() => redirect()->route('admin.dashboard'));
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
         // Global search API (admin only)
