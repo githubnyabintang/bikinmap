@@ -39,15 +39,16 @@ export default function MapLegend({
                         <div
                             key={type.key}
                             onClick={() => onToggleType?.(type.key)}
-                            className={`flex items-center gap-2.5 transition-colors ${onToggleType ? 'cursor-pointer hover:bg-slate-50 p-1.5 -ml-1.5 rounded-lg' : ''}`}
+                            className={`flex items-center transition-colors ${onToggleType ? 'cursor-pointer hover:bg-slate-50 p-1.5 -ml-1.5 rounded-lg' : ''}`}
                         >
-                            {onToggleType && selectedTypes?.includes(type.key) && (
-                                <div className="w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors bg-poltekpar-primary border-poltekpar-primary">
+                            {onToggleType && (
+                                <div className={`flex items-center justify-center overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${selectedTypes?.includes(type.key) ? 'w-4 h-4 mr-2.5 opacity-100 scale-100 bg-poltekpar-primary border border-poltekpar-primary rounded shrink-0' : 'w-0 h-4 mr-0 opacity-0 scale-50 border-none'
+                                    }`}>
                                     <i className="fa-solid fa-check text-[10px] text-white"></i>
                                 </div>
                             )}
                             <span
-                                className="w-4 h-4 rounded-full shadow-sm shrink-0"
+                                className="w-4 h-4 mr-2.5 rounded-full shadow-sm shrink-0"
                                 style={{ backgroundColor: type.color }}
                             ></span>
                             <span className="text-sm text-slate-600 font-medium leading-none">{type.label}</span>
@@ -66,14 +67,15 @@ export default function MapLegend({
                         <div
                             key={status.key}
                             onClick={() => onToggleStatus?.(status.key)}
-                            className={`flex items-center gap-2.5 transition-colors ${onToggleStatus ? 'cursor-pointer hover:bg-slate-50 p-1.5 -ml-1.5 rounded-lg' : ''}`}
+                            className={`flex items-center transition-colors ${onToggleStatus ? 'cursor-pointer hover:bg-slate-50 p-1.5 -ml-1.5 rounded-lg' : ''}`}
                         >
-                            {onToggleStatus && selectedStatuses?.includes(status.key) && (
-                                <div className="w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors bg-poltekpar-primary border-poltekpar-primary">
+                            {onToggleStatus && (
+                                <div className={`flex items-center justify-center overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${selectedStatuses?.includes(status.key) ? 'w-4 h-4 mr-2.5 opacity-100 scale-100 bg-poltekpar-primary border border-poltekpar-primary rounded shrink-0' : 'w-0 h-4 mr-0 opacity-0 scale-50 border-none'
+                                    }`}>
                                     <i className="fa-solid fa-check text-[10px] text-white"></i>
                                 </div>
                             )}
-                            <span className={`flex items-center justify-center w-6 h-6 rounded-full shrink-0 ${status.key === 'berlangsung' ? 'bg-amber-100' : 'bg-emerald-100'}`}>
+                            <span className={`mr-2.5 flex items-center justify-center w-6 h-6 rounded-full shrink-0 ${status.key === 'berlangsung' ? 'bg-amber-100' : 'bg-emerald-100'}`}>
                                 <i className={`fa-solid ${status.markerIcon} text-sm ${status.key === 'berlangsung' ? 'text-amber-600' : 'text-emerald-600'}`}></i>
                             </span>
                             <span className="text-sm text-slate-600 font-medium leading-none">{status.label}</span>
