@@ -49,7 +49,7 @@ const MapSummaryOverlay: React.FC<{
     const [isCollapsed, setIsCollapsed] = useState(false);
 
     return (
-        <div className={`absolute bottom-8 left-8 z-[1000] flex items-end gap-3 pointer-events-none transition-all duration-500 ease-in-out ${forceHide ? 'opacity-0 translate-y-8 scale-90 pointer-events-none' : 'opacity-100 translate-y-0 scale-100'}`}>
+        <div className={`absolute bottom-8 left-8 z-[1000] flex items-end gap-3 pointer-events-none transition-all duration-500 ease-in-out ${forceHide ? 'opacity-0 -translate-x-[120%] pointer-events-none' : 'opacity-100 translate-x-0'}`}>
             {/* Toggle Button */}
             <button
                 onClick={() => setIsCollapsed(!isCollapsed)}
