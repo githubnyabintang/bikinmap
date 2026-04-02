@@ -73,16 +73,8 @@ export default function MapLegend({
                                     {selectedStatuses?.includes(status.key) && <i className="fa-solid fa-check text-[10px] text-white"></i>}
                                 </div>
                             )}
-                            <span className={`flex items-center justify-center w-6 h-6 rounded-full shrink-0 ${status.key === 'selesai' ? 'bg-emerald-100' :
-                                    status.key === 'direvisi' ? 'bg-orange-100' :
-                                        status.key === 'diproses' ? 'bg-blue-100' :
-                                            'bg-amber-100' // berlangsung
-                                }`}>
-                                <i className={`fa-solid ${status.markerIcon} text-sm ${status.key === 'selesai' ? 'text-emerald-600' :
-                                        status.key === 'direvisi' ? 'text-orange-600' :
-                                            status.key === 'diproses' ? 'text-blue-600' :
-                                                'text-amber-600' // berlangsung
-                                    }`}></i>
+                            <span className={`flex items-center justify-center w-6 h-6 rounded-full shrink-0 ${status.key === 'berlangsung' ? 'bg-amber-100' : 'bg-emerald-100'}`}>
+                                <i className={`fa-solid ${status.markerIcon} text-sm ${status.key === 'berlangsung' ? 'text-amber-600' : 'text-emerald-600'}`}></i>
                             </span>
                             <span className="text-sm text-slate-600 font-medium leading-none">{status.label}</span>
                         </div>

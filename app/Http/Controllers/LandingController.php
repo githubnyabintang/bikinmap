@@ -25,8 +25,8 @@ class LandingController extends Controller
                 'tahun' => $p->created_at?->year ?? date('Y'),
                 'jenis_pkm' => $p->jenisPkm?->nama_jenis ?? '',
                 'status' => ($p->status_pengajuan === 'selesai' || $p->aktivitas?->status_pelaksanaan === 'selesai') ? 'selesai' :
-                    ($p->status_pengajuan === 'direvisi' ? 'direvisi' :
-                        ($p->status_pengajuan === 'diproses' || $p->status_pengajuan === 'belum_diajukan' ? 'diproses' : 'berlangsung')),
+                    (in_array($p->status_pengajuan, ['berlangsung', 'diterima']) ? 'berlangsung' :
+                        ($p->status_pengajuan === 'belum_diajukan' ? 'belum_mulai' : 'ada_pengajuan')),
                 'deskripsi' => $p->kebutuhan ?? '',
                 'thumbnail' => $p->aktivitas?->url_thumbnail ?? '',
                 'provinsi' => $p->provinsi ?? '',

@@ -224,7 +224,7 @@ export default function LandingPage({ publicPkmData = null }: { publicPkmData?: 
                                         {(() => {
                                             const s = sidebarPkm.status;
                                             const m = getPkmStatusMeta(s);
-                                            const cls = s === 'selesai' ? 'bg-emerald-100 text-emerald-700' : s === 'direvisi' ? 'bg-orange-100 text-orange-700' : s === 'diproses' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700';
+                                            const cls = s === 'berlangsung' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700';
                                             return (
                                                 <span className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${cls}`}>
                                                     <i className={`fa-solid ${m.markerIcon}`}></i> {m.label}
@@ -322,7 +322,7 @@ export default function LandingPage({ publicPkmData = null }: { publicPkmData?: 
                                                 {(() => {
                                                     const s = listSelectedPkm.status;
                                                     const m = getPkmStatusMeta(s);
-                                                    const cls = s === 'selesai' ? 'bg-emerald-100 text-emerald-700' : s === 'direvisi' ? 'bg-orange-100 text-orange-700' : s === 'diproses' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700';
+                                                    const cls = s === 'berlangsung' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700';
                                                     return (
                                                         <span className={`inline-flex items-center gap-1.5 mt-1 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${cls}`}>
                                                             <i className={`fa-solid ${m.markerIcon}`}></i> {m.label}
