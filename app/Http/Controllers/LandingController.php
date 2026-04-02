@@ -16,25 +16,30 @@ class LandingController extends Controller
     public function index()
     {
         // Peta PKM publik: hanya yang sudah diterima/selesai dan memiliki koordinat
-        $pkmData = Pengajuan::with(['aktivitas'])
-            ->whereIn('status_pengajuan', ['diterima', 'selesai'])
+        $pkmData = Pengajuan::with(['aktivitas', 'timKegiatan', 'jenisPkm'])
             ->whereNotNull('latitude')
-            ->get(['id_pengajuan', 'judul_kegiatan', 'created_at', 'kebutuhan',
-                   'provinsi', 'kota_kabupaten', 'kecamatan', 'kelurahan_desa',
-                   'latitude', 'longitude'])
-            ->map(fn ($p) => [
-                'id'        => $p->id_pengajuan,
-                'nama'      => $p->judul_kegiatan,
-                'tahun'     => $p->created_at?->year ?? date('Y'),
-                'status'    => $p->aktivitas?->status_pelaksanaan === 'selesai' ? 'selesai' : 'berlangsung',
+            ->get()
+            ->map(fn($p) => [
+                'id' => $p->id_pengajuan,
+                'nama' => $p->judul_kegiatan,
+                'tahun' => $p->created_at?->year ?? date('Y'),
+                'jenis_pkm' => $p->jenisPkm?->nama_jenis ?? '',
+                'status' => ($p->status_pengajuan === 'selesai' || $p->aktivitas?->status_pelaksanaan === 'selesai') ? 'selesai' :
+                    ($p->status_pengajuan === 'direvisi' ? 'direvisi' :
+                        ($p->status_pengajuan === 'diproses' || $p->status_pengajuan === 'belum_diajukan' ? 'diproses' : 'berlangsung')),
                 'deskripsi' => $p->kebutuhan ?? '',
                 'thumbnail' => $p->aktivitas?->url_thumbnail ?? '',
-                'provinsi'  => $p->provinsi ?? '',
+                'provinsi' => $p->provinsi ?? '',
                 'kabupaten' => $p->kota_kabupaten ?? '',
                 'kecamatan' => $p->kecamatan ?? '',
-                'desa'      => $p->kelurahan_desa ?? '',
-                'lat'       => (float) ($p->latitude ?? 0),
-                'lng'       => (float) ($p->longitude ?? 0),
+                'desa' => $p->kelurahan_desa ?? '',
+                'lat' => (float) ($p->latitude ?? 0),
+                'lng' => (float) ($p->longitude ?? 0),
+                'total_anggaran' => $p->total_anggaran ?? 0,
+                'tim_kegiatan' => $p->timKegiatan->map(fn($t) => [
+                    'nama' => $t->nama_anggota,
+                    'peran' => $t->peran,
+                ])->toArray(),
             ]);
 
         // Chart stats: 1 query untuk semua agregat tahun-status
@@ -53,23 +58,23 @@ class LandingController extends Controller
         ")->first();
 
         $chartStats = [
-            'years'           => $years,
-            'selesai'         => collect($years)->map(fn ($y) => $allPengajuan->where('year', $y)->where('status_pengajuan', 'selesai')->sum('total'))->toArray(),
-            'berlangsung'     => collect($years)->map(fn ($y) => $allPengajuan->where('year', $y)->where('status_pengajuan', 'diterima')->sum('total'))->toArray(),
+            'years' => $years,
+            'selesai' => collect($years)->map(fn($y) => $allPengajuan->where('year', $y)->where('status_pengajuan', 'selesai')->sum('total'))->toArray(),
+            'berlangsung' => collect($years)->map(fn($y) => $allPengajuan->where('year', $y)->where('status_pengajuan', 'diterima')->sum('total'))->toArray(),
             'total_pengajuan' => (int) ($statusCounts->total ?? 0),
-            'total_diterima'  => (int) ($statusCounts->total_diterima ?? 0),
-            'total_selesai'   => (int) ($statusCounts->total_selesai ?? 0),
+            'total_diterima' => (int) ($statusCounts->total_diterima ?? 0),
+            'total_selesai' => (int) ($statusCounts->total_selesai ?? 0),
         ];
 
         $testimonials = Testimoni::latest()->limit(10)->get();
 
         // Data user jika sudah login
-        $user          = null;
+        $user = null;
         $userPengajuan = collect();
-        $listJenisPkm  = collect();
+        $listJenisPkm = collect();
 
         if (Auth::check()) {
-            $user          = Auth::user();
+            $user = Auth::user();
             $userPengajuan = Pengajuan::with(['jenisPkm'])
                 ->where('id_user', $user->id_user)
                 ->latest()
@@ -78,12 +83,12 @@ class LandingController extends Controller
         }
 
         return Inertia::render('LandingPage', [
-            'pkmData'       => $pkmData,
-            'user'          => $user,
+            'pkmData' => $pkmData,
+            'user' => $user,
             'userPengajuan' => $userPengajuan,
-            'listJenisPkm'  => $listJenisPkm,
-            'chartStats'    => $chartStats,
-            'testimonials'  => $testimonials,
+            'listJenisPkm' => $listJenisPkm,
+            'chartStats' => $chartStats,
+            'testimonials' => $testimonials,
         ]);
     }
 
@@ -134,7 +139,7 @@ class LandingController extends Controller
         ]));
 
         foreach (($request->dokumen_lainnya ?? []) as $link) {
-            if (! empty($link)) {
+            if (!empty($link)) {
                 Arsip::create(array_merge($commonData, [
                     'nama_dokumen' => 'Dokumen Tambahan',
                     'jenis_arsip' => 'dokumen_lain',

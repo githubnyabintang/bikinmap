@@ -8,7 +8,7 @@ import LandingCharts from '@/Components/LandingCharts';
 import MapLegend from '@/Components/MapLegend';
 import CTABanner from '@/Components/CTABanner';
 import { resolvePublicPkmData } from '@/data/sigapData';
-import { createPkmMarkerIcon } from '@/data/pkmMapVisuals';
+import { createPkmMarkerIcon, getPkmTypeMeta, getPkmStatusMeta } from '@/data/pkmMapVisuals';
 import { PkmData } from '@/types';
 import '../../css/landing.css';
 
@@ -36,7 +36,16 @@ function MapSizeInvalidator({ watchKey }: MapSizeInvalidatorProps): null {
     return null;
 }
 
-const MapSummaryOverlay: React.FC<{ total: number; selesai: number; berlangsung: number; forceHide?: boolean }> = ({ total, selesai, berlangsung, forceHide = false }) => {
+const MapSummaryOverlay: React.FC<{
+    total: number;
+    selesai: number;
+    berlangsung: number;
+    forceHide?: boolean;
+    selectedTypes: string[];
+    onToggleType: (t: string) => void;
+    selectedStatuses: string[];
+    onToggleStatus: (s: string) => void;
+}> = ({ total, selesai, berlangsung, forceHide = false, selectedTypes, onToggleType, selectedStatuses, onToggleStatus }) => {
     const [isCollapsed, setIsCollapsed] = useState(false);
 
     return (
@@ -54,7 +63,14 @@ const MapSummaryOverlay: React.FC<{ total: number; selesai: number; berlangsung:
             <div className={`flex items-end gap-3 transition-all duration-500 ease-in-out origin-bottom-left ${isCollapsed ? 'opacity-0 scale-0 -translate-x-10 translate-y-6 pointer-events-none absolute left-12 bottom-0' : 'opacity-100 scale-100 translate-x-0 translate-y-0 relative'}`}>
                 {/* Legend Card - Minimized Glass */}
                 <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-1 shadow-2xl border border-white/40 whitespace-nowrap pointer-events-auto">
-                    <MapLegend className="bg-transparent border-none shadow-none" compact />
+                    <MapLegend
+                        className="bg-transparent border-none shadow-none"
+                        compact
+                        selectedTypes={selectedTypes}
+                        onToggleType={onToggleType}
+                        selectedStatuses={selectedStatuses}
+                        onToggleStatus={onToggleStatus}
+                    />
                 </div>
 
                 {/* Summary Card - Ultra Compact Horizontal Glass */}
@@ -106,16 +122,35 @@ export default function LandingPage({ publicPkmData = null }: { publicPkmData?: 
     const [searchKeyword, setSearchKeyword] = useState('');
     const [listSelectedPkm, setListSelectedPkm] = useState<PkmData | null>(null);
 
-    const filteredPkmData = pkmData.filter(pkm =>
-        pkm.nama.toLowerCase().includes(searchKeyword.toLowerCase()) ||
-        pkm.desa.toLowerCase().includes(searchKeyword.toLowerCase()) ||
-        pkm.kabupaten.toLowerCase().includes(searchKeyword.toLowerCase()) ||
-        pkm.provinsi.toLowerCase().includes(searchKeyword.toLowerCase())
-    );
+    const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+    const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
 
-    const totalPkm = pkmData.length;
-    const totalSelesai = pkmData.filter((item) => item.status === 'selesai').length;
-    const totalBerlangsung = pkmData.filter((item) => item.status === 'berlangsung').length;
+    const toggleType = (key: string) => {
+        setSelectedTypes(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
+    };
+
+    const toggleStatus = (key: string) => {
+        setSelectedStatuses(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
+    };
+
+    const filteredPkmData = pkmData.filter(pkm => {
+        const matchesSearch = pkm.nama.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+            pkm.desa.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+            pkm.kabupaten.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+            pkm.provinsi.toLowerCase().includes(searchKeyword.toLowerCase());
+
+        const typeMeta = getPkmTypeMeta(pkm);
+        const statusMeta = getPkmStatusMeta(pkm.status);
+
+        const matchesType = selectedTypes.length === 0 || selectedTypes.includes(typeMeta.key);
+        const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(statusMeta.key);
+
+        return matchesSearch && matchesType && matchesStatus;
+    });
+
+    const totalPkm = filteredPkmData.length;
+    const totalSelesai = filteredPkmData.filter((item) => item.status === 'selesai').length;
+    const totalBerlangsung = filteredPkmData.filter((item) => item.status === 'berlangsung').length;
 
     return (
         <Layout mainClassName="site-main-content" mainStyle={{ flex: '1', display: 'flex', flexDirection: 'column', backgroundColor: '#f8fafc' }}>
@@ -143,7 +178,7 @@ export default function LandingPage({ publicPkmData = null }: { publicPkmData?: 
                                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                             />
-                            {pkmData.map((pkm) => (
+                            {filteredPkmData.map((pkm) => (
                                 <Marker
                                     key={pkm.id}
                                     position={[parseFloat(String(pkm.lat)), parseFloat(String(pkm.lng))]}
@@ -170,7 +205,16 @@ export default function LandingPage({ publicPkmData = null }: { publicPkmData?: 
                         </div>
 
                         {/* Summary & Legend Overlay - Bottom Left */}
-                        <MapSummaryOverlay total={totalPkm} selesai={totalSelesai} berlangsung={totalBerlangsung} forceHide={isListSidebarOpen || !!sidebarPkm} />
+                        <MapSummaryOverlay
+                            total={totalPkm}
+                            selesai={totalSelesai}
+                            berlangsung={totalBerlangsung}
+                            forceHide={isListSidebarOpen || !!sidebarPkm}
+                            selectedTypes={selectedTypes}
+                            onToggleType={toggleType}
+                            selectedStatuses={selectedStatuses}
+                            onToggleStatus={toggleStatus}
+                        />
 
                         {/* Sidebar PKM Detail Overlay - Right Side to avoid overlap with Legend */}
                         <div className={`pk-detail-sidebar absolute top-8 bottom-8 right-8 w-[400px] max-w-[calc(100%-64px)] bg-white/95 backdrop-blur-xl rounded-[40px] shadow-2xl z-[1100] p-8 overflow-y-auto transition-transform duration-700 border border-white/60 ${!sidebarPkm ? 'translate-x-[120%]' : 'translate-x-0'}`}>
@@ -197,6 +241,35 @@ export default function LandingPage({ publicPkmData = null }: { publicPkmData?: 
                                             <div className="flex items-center gap-3"><div className="w-8 h-8 rounded-lg bg-sigappa-primary/10 text-sigappa-primary flex items-center justify-center"><i className="fa-solid fa-location-dot"></i></div> {sidebarPkm.desa}, {sidebarPkm.kecamatan}, {sidebarPkm.kabupaten}, {sidebarPkm.provinsi}</div>
                                             <div className="flex items-center gap-3"><div className="w-8 h-8 rounded-lg bg-sigappa-primary/10 text-sigappa-primary flex items-center justify-center"><i className="fa-solid fa-calendar"></i></div> Tahun {sidebarPkm.tahun}</div>
                                         </div>
+
+                                        {/* Tim Pelaksana */}
+                                        {sidebarPkm.tim_kegiatan && sidebarPkm.tim_kegiatan.length > 0 && (
+                                            <div className="pt-4 border-t border-slate-100">
+                                                <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Tim Pelaksana</span>
+                                                <div className="space-y-2">
+                                                    {sidebarPkm.tim_kegiatan.map((t, i) => (
+                                                        <div key={i} className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-xl border border-slate-100">
+                                                            <div className="w-8 h-8 rounded-lg bg-poltekpar-primary/10 text-poltekpar-primary flex items-center justify-center text-[10px] font-black">{t.nama?.charAt(0)?.toUpperCase() || '?'}</div>
+                                                            <div>
+                                                                <span className="text-xs font-bold text-slate-700 block leading-tight">{t.nama}</span>
+                                                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t.peran}</span>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Anggaran */}
+                                        {sidebarPkm.total_anggaran != null && Number(sidebarPkm.total_anggaran) > 0 && (
+                                            <div className="pt-4 border-t border-slate-100">
+                                                <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Total Anggaran</span>
+                                                <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-xl bg-poltekpar-primary/10 text-poltekpar-primary flex items-center justify-center"><i className="fa-solid fa-money-bill-wave"></i></div>
+                                                    <span className="text-lg font-black text-poltekpar-primary">Rp {Number(sidebarPkm.total_anggaran).toLocaleString('id-ID')}</span>
+                                                </div>
+                                            </div>
+                                        )}
 
                                         {/* Testimoni */}
                                         {sidebarPkm.testimoni && sidebarPkm.testimoni.length > 0 && (
@@ -260,6 +333,35 @@ export default function LandingPage({ publicPkmData = null }: { publicPkmData?: 
                                                 <div className="flex items-center gap-3"><div className="w-8 h-8 rounded-lg bg-sigappa-primary/10 text-sigappa-primary flex items-center justify-center"><i className="fa-solid fa-calendar"></i></div> Tahun {listSelectedPkm.tahun}</div>
                                             </div>
 
+                                            {/* Tim Pelaksana */}
+                                            {listSelectedPkm.tim_kegiatan && listSelectedPkm.tim_kegiatan.length > 0 && (
+                                                <div className="pt-4 border-t border-slate-100">
+                                                    <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Tim Pelaksana</span>
+                                                    <div className="space-y-2">
+                                                        {listSelectedPkm.tim_kegiatan.map((t, i) => (
+                                                            <div key={i} className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-xl border border-slate-100">
+                                                                <div className="w-8 h-8 rounded-lg bg-poltekpar-primary/10 text-poltekpar-primary flex items-center justify-center text-[10px] font-black">{t.nama?.charAt(0)?.toUpperCase() || '?'}</div>
+                                                                <div>
+                                                                    <span className="text-xs font-bold text-slate-700 block leading-tight">{t.nama}</span>
+                                                                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t.peran}</span>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Anggaran */}
+                                            {listSelectedPkm.total_anggaran != null && Number(listSelectedPkm.total_anggaran) > 0 && (
+                                                <div className="pt-4 border-t border-slate-100">
+                                                    <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Total Anggaran</span>
+                                                    <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex items-center gap-3">
+                                                        <div className="w-10 h-10 rounded-xl bg-poltekpar-primary/10 text-poltekpar-primary flex items-center justify-center"><i className="fa-solid fa-money-bill-wave"></i></div>
+                                                        <span className="text-lg font-black text-poltekpar-primary">Rp {Number(listSelectedPkm.total_anggaran).toLocaleString('id-ID')}</span>
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             {/* Testimoni */}
                                             {listSelectedPkm.testimoni && listSelectedPkm.testimoni.length > 0 && (
                                                 <div className="pt-4 border-t border-slate-100">
@@ -305,27 +407,30 @@ export default function LandingPage({ publicPkmData = null }: { publicPkmData?: 
                                         </div>
                                     </div>
                                     <div className="p-8 pt-4 overflow-y-auto flex-1 space-y-4 custom-scrollbar">
-                                        {filteredPkmData.map(pkm => (
-                                            <button
-                                                key={pkm.id}
-                                                onClick={() => {
-                                                    setListSelectedPkm(pkm);
-                                                }}
-                                                className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 flex flex-col gap-3 text-left hover:bg-poltekpar-primary hover:text-white hover:border-poltekpar-primary transition-all group shadow-sm cursor-pointer"
-                                            >
-                                                <div className="flex items-center justify-between w-full">
-                                                    <div className="flex items-center gap-3 w-[90%]">
-                                                        <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-sm ${pkm.status === 'berlangsung' ? 'bg-amber-400 group-hover:bg-amber-300' : 'bg-poltekpar-navy group-hover:bg-white'}`}></div>
-                                                        <div className="font-black text-sm text-slate-800 group-hover:text-white transition-colors truncate">{pkm.nama}</div>
+                                        {filteredPkmData.map(pkm => {
+                                            const typeColor = getPkmTypeMeta(pkm).color;
+                                            return (
+                                                <button
+                                                    key={pkm.id}
+                                                    onClick={() => {
+                                                        setListSelectedPkm(pkm);
+                                                    }}
+                                                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 flex flex-col gap-3 text-left hover:bg-poltekpar-primary hover:text-white hover:border-poltekpar-primary transition-all group shadow-sm cursor-pointer"
+                                                >
+                                                    <div className="flex items-center justify-between w-full">
+                                                        <div className="flex items-center gap-3 w-[90%]">
+                                                            <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-sm group-hover:ring-2 group-hover:ring-white/50" style={{ backgroundColor: typeColor }}></div>
+                                                            <div className="font-black text-sm text-slate-800 group-hover:text-white transition-colors truncate">{pkm.nama}</div>
+                                                        </div>
+                                                        <i className="fa-solid fa-arrow-right text-slate-300 group-hover:text-white transition-colors flex-shrink-0"></i>
                                                     </div>
-                                                    <i className="fa-solid fa-arrow-right text-slate-300 group-hover:text-white transition-colors flex-shrink-0"></i>
-                                                </div>
-                                                <div className="flex flex-col gap-1.5 pl-[22px] text-[10px] font-bold text-slate-400 group-hover:text-white/80 transition-colors uppercase tracking-widest">
-                                                    <div className="flex items-center gap-2"><i className="fa-solid fa-location-dot"></i> {pkm.desa}, {pkm.kabupaten}</div>
-                                                    <div className="flex items-center gap-2"><i className="fa-solid fa-calendar"></i> Tahun {pkm.tahun}</div>
-                                                </div>
-                                            </button>
-                                        ))}
+                                                    <div className="flex flex-col gap-1.5 pl-[22px] text-[10px] font-bold text-slate-400 group-hover:text-white/80 transition-colors uppercase tracking-widest">
+                                                        <div className="flex items-center gap-2"><i className="fa-solid fa-location-dot"></i> {pkm.desa}, {pkm.kabupaten}</div>
+                                                        <div className="flex items-center gap-2"><i className="fa-solid fa-calendar"></i> Tahun {pkm.tahun}</div>
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
                                         {filteredPkmData.length === 0 && (
                                             <div className="text-center py-8">
                                                 <div className="w-12 h-12 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner"><i className="fa-solid fa-search text-xl"></i></div>

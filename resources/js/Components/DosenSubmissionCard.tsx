@@ -27,6 +27,9 @@ interface Submission {
     tgl_mulai?: string;
     tgl_selesai?: string;
     jenis_pkm?: string;
+    nama_pengusul?: string;
+    email_pengusul?: string;
+    kebutuhan?: string;
     tim_kegiatan?: { nama: string; peran: string }[];
 }
 
@@ -60,18 +63,18 @@ interface FormData {
     kecamatan: string;
     kelurahan_desa: string;
     alamat_lengkap: string;
-    
+
     tim_dosen: string[];
     tim_staff: string[];
     tim_mahasiswa: string[];
-    
+
     rab_items: RabItem[];
-    
+
     dana_perguruan_tinggi: number;
     dana_pemerintah: number;
     dana_lembaga_dalam: number;
     dana_lembaga_luar: number;
-    
+
     surat_permohonan: string;
     surat_proposal: string;
     link_tambahan: string[];
@@ -89,6 +92,7 @@ const getSubmissionStatusStyle = (status: string) => {
         diterima: { label: 'Diterima', icon: 'fa-circle-check', bg: '#dcfce7', color: '#15803d' },
         berlangsung: { label: 'Berlangsung', icon: 'fa-person-walking', bg: '#fef3c7', color: '#b45309' },
         selesai: { label: 'Selesai', icon: 'fa-flag-checkered', bg: '#dcfce7', color: '#15803d' },
+        direvisi: { label: 'Direvisi', icon: 'fa-file-pen', bg: '#fff7ed', color: '#ea580c' },
         belum_diajukan: { label: 'Belum Diajukan', icon: 'fa-file-circle-plus', bg: '#f1f5f9', color: '#64748b' },
     };
     return styles[status] || styles.belum_diajukan;
@@ -164,7 +168,7 @@ export default function DosenSubmissionCard({
     };
 
     const totalRAB = useMemo(() => data.rab_items.reduce((sum, item) => sum + (item.total || 0), 0), [data.rab_items]);
-    
+
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
         if (!data.judul_kegiatan.trim()) {
@@ -174,28 +178,28 @@ export default function DosenSubmissionCard({
         setIsMockSubmitting(true);
 
         const payload = {
-            judul_kegiatan:     data.judul_kegiatan,
-            kebutuhan:          data.kebutuhan,
-            nama_dosen:         data.nama_ketua,
-            instansi_mitra:     data.instansi,
-            no_telepon:         data.whatsapp,
-            provinsi:           data.provinsi,
-            kota_kabupaten:     data.kota_kabupaten,
-            kecamatan:          data.kecamatan,
-            kelurahan_desa:     data.kelurahan_desa,
-            alamat_lengkap:     data.alamat_lengkap,
-            dosen_terlibat:     data.tim_dosen.filter(v => v.trim() !== ''),
-            staff_terlibat:     data.tim_staff.filter(v => v.trim() !== ''),
+            judul_kegiatan: data.judul_kegiatan,
+            kebutuhan: data.kebutuhan,
+            nama_dosen: data.nama_ketua,
+            instansi_mitra: data.instansi,
+            no_telepon: data.whatsapp,
+            provinsi: data.provinsi,
+            kota_kabupaten: data.kota_kabupaten,
+            kecamatan: data.kecamatan,
+            kelurahan_desa: data.kelurahan_desa,
+            alamat_lengkap: data.alamat_lengkap,
+            dosen_terlibat: data.tim_dosen.filter(v => v.trim() !== ''),
+            staff_terlibat: data.tim_staff.filter(v => v.trim() !== ''),
             mahasiswa_terlibat: data.tim_mahasiswa.filter(v => v.trim() !== ''),
-            sumber_dana:        data.sumber_dana.join(', ') || '',
+            sumber_dana: data.sumber_dana.join(', ') || '',
             dana_perguruan_tinggi: data.dana_perguruan_tinggi > 0 ? data.dana_perguruan_tinggi : null,
-            dana_pemerintah:    data.dana_pemerintah > 0 ? data.dana_pemerintah : null,
+            dana_pemerintah: data.dana_pemerintah > 0 ? data.dana_pemerintah : null,
             dana_lembaga_dalam: data.dana_lembaga_dalam > 0 ? data.dana_lembaga_dalam : null,
-            dana_lembaga_luar:  data.dana_lembaga_luar > 0 ? data.dana_lembaga_luar : null,
-            total_anggaran:     totalRAB || 0,
-            proposal_url:       data.surat_proposal,
+            dana_lembaga_luar: data.dana_lembaga_luar > 0 ? data.dana_lembaga_luar : null,
+            total_anggaran: totalRAB || 0,
+            proposal_url: data.surat_proposal,
             surat_permohonan_url: data.surat_permohonan,
-            rab:                data.link_tambahan.filter(v => v.trim() !== '').join(', '),
+            rab: data.link_tambahan.filter(v => v.trim() !== '').join(', '),
         };
 
         router.post('/pengajuan', payload as any, {
@@ -223,7 +227,7 @@ export default function DosenSubmissionCard({
     const renderDetailModal = () => {
         if (!selectedDetail) return null;
         const style = getSubmissionStatusStyle(selectedDetail.status);
-        
+
         return (
             <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
                 <div className="absolute inset-0" onClick={() => setSelectedDetail(null)}></div>
@@ -259,9 +263,18 @@ export default function DosenSubmissionCard({
                                 <section>
                                     <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Informasi Umum</h4>
                                     <div className="space-y-2 text-sm">
+                                        <p><span className="text-slate-500">Nama Pengusul:</span> <span className="text-slate-900 font-semibold">{selectedDetail.nama_pengusul || '-'}</span></p>
                                         <p><span className="text-slate-500">Kategori:</span> <span className="text-slate-900 font-semibold">{selectedDetail.jenis_pkm || '-'}</span></p>
                                         <p><span className="text-slate-500">Instansi:</span> <span className="text-slate-900 font-semibold">{selectedDetail.instansi_mitra || '-'}</span></p>
+                                        <p><span className="text-slate-500">Email:</span> <span className="text-slate-900 font-semibold">{selectedDetail.email_pengusul || '-'}</span></p>
                                         <p><span className="text-slate-500">WhatsApp:</span> <span className="text-slate-900 font-semibold">{selectedDetail.no_telepon || '-'}</span></p>
+                                    </div>
+                                </section>
+
+                                <section>
+                                    <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Kebutuhan PKM</h4>
+                                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs text-slate-600 leading-relaxed italic">
+                                        "{selectedDetail.kebutuhan || selectedDetail.ringkasan || '-'}"
                                     </div>
                                 </section>
 
@@ -277,13 +290,12 @@ export default function DosenSubmissionCard({
                             <div className="space-y-4">
                                 <section>
                                     <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Tim Pelaksana</h4>
-                                    <div className="space-y-2">
+                                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100/60 space-y-2">
                                         {selectedDetail.tim_kegiatan && selectedDetail.tim_kegiatan.length > 0 ? (
-                                            selectedDetail.tim_kegiatan.map((t, i) => (
-                                                <div key={i} className="flex items-center gap-2 text-xs">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-poltekpar-primary"></div>
-                                                    <span className="text-slate-900 font-medium">{t.nama}</span>
-                                                    <span className="text-slate-400 font-bold uppercase text-[9px] tracking-tighter">({t.peran})</span>
+                                            selectedDetail.tim_kegiatan.filter(t => t.peran !== 'Ketua/Dosen Pengusul').map((t, i) => (
+                                                <div key={i} className="flex flex-col mb-1.5 pb-1.5 border-b border-slate-100 last:border-0 last:mb-0 last:pb-0">
+                                                    <span className="text-slate-900 font-semibold text-sm">{t.nama}</span>
+                                                    <span className="text-slate-500 text-[10px] font-bold uppercase tracking-wider">{t.peran === 'Dosen' ? 'Dosen Terlibat' : t.peran === 'Staff' ? 'Staf Terlibat' : 'Mahasiswa Terlibat'}</span>
                                                 </div>
                                             ))
                                         ) : <p className="text-xs text-slate-400 italic">Data tim belum diatur.</p>}
@@ -291,16 +303,48 @@ export default function DosenSubmissionCard({
                                 </section>
 
                                 <section>
-                                    <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Anggaran & Dokumen</h4>
-                                    <div className="space-y-3">
-                                        <div className="p-2.5 bg-blue-50 rounded-lg flex justify-between items-center border border-blue-100">
+                                    <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Anggaran & Sumber Dana</h4>
+                                    <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-100/60">
+                                        <div className="p-2.5 bg-blue-50/50 rounded-lg flex justify-between items-center border border-blue-100/50">
                                             <span className="text-[10px] font-bold text-blue-700 uppercase">Total RAB</span>
                                             <span className="text-sm font-black text-poltekpar-primary">Rp {Number(selectedDetail.total_anggaran || 0).toLocaleString('id-ID')}</span>
                                         </div>
-                                        <div className="flex flex-wrap gap-2">
-                                            {selectedDetail.proposal && <a href={selectedDetail.proposal} target="_blank" className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold rounded-lg transition-colors border border-slate-200"><i className="fa-solid fa-file-pdf mr-1.5"></i>PROPOSAL</a>}
-                                            {selectedDetail.surat_permohonan && <a href={selectedDetail.surat_permohonan} target="_blank" className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold rounded-lg transition-colors border border-slate-200"><i className="fa-solid fa-file-contract mr-1.5"></i>PERMOHONAN</a>}
+                                        <div className="pt-1">
+                                            <span className="text-slate-500 text-[10px] font-bold uppercase tracking-wider mb-1 block">Sumber Dana (Akumulatif)</span>
+                                            <p className="text-sm text-slate-900 font-semibold">{(selectedDetail.sumber_dana || '').replace(/,\s*$/, '') || '-'}</p>
                                         </div>
+                                    </div>
+                                </section>
+
+                                <section>
+                                    <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Dokumen & Tautan</h4>
+                                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100/60 flex flex-col gap-3">
+                                        <div className="flex flex-col gap-2">
+                                            {selectedDetail.surat_permohonan ? (
+                                                <a href={selectedDetail.surat_permohonan} target="_blank" className="flex items-center gap-2 p-2 bg-white hover:bg-slate-100 text-slate-700 text-[11px] font-bold rounded-lg transition-colors border border-slate-200 shadow-sm">
+                                                    <i className="fa-solid fa-file-contract text-poltekpar-primary w-4 text-center"></i> SURAT PERMOHONAN
+                                                </a>
+                                            ) : <span className="text-xs text-slate-400 flex items-center gap-1.5"><i className="fa-solid fa-triangle-exclamation"></i> Kosong</span>}
+                                            {selectedDetail.proposal && (
+                                                <a href={selectedDetail.proposal} target="_blank" className="flex items-center gap-2 p-2 bg-white hover:bg-slate-100 text-slate-700 text-[11px] font-bold rounded-lg transition-colors border border-slate-200 shadow-sm">
+                                                    <i className="fa-solid fa-file-pdf text-poltekpar-primary w-4 text-center"></i> PROPOSAL
+                                                </a>
+                                            )}
+                                        </div>
+                                        {selectedDetail.rab && (
+                                            <div className="space-y-2 pt-2 border-t border-slate-200">
+                                                {selectedDetail.rab.split(',').map((link, i) => {
+                                                    const url = link.trim();
+                                                    if (!url) return null;
+                                                    return (
+                                                        <p key={i} className="text-[12px] bg-white p-2 rounded-lg border border-slate-100">
+                                                            <span className="text-slate-500 font-bold text-[10px] uppercase block mb-0.5">Tautan Tambahan {i + 1}: </span>
+                                                            <a href={url} target="_blank" className="text-poltekpar-primary font-medium hover:underline break-all">{url}</a>
+                                                        </p>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
                                     </div>
                                 </section>
                             </div>

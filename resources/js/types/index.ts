@@ -47,6 +47,9 @@ export interface PkmData {
     lat: number | string;
     lng: number | string;
     testimoni?: TestimoniItem[];
+    jenis_pkm?: string;
+    total_anggaran?: number;
+    tim_kegiatan?: { nama: string; peran: string }[];
 }
 
 /** Digunakan oleh Admin/Dashboard untuk peta dengan info tambahan jenis PKM */

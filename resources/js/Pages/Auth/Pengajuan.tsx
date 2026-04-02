@@ -29,6 +29,9 @@ export interface PengajuanRecord {
     tgl_mulai?: string;
     tgl_selesai?: string;
     jenis_pkm?: string;
+    nama_pengusul?: string;
+    email_pengusul?: string;
+    kebutuhan?: string;
     tim_kegiatan?: { nama: string; peran: string }[];
 }
 

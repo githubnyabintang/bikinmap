@@ -4,12 +4,23 @@ import { PKM_LEGEND_STATUSES, PKM_LEGEND_TYPES } from '@/data/pkmMapVisuals';
 interface MapLegendProps {
     compact?: boolean;
     className?: string;
+    selectedTypes?: string[];
+    onToggleType?: (typeKey: string) => void;
+    selectedStatuses?: string[];
+    onToggleStatus?: (statusKey: string) => void;
 }
 
-export default function MapLegend({ compact = false, className = '' }: MapLegendProps) {
+export default function MapLegend({
+    compact = false,
+    className = '',
+    selectedTypes,
+    onToggleType,
+    selectedStatuses,
+    onToggleStatus
+}: MapLegendProps) {
     return (
-        <div 
-            className={`bg-white rounded-xl shadow-soft border border-slate-100 p-4 ${compact ? 'p-3' : ''} ${className}`} 
+        <div
+            className={`bg-white rounded-xl shadow-soft border border-slate-100 p-4 ${compact ? 'p-3' : ''} ${className}`}
             aria-label="Legenda visual peta PKM"
         >
             {/* Header */}
@@ -20,15 +31,26 @@ export default function MapLegend({ compact = false, className = '' }: MapLegend
 
             {/* PKM Types Section */}
             <div className="mb-4">
-                <span className="text-sm font-semibold text-slate-700 block mb-2.5">Jenis PKM</span>
-                <div className="space-y-2">
+                <span className="text-sm font-semibold text-slate-700 block mb-2.5 flex justify-between items-center">
+                    Jenis PKM
+                </span>
+                <div className="space-y-1.5">
                     {PKM_LEGEND_TYPES.map((type) => (
-                        <div key={type.key} className="flex items-center gap-2.5">
+                        <div
+                            key={type.key}
+                            onClick={() => onToggleType?.(type.key)}
+                            className={`flex items-center gap-2.5 transition-colors ${onToggleType ? 'cursor-pointer hover:bg-slate-50 p-1.5 -ml-1.5 rounded-lg' : ''}`}
+                        >
+                            {onToggleType && (
+                                <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${selectedTypes?.includes(type.key) ? 'bg-poltekpar-primary border-poltekpar-primary' : 'bg-white border-slate-300'}`}>
+                                    {selectedTypes?.includes(type.key) && <i className="fa-solid fa-check text-[10px] text-white"></i>}
+                                </div>
+                            )}
                             <span
-                                className="w-4 h-4 rounded-full shadow-sm"
+                                className="w-4 h-4 rounded-full shadow-sm shrink-0"
                                 style={{ backgroundColor: type.color }}
                             ></span>
-                            <span className="text-sm text-slate-600 font-medium">{type.label}</span>
+                            <span className="text-sm text-slate-600 font-medium leading-none">{type.label}</span>
                         </div>
                     ))}
                 </div>
@@ -36,18 +58,33 @@ export default function MapLegend({ compact = false, className = '' }: MapLegend
 
             {/* PKM Status Section */}
             <div>
-                <span className="text-sm font-semibold text-slate-700 block mb-2.5">Status PKM</span>
-                <div className="space-y-2">
+                <span className="text-sm font-semibold text-slate-700 block mb-2.5 flex justify-between items-center">
+                    Status PKM
+                </span>
+                <div className="space-y-1.5">
                     {PKM_LEGEND_STATUSES.map((status) => (
-                        <div key={status.key} className="flex items-center gap-2.5">
-                            <span className={`flex items-center justify-center w-6 h-6 rounded-full ${
-                                status.key === 'berlangsung' ? 'bg-amber-100' : 'bg-emerald-100'
-                            }`}>
-                                <i className={`fa-solid ${status.markerIcon} text-sm ${
-                                    status.key === 'berlangsung' ? 'text-amber-600' : 'text-emerald-600'
-                                }`}></i>
+                        <div
+                            key={status.key}
+                            onClick={() => onToggleStatus?.(status.key)}
+                            className={`flex items-center gap-2.5 transition-colors ${onToggleStatus ? 'cursor-pointer hover:bg-slate-50 p-1.5 -ml-1.5 rounded-lg' : ''}`}
+                        >
+                            {onToggleStatus && (
+                                <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${selectedStatuses?.includes(status.key) ? 'bg-poltekpar-primary border-poltekpar-primary' : 'bg-white border-slate-300'}`}>
+                                    {selectedStatuses?.includes(status.key) && <i className="fa-solid fa-check text-[10px] text-white"></i>}
+                                </div>
+                            )}
+                            <span className={`flex items-center justify-center w-6 h-6 rounded-full shrink-0 ${status.key === 'selesai' ? 'bg-emerald-100' :
+                                    status.key === 'direvisi' ? 'bg-orange-100' :
+                                        status.key === 'diproses' ? 'bg-blue-100' :
+                                            'bg-amber-100' // berlangsung
+                                }`}>
+                                <i className={`fa-solid ${status.markerIcon} text-sm ${status.key === 'selesai' ? 'text-emerald-600' :
+                                        status.key === 'direvisi' ? 'text-orange-600' :
+                                            status.key === 'diproses' ? 'text-blue-600' :
+                                                'text-amber-600' // berlangsung
+                                    }`}></i>
                             </span>
-                            <span className="text-sm text-slate-600 font-medium">{status.label}</span>
+                            <span className="text-sm text-slate-600 font-medium leading-none">{status.label}</span>
                         </div>
                     ))}
                 </div>

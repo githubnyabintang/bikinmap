@@ -41,15 +41,15 @@ export const PKM_STATUS_META: Record<string, PkmStatusMeta> = {
         label: 'PKM Berlangsung',
         markerIcon: 'fa-hourglass-half',
     },
-    ada_pengajuan: {
-        key: 'ada_pengajuan',
-        label: 'Ada Pengajuan',
-        markerIcon: 'fa-file-circle-plus',
+    direvisi: {
+        key: 'direvisi',
+        label: 'Direvisi',
+        markerIcon: 'fa-file-pen',
     },
-    belum_mulai: {
-        key: 'belum_mulai',
-        label: 'Belum Mulai',
-        markerIcon: 'fa-clock',
+    diproses: {
+        key: 'diproses',
+        label: 'Diproses / Baru',
+        markerIcon: 'fa-file-circle-plus',
     },
 };
 

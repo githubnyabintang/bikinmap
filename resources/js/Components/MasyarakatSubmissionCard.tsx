@@ -27,6 +27,9 @@ interface Submission {
     tgl_mulai?: string;
     tgl_selesai?: string;
     jenis_pkm?: string;
+    nama_pengusul?: string;
+    email_pengusul?: string;
+    kebutuhan?: string;
 }
 
 interface MasyarakatSubmissionCardProps {
@@ -57,6 +60,7 @@ const getSubmissionStatusStyle = (status: string) => {
         diterima: { label: 'Diterima', icon: 'fa-circle-check', bg: '#dcfce7', color: '#15803d' },
         berlangsung: { label: 'Berlangsung', icon: 'fa-person-walking', bg: '#fef3c7', color: '#b45309' },
         selesai: { label: 'Selesai', icon: 'fa-flag-checkered', bg: '#dcfce7', color: '#15803d' },
+        direvisi: { label: 'Direvisi', icon: 'fa-file-pen', bg: '#fff7ed', color: '#ea580c' },
         belum_diajukan: { label: 'Belum Diajukan', icon: 'fa-file-circle-plus', bg: '#f1f5f9', color: '#64748b' },
     };
     return styles[status] || styles.belum_diajukan;
@@ -151,12 +155,12 @@ export default function MasyarakatSubmissionCard({
             preserveScroll: true,
             onSuccess: () => {
                 setIsMockSubmitting(false);
-                onSubmitted?.({ 
-                    id: Date.now(), 
-                    judul: `Pengajuan PKM ${data.institution}`, 
-                    ringkasan: data.needs, 
-                    tanggal: createSubmittedLabel(), 
-                    status: 'diproses' 
+                onSubmitted?.({
+                    id: Date.now(),
+                    judul: `Pengajuan PKM ${data.institution}`,
+                    ringkasan: data.needs,
+                    tanggal: createSubmittedLabel(),
+                    status: 'diproses'
                 });
                 onUpdateSubmissionStatus?.('diproses');
                 setFeedbackDialog({ show: true, type: 'success', title: 'Pengajuan Berhasil', message: 'Pengajuan Anda telah dikirim.' });
@@ -172,7 +176,7 @@ export default function MasyarakatSubmissionCard({
     const renderDetailModal = () => {
         if (!selectedDetail) return null;
         const style = getSubmissionStatusStyle(selectedDetail.status);
-        
+
         return (
             <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
                 <div className="absolute inset-0" onClick={() => setSelectedDetail(null)}></div>
@@ -202,62 +206,67 @@ export default function MasyarakatSubmissionCard({
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-4">
+                            <div className="space-y-6">
+                                {/* Section 1: Identitas Pengusul */}
                                 <section>
-                                    <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Informasi Pemohon</h4>
-                                    <div className="space-y-2 text-sm">
-                                        <p><span className="text-slate-500">Instansi:</span> <span className="text-slate-900 font-semibold">{selectedDetail.instansi_mitra || '-'}</span></p>
-                                        <p><span className="text-slate-500">WhatsApp:</span> <span className="text-slate-900 font-semibold">{selectedDetail.no_telepon || '-'}</span></p>
-                                        {selectedDetail.jenis_pkm && <p><span className="text-slate-500">Jenis PKM:</span> <span className="text-slate-900 font-semibold">{selectedDetail.jenis_pkm}</span></p>}
+                                    <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Identitas Pengusul</h4>
+                                    <div className="space-y-2 text-sm bg-slate-50 p-4 rounded-xl border border-slate-100/60">
+                                        <p className="flex flex-col gap-1"><span className="text-slate-500 text-xs">Nama Lengkap / Perwakilan</span> <span className="text-slate-900 font-semibold">{selectedDetail.nama_pengusul || '-'}</span></p>
+                                        <p className="flex flex-col gap-1"><span className="text-slate-500 text-xs">Nama Instansi / Organisasi</span> <span className="text-slate-900 font-semibold">{selectedDetail.instansi_mitra || '-'}</span></p>
+                                        <p className="flex flex-col gap-1"><span className="text-slate-500 text-xs">Email</span> <span className="text-slate-900 font-semibold">{selectedDetail.email_pengusul || '-'}</span></p>
+                                        <p className="flex flex-col gap-1"><span className="text-slate-500 text-xs">WhatsApp</span> <span className="text-slate-900 font-semibold">{selectedDetail.no_telepon || '-'}</span></p>
                                     </div>
                                 </section>
 
-                                <section>
-                                    <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Lokasi PKM</h4>
-                                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs text-slate-600 leading-relaxed">
-                                        {selectedDetail.alamat_lengkap && <p className="mb-1 font-medium">{selectedDetail.alamat_lengkap}</p>}
-                                        <p>{[selectedDetail.kelurahan_desa, selectedDetail.kecamatan, selectedDetail.kota_kabupaten, selectedDetail.provinsi].filter(Boolean).join(', ') || '-'}</p>
-                                    </div>
-                                </section>
-
-                                {(selectedDetail.sumber_dana || selectedDetail.total_anggaran) && (
-                                    <section>
-                                        <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Anggaran</h4>
-                                        <div className="space-y-1 text-sm">
-                                            {selectedDetail.sumber_dana && <p><span className="text-slate-500">Sumber Dana:</span> <span className="text-slate-900 font-semibold">{selectedDetail.sumber_dana}</span></p>}
-                                            {selectedDetail.total_anggaran && Number(selectedDetail.total_anggaran) > 0 && <p><span className="text-slate-500">Total:</span> <span className="text-slate-900 font-semibold">Rp {Number(selectedDetail.total_anggaran).toLocaleString('id-ID')}</span></p>}
-                                        </div>
-                                    </section>
-                                )}
-                            </div>
-
-                            <div className="space-y-4">
+                                {/* Section 2: Kebutuhan PKM */}
                                 <section>
                                     <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Kebutuhan PKM</h4>
-                                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs text-slate-600 leading-relaxed italic">
-                                        "{selectedDetail.ringkasan || '-'}"
+                                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-sm text-slate-700 leading-relaxed italic">
+                                        "{selectedDetail.kebutuhan || selectedDetail.ringkasan || '-'}"
                                     </div>
                                 </section>
+                            </div>
 
+                            <div className="space-y-6">
+                                {/* Section 3: Lokasi PKM */}
                                 <section>
-                                    <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Dokumen Pendukung</h4>
-                                    <div className="flex flex-wrap gap-2">
-                                        {selectedDetail.surat_permohonan && <a href={selectedDetail.surat_permohonan} target="_blank" className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold rounded-lg transition-colors border border-slate-200"><i className="fa-solid fa-file-contract mr-1.5"></i>PERMOHONAN</a>}
-                                        {selectedDetail.proposal && <a href={selectedDetail.proposal} target="_blank" className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold rounded-lg transition-colors border border-slate-200"><i className="fa-solid fa-file-pdf mr-1.5"></i>PROPOSAL</a>}
-                                        {selectedDetail.rab && <a href={selectedDetail.rab} target="_blank" className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold rounded-lg transition-colors border border-slate-200"><i className="fa-solid fa-link mr-1.5"></i>TAUTAN</a>}
-                                        {!selectedDetail.surat_permohonan && !selectedDetail.proposal && !selectedDetail.rab && <span className="text-xs text-slate-400">Tidak ada dokumen</span>}
+                                    <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Lokasi PKM</h4>
+                                    <div className="space-y-2 text-sm bg-slate-50 p-4 rounded-xl border border-slate-100/60">
+                                        <p className="flex justify-between items-center"><span className="text-slate-500">Provinsi</span> <span className="text-slate-900 font-semibold text-right">{selectedDetail.provinsi || '-'}</span></p>
+                                        <p className="flex justify-between items-center"><span className="text-slate-500">Kota / Kabupaten</span> <span className="text-slate-900 font-semibold text-right">{selectedDetail.kota_kabupaten || '-'}</span></p>
+                                        <p className="flex justify-between items-center"><span className="text-slate-500">Kecamatan</span> <span className="text-slate-900 font-semibold text-right">{selectedDetail.kecamatan || '-'}</span></p>
+                                        <p className="flex justify-between items-center"><span className="text-slate-500">Kelurahan / Desa</span> <span className="text-slate-900 font-semibold text-right">{selectedDetail.kelurahan_desa || '-'}</span></p>
+                                        <div className="pt-2 mt-2 border-t border-slate-200">
+                                            <span className="text-slate-500 text-xs block mb-1">Alamat Lengkap</span>
+                                            <span className="text-slate-900 font-semibold">{selectedDetail.alamat_lengkap || '-'}</span>
+                                        </div>
                                     </div>
                                 </section>
 
-                                {(selectedDetail.tgl_mulai || selectedDetail.tgl_selesai) && (
-                                    <section>
-                                        <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Periode Kegiatan</h4>
-                                        <div className="space-y-1 text-sm">
-                                            {selectedDetail.tgl_mulai && <p><span className="text-slate-500">Mulai:</span> <span className="text-slate-900 font-semibold">{selectedDetail.tgl_mulai}</span></p>}
-                                            {selectedDetail.tgl_selesai && <p><span className="text-slate-500">Selesai:</span> <span className="text-slate-900 font-semibold">{selectedDetail.tgl_selesai}</span></p>}
+                                {/* Section 4: Tautan Dokumen */}
+                                <section>
+                                    <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Tautan Dokumen</h4>
+                                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100/60 flex flex-col gap-3">
+                                        <div className="flex flex-wrap gap-2">
+                                            {selectedDetail.surat_permohonan ? <a href={selectedDetail.surat_permohonan} target="_blank" className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 text-[10px] font-bold rounded-lg transition-colors border border-slate-200 shadow-sm"><i className="fa-solid fa-file-contract mr-1.5 text-poltekpar-primary"></i>SURAT PERMOHONAN</a> : <span className="text-xs text-slate-400 flex items-center gap-1.5"><i className="fa-solid fa-triangle-exclamation"></i> Surat Permohonan Kosong</span>}
+                                            {selectedDetail.proposal && <a href={selectedDetail.proposal} target="_blank" className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 text-[10px] font-bold rounded-lg transition-colors border border-slate-200 shadow-sm"><i className="fa-solid fa-file-pdf mr-1.5 text-poltekpar-primary"></i>PROPOSAL</a>}
                                         </div>
-                                    </section>
-                                )}
+                                        {selectedDetail.rab && (
+                                            <div className="space-y-2 pt-2 border-t border-slate-200">
+                                                {selectedDetail.rab.split(',').map((link, i) => {
+                                                    const url = link.trim();
+                                                    if (!url) return null;
+                                                    return (
+                                                        <p key={i} className="text-[12px] bg-white p-2 rounded-lg border border-slate-100">
+                                                            <span className="text-slate-500 font-bold text-[10px] uppercase block mb-0.5">Tautan Tambahan {i + 1}: </span>
+                                                            <a href={url} target="_blank" className="text-poltekpar-primary font-medium hover:underline break-all">{url}</a>
+                                                        </p>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+                                </section>
                             </div>
                         </div>
 
@@ -344,23 +353,23 @@ export default function MasyarakatSubmissionCard({
             <section className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-6">
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2"><i className="fa-solid fa-id-card text-poltekpar-primary"></i>Identitas Pengusul</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5"><label className="text-xs font-semibold text-slate-700">Nama Lengkap / Perwakilan <span className="text-red-500">*</span></label><input type="text" value={data.name} onChange={e => setData('name', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary focus:ring-2 focus:ring-blue-100" placeholder="Masukkan nama" /></div>
-                    <div className="space-y-1.5"><label className="text-xs font-semibold text-slate-700">Nama Instansi / Organisasi <span className="text-red-500">*</span></label><input type="text" value={data.institution} onChange={e => setData('institution', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary" placeholder="Nama instansi" /></div>
-                    <div className="space-y-1.5"><label className="text-xs font-semibold text-slate-700">Email <span className="text-red-500">*</span></label><input type="email" value={data.email} onChange={e => setData('email', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary" placeholder="email@contoh.com" /></div>
-                    <div className="space-y-1.5"><label className="text-xs font-semibold text-slate-700">WhatsApp <span className="text-red-500">*</span></label><input type="tel" value={data.whatsapp} onChange={e => setData('whatsapp', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary" placeholder="0812..." /></div>
+                    <div className="space-y-1.5"><label className="text-xs font-semibold text-slate-700">Nama Lengkap / Perwakilan <span className="text-red-500">*</span></label><input type="text" value={data.name} onChange={e => setData('name', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary focus:ring-2 focus:ring-blue-100" placeholder="Masukkan nama" required /></div>
+                    <div className="space-y-1.5"><label className="text-xs font-semibold text-slate-700">Nama Instansi / Organisasi <span className="text-red-500">*</span></label><input type="text" value={data.institution} onChange={e => setData('institution', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary" placeholder="Nama instansi" required /></div>
+                    <div className="space-y-1.5"><label className="text-xs font-semibold text-slate-700">Email <span className="text-red-500">*</span></label><input type="email" value={data.email} onChange={e => setData('email', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary" placeholder="email@contoh.com" required /></div>
+                    <div className="space-y-1.5"><label className="text-xs font-semibold text-slate-700">WhatsApp <span className="text-red-500">*</span></label><input type="tel" value={data.whatsapp} onChange={e => setData('whatsapp', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary" placeholder="0812..." required /></div>
                 </div>
             </section>
 
             <section className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-4">
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2"><i className="fa-solid fa-handshake-angle text-poltekpar-primary"></i>Kebutuhan PKM</h3>
-                <div className="space-y-1.5"><label className="text-xs font-semibold text-slate-700">Deskripsi Kebutuhan / Permintaan <span className="text-red-500">*</span></label><textarea value={data.needs} onChange={e => setData('needs', e.target.value)} rows={3} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary resize-none" placeholder="Jelaskan kebutuhan pengabdian..." /></div>
+                <div className="space-y-1.5"><label className="text-xs font-semibold text-slate-700">Deskripsi Kebutuhan / Permintaan <span className="text-red-500">*</span></label><textarea value={data.needs} onChange={e => setData('needs', e.target.value)} rows={3} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary resize-none" placeholder="Jelaskan kebutuhan pengabdian..." required /></div>
             </section>
 
             <section className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-6">
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2"><i className="fa-solid fa-map-location-dot text-poltekpar-primary"></i>Lokasi PKM</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5"><label className="text-xs font-semibold text-slate-700">Provinsi <span className="text-red-500">*</span></label><input type="text" value={data.provinsi} onChange={e => setData('provinsi', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary" placeholder="Provinsi" /></div>
-                    <div className="space-y-1.5"><label className="text-xs font-semibold text-slate-700">Kota / Kabupaten <span className="text-red-500">*</span></label><input type="text" value={data.kota_kabupaten} onChange={e => setData('kota_kabupaten', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary" placeholder="Kota/Kabupaten" /></div>
+                    <div className="space-y-1.5"><label className="text-xs font-semibold text-slate-700">Provinsi <span className="text-red-500">*</span></label><input type="text" value={data.provinsi} onChange={e => setData('provinsi', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary" placeholder="Provinsi" required /></div>
+                    <div className="space-y-1.5"><label className="text-xs font-semibold text-slate-700">Kota / Kabupaten <span className="text-red-500">*</span></label><input type="text" value={data.kota_kabupaten} onChange={e => setData('kota_kabupaten', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary" placeholder="Kota/Kabupaten" required /></div>
                     <div className="space-y-1.5"><label className="text-xs font-semibold text-slate-700">Kecamatan</label><input type="text" value={data.kecamatan} onChange={e => setData('kecamatan', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary" placeholder="Kecamatan" /></div>
                     <div className="space-y-1.5"><label className="text-xs font-semibold text-slate-700">Kelurahan / Desa</label><input type="text" value={data.kelurahan_desa} onChange={e => setData('kelurahan_desa', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary" placeholder="Kelurahan/Desa" /></div>
                     <div className="md:col-span-2 space-y-1.5"><label className="text-xs font-semibold text-slate-700">Alamat Lengkap</label><textarea value={data.alamat_lengkap} onChange={e => setData('alamat_lengkap', e.target.value)} rows={2} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary resize-none" placeholder="Detail alamat..." /></div>
@@ -370,7 +379,7 @@ export default function MasyarakatSubmissionCard({
             <section className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-4">
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2"><i className="fa-solid fa-link text-poltekpar-primary"></i>Tautan Dokumen</h3>
                 <div className="space-y-4">
-                    <div className="space-y-1.5"><label className="text-xs font-semibold text-slate-700">Surat Permohonan <span className="text-red-500">*</span></label><input type="file" accept=".pdf,.doc,.docx" onChange={e => setFilePermohonan(e.target.files?.[0] || null)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-poltekpar-primary/10 file:text-poltekpar-primary" /></div>
+                    <div className="space-y-1.5"><label className="text-xs font-semibold text-slate-700">Surat Permohonan <span className="text-red-500">*</span></label><input type="file" accept=".pdf,.doc,.docx" onChange={e => setFilePermohonan(e.target.files?.[0] || null)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-poltekpar-primary/10 file:text-poltekpar-primary" required /></div>
                     <div className="space-y-1.5"><label className="text-xs font-semibold text-slate-700">Proposal (Opsional)</label><input type="file" accept=".pdf,.doc,.docx" onChange={e => setFileProposal(e.target.files?.[0] || null)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-poltekpar-primary/10 file:text-poltekpar-primary" /></div>
                     <div className="space-y-3">
                         <label className="text-xs font-semibold text-slate-700">Link Tambahan</label>

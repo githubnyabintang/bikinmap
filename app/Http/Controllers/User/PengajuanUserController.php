@@ -24,10 +24,10 @@ class PengajuanUserController extends Controller
         // Ambil pengajuan milik user dari database
         $userSubmissions = $user
             ? Pengajuan::where('id_user', $user->id_user)
-                ->with(['timKegiatan.pegawai', 'jenisPkm'])
+                ->with(['timKegiatan.pegawai', 'jenisPkm', 'user'])
                 ->latest()
                 ->get()
-                ->map(fn ($p) => [
+                ->map(fn($p) => [
                     'id' => $p->id_pengajuan,
                     'judul' => $p->judul_kegiatan,
                     'ringkasan' => $p->kebutuhan ?: ($p->instansi_mitra ?: '-'),
@@ -49,7 +49,10 @@ class PengajuanUserController extends Controller
                     'tgl_mulai' => optional($p->tgl_mulai)->format('Y-m-d'),
                     'tgl_selesai' => optional($p->tgl_selesai)->format('Y-m-d'),
                     'jenis_pkm' => $p->jenisPkm ? $p->jenisPkm->nama_jenis : null,
-                    'tim_kegiatan' => $p->timKegiatan->map(fn ($t) => [
+                    'nama_pengusul' => $p->user ? $p->user->name : '',
+                    'email_pengusul' => $p->user ? $p->user->email : '',
+                    'kebutuhan' => $p->kebutuhan,
+                    'tim_kegiatan' => $p->timKegiatan->map(fn($t) => [
                         'nama' => $t->pegawai ? $t->pegawai->nama_pegawai : $t->nama_mahasiswa,
                         'peran' => $t->peran_tim,
                     ]),
@@ -153,7 +156,7 @@ class PengajuanUserController extends Controller
 
         if (count($teamMembers) > 0) {
             $now = now();
-            $rows = array_map(fn ($m) => array_merge($m, [
+            $rows = array_map(fn($m) => array_merge($m, [
                 'id_pengajuan' => $pengajuan->id_pengajuan,
                 'created_at' => $now,
                 'updated_at' => $now,
@@ -192,11 +195,11 @@ class PengajuanUserController extends Controller
 
         if ($request->hasFile('surat_permohonan')) {
             $suratPermohonanUrl = $request->file('surat_permohonan')->store('pengajuan/dokumen', 'public');
-            $suratPermohonanUrl = '/storage/'.$suratPermohonanUrl;
+            $suratPermohonanUrl = '/storage/' . $suratPermohonanUrl;
         }
         if ($request->hasFile('surat_proposal')) {
             $suratProposalUrl = $request->file('surat_proposal')->store('pengajuan/dokumen', 'public');
-            $suratProposalUrl = '/storage/'.$suratProposalUrl;
+            $suratProposalUrl = '/storage/' . $suratProposalUrl;
         }
 
         Pengajuan::create([
@@ -207,7 +210,7 @@ class PengajuanUserController extends Controller
             'kecamatan' => $request->kecamatan ?? '',
             'kelurahan_desa' => $request->kelurahan_desa ?? '',
             'alamat_lengkap' => $request->alamat_lengkap ?? '',
-            'judul_kegiatan' => 'Pengajuan PKM dari '.$request->institution,
+            'judul_kegiatan' => 'Pengajuan PKM dari ' . $request->institution,
             'kebutuhan' => $request->needs,
             'instansi_mitra' => $request->institution,
             'no_telepon' => $request->whatsapp,
@@ -228,7 +231,7 @@ class PengajuanUserController extends Controller
     {
         if (is_array($members)) {
             foreach ($members as $name) {
-                if (! empty(trim($name))) {
+                if (!empty(trim($name))) {
                     $teamMembers[] = [
                         'id_pegawai' => null,
                         'nama_mahasiswa' => $name,
