@@ -21,9 +21,8 @@ node_modules/
 /storage/framework/views/*
 /storage/logs/*
 
-# Test artifacts (generated)
-/tests/Feature/*
-/tests/Unit/*
+# Test artifacts (generated cache only)
+/.phpunit.result.cache
 
 # Dev tools
 Homestead.json

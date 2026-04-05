@@ -27,7 +27,7 @@ class PengajuanController extends Controller
             ->when($request->status, function ($query, $status) {
                 $query->where('status_pengajuan', $status);
             })
-            ->orderByRaw("FIELD(status_pengajuan, 'diproses', 'diterima', 'direvisi', 'ditolak')")
+            ->orderByRaw("FIELD(status_pengajuan, '".Pengajuan::STATUS_DIPROSES."', '".Pengajuan::STATUS_DITERIMA."', '".Pengajuan::STATUS_DIREVISI."', '".Pengajuan::STATUS_DITOLAK."')")
             ->latest()
             ->paginate(10)
             ->withQueryString();
@@ -89,7 +89,7 @@ class PengajuanController extends Controller
             'alamat_lengkap' => 'nullable|string',
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
-            'status_pengajuan' => 'nullable|in:diproses,direvisi,diterima,ditolak,selesai',
+            'status_pengajuan' => 'nullable|in:'.Pengajuan::STATUS_DIPROSES.','.Pengajuan::STATUS_DIREVISI.','.Pengajuan::STATUS_DITERIMA.','.Pengajuan::STATUS_DITOLAK.','.Pengajuan::STATUS_SELESAI,
             'catatan_admin' => 'nullable|string|max:1000',
             'proposal' => 'nullable|string|max:2048',
             'surat_permohonan' => 'nullable|string|max:2048',
@@ -111,16 +111,22 @@ class PengajuanController extends Controller
     }
 
     /**
-     * Soft-delete a submission
+     * Soft-delete a submission with cascading soft deletes
      */
     public function destroy(int $id)
     {
-        $pengajuan = Pengajuan::findOrFail($id);
+        $pengajuan = Pengajuan::with(['aktivitas', 'timKegiatan', 'arsip'])->findOrFail($id);
 
-        // Cascading soft deletes — bulk update avoids N+1 queries
-        Aktivitas::where('id_pengajuan', $id)->update(['deleted_at' => now()]);
-        TimKegiatan::where('id_pengajuan', $id)->update(['deleted_at' => now()]);
-        Arsip::where('id_pengajuan', $id)->update(['deleted_at' => now()]);
+        // Cascading soft deletes using model delete() to trigger model events
+        foreach ($pengajuan->aktivitas as $aktivitas) {
+            $aktivitas->delete();
+        }
+        foreach ($pengajuan->timKegiatan as $tim) {
+            $tim->delete();
+        }
+        foreach ($pengajuan->arsip as $arsip) {
+            $arsip->delete();
+        }
 
         $pengajuan->delete();
 
@@ -130,7 +136,7 @@ class PengajuanController extends Controller
     public function updateStatus(Request $request, int $id)
     {
         $request->validate([
-            'status_pengajuan' => 'required|in:diproses,direvisi,diterima,ditolak,selesai',
+            'status_pengajuan' => 'required|in:'.Pengajuan::STATUS_DIPROSES.','.Pengajuan::STATUS_DIREVISI.','.Pengajuan::STATUS_DITERIMA.','.Pengajuan::STATUS_DITOLAK.','.Pengajuan::STATUS_SELESAI,
             'catatan_admin' => 'nullable|string|max:1000',
         ]);
 
@@ -142,14 +148,11 @@ class PengajuanController extends Controller
         $pengajuan->catatan_admin = $request->catatan_admin;
         $pengajuan->save();
 
-        if ($statusBaru === 'diterima' && $statusLama !== 'diterima') {
-            $aktivitasSudahAda = Aktivitas::where('id_pengajuan', $id)->exists();
-            if (! $aktivitasSudahAda) {
-                Aktivitas::create([
-                    'id_pengajuan' => $pengajuan->id_pengajuan,
-                    'status_pelaksanaan' => 'belum_mulai',
-                ]);
-            }
+        if ($statusBaru === Pengajuan::STATUS_DITERIMA && $statusLama !== Pengajuan::STATUS_DITERIMA) {
+            Aktivitas::firstOrCreate(
+                ['id_pengajuan' => $pengajuan->id_pengajuan],
+                ['status_pelaksanaan' => 'belum_mulai'],
+            );
         }
 
         return redirect()->back()->with('success', 'Status pengajuan berhasil diperbarui.');

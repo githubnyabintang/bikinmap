@@ -2,10 +2,10 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration 
+return new class extends Migration
 {
     /**
      * Run the migrations.
@@ -28,7 +28,7 @@ return new class extends Migration
 
         // Jika ada user yang terhubung ke tabel pegawai, dia adalah dosen
         $pegawaiUserIds = DB::table('pegawai')->pluck('id_user')->toArray();
-        if (!empty($pegawaiUserIds)) {
+        if (! empty($pegawaiUserIds)) {
             DB::table('users')->whereIn('id_user', $pegawaiUserIds)->update(['role_new' => 'dosen']);
         }
 

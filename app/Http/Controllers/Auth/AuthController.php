@@ -43,17 +43,17 @@ class AuthController extends Controller
             'auth' => [
                 'user' => $user
                     ? [
-                        'id'     => $user->id_user,
-                        'name'   => $user->name,
-                        'email'  => $user->email,
-                        'role'   => $user->role ?? 'dosen',
+                        'id' => $user->id_user,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'role' => $user->role ?? 'dosen',
                         'avatar' => $user->avatar ?? null,
                     ]
                     : [
-                        'id'     => 'preview-dosen',
-                        'name'   => 'Akun Dosen SIGAP',
-                        'email'  => 'dosen@poltekparmakassar.ac.id',
-                        'role'   => 'dosen',
+                        'id' => 'preview-dosen',
+                        'name' => 'Akun Dosen SIGAP',
+                        'email' => 'dosen@poltekparmakassar.ac.id',
+                        'role' => 'dosen',
                         'avatar' => null,
                     ],
             ],
@@ -73,17 +73,17 @@ class AuthController extends Controller
             'auth' => [
                 'user' => $user
                     ? [
-                        'id'     => $user->id_user,
-                        'name'   => $user->name,
-                        'email'  => $user->email,
-                        'role'   => $user->role ?? 'masyarakat',
+                        'id' => $user->id_user,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'role' => $user->role ?? 'masyarakat',
                         'avatar' => $user->avatar ?? null,
                     ]
                     : [
-                        'id'     => 'preview-masyarakat',
-                        'name'   => 'Akun Masyarakat SIGAP',
-                        'email'  => 'masyarakat@poltekparmakassar.ac.id',
-                        'role'   => 'masyarakat',
+                        'id' => 'preview-masyarakat',
+                        'name' => 'Akun Masyarakat SIGAP',
+                        'email' => 'masyarakat@poltekparmakassar.ac.id',
+                        'role' => 'masyarakat',
                         'avatar' => null,
                     ],
             ],
@@ -138,32 +138,45 @@ class AuthController extends Controller
         // 1. NIP diisi
         // 2. NIP ditemukan di tabel pegawai
         // 3. Pegawai tersebut BELUM terhubung ke user manapun (belum diklaim)
+        // Wrap dalam transaction untuk cegah race condition saat klaim NIP
         if ($request->filled('nip')) {
-            $pegawai = Pegawai::where('nip', $request->nip)
-                ->whereNull('id_user') // ← cegah duplikasi klaim NIP
-                ->first();
+            $result = DB::transaction(function () use ($request, &$role, &$pegawaiId) {
+                $pegawai = Pegawai::where('nip', $request->nip)
+                    ->whereNull('id_user')
+                    ->lockForUpdate()
+                    ->first();
 
-            if ($pegawai) {
-                $role = 'dosen';
-                $pegawaiId = $pegawai->id_pegawai;
-            }
-        }
+                if ($pegawai) {
+                    $role = 'dosen';
+                    $pegawaiId = $pegawai->id_pegawai;
+                }
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'role' => $role,
-        ]);
+                $user = User::create([
+                    'name' => $request->name,
+                    'email' => $request->email,
+                    'password' => Hash::make($request->password),
+                    'role' => $role,
+                ]);
 
-        // Hubungkan user ke record pegawai jika berhasil diverifikasi
-        if ($role === 'dosen' && $pegawaiId) {
-            Pegawai::where('id_pegawai', $pegawaiId)->update(['id_user' => $user->id_user]);
+                if ($role === 'dosen' && $pegawaiId) {
+                    Pegawai::where('id_pegawai', $pegawaiId)->update(['id_user' => $user->id_user]);
+                }
+
+                return $user;
+            });
+
+            $user = $result;
+        } else {
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+                'role' => $role,
+            ]);
         }
 
         Auth::login($user);
 
-        // Admin yang register (dibuat manual) langsung ke admin panel
         $redirectTo = $user->role === 'admin' ? '/admin/dashboard' : '/';
 
         return redirect($redirectTo);

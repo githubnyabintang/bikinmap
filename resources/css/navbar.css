@@ -22,12 +22,12 @@
 .sigap-navbar__inner {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 0 20px;
+    padding: 0 16px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    min-height: 70px;
-    gap: 20px;
+    min-height: 56px;
+    gap: 16px;
 }
 
 /* ---------- Brand ---------- */
@@ -46,8 +46,8 @@
 }
 
 .sigap-navbar__logo {
-    width: 54px;
-    height: 54px;
+    width: 42px;
+    height: 42px;
     flex-shrink: 0;
     border-radius: 50%;
     overflow: visible;
@@ -74,7 +74,7 @@
 }
 
 .sigap-navbar__brand-line {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 800;
     color: #0f172a;
     letter-spacing: -0.02em;
@@ -82,7 +82,7 @@
 }
 
 .sigap-navbar__brand-sub {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 500;
     color: #64748b;
     line-height: 1.2;
@@ -108,8 +108,8 @@
     position: relative;
     display: inline-flex;
     align-items: center;
-    padding: 10px 18px;
-    font-size: 14px;
+    padding: 8px 14px;
+    font-size: 12px;
     font-weight: 600;
     color: #334155;
     text-decoration: none;
@@ -145,7 +145,7 @@
 .sigap-navbar__controls {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     flex-shrink: 0;
 }
 
@@ -161,9 +161,9 @@
 .sigap-navbar__portal-btn {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 16px;
-    font-size: 13px;
+    gap: 6px;
+    padding: 8px 14px;
+    font-size: 12px;
     font-weight: 700;
     color: #0f172a;
     background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
@@ -182,7 +182,7 @@
 }
 
 .sigap-navbar__portal-btn i {
-    font-size: 12px;
+    font-size: 10px;
     color: #15325F;
 }
 
@@ -190,9 +190,9 @@
 .sigap-navbar__login-btn {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 24px;
-    font-size: 14px;
+    gap: 6px;
+    padding: 8px 18px;
+    font-size: 12px;
     font-weight: 700;
     color: #ffffff;
     background: linear-gradient(135deg, #15325F 0%, #0D1F3C 100%);
@@ -212,7 +212,7 @@
 }
 
 .sigap-navbar__login-btn i {
-    font-size: 13px;
+    font-size: 11px;
 }
 
 /* Avatar (Authenticated) */
@@ -221,8 +221,8 @@
 }
 
 .sigap-navbar__avatar {
-    width: 42px;
-    height: 42px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     border: none;
     padding: 0;
@@ -263,7 +263,7 @@
 .sigap-navbar__avatar-initials {
     position: relative;
     z-index: 1;
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 800;
     color: #15325F;
     letter-spacing: 0.5px;
@@ -271,13 +271,13 @@
 }
 
 .sigap-navbar__avatar--sm {
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
 }
 
 .sigap-navbar__avatar--sm .sigap-navbar__avatar-initials {
-    font-size: 13px;
+    font-size: 11px;
 }
 
 /* ---------- Hamburger Button ---------- */
@@ -285,10 +285,10 @@
     display: none;
     flex-direction: column;
     justify-content: center;
-    gap: 5px;
-    width: 40px;
-    height: 40px;
-    padding: 8px;
+    gap: 4px;
+    width: 34px;
+    height: 34px;
+    padding: 6px;
     background: none;
     border: none;
     cursor: pointer;
@@ -303,7 +303,7 @@
 .sigap-navbar__hamburger span {
     display: block;
     width: 100%;
-    height: 2.5px;
+    height: 2px;
     background: #334155;
     border-radius: 99px;
     transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
@@ -311,7 +311,11 @@
 }
 
 .sigap-navbar__hamburger.is-active span:nth-child(1) {
-    transform: translateY(7.5px) rotate(45deg);
+    transform: translateY(6px) rotate(45deg);
+}
+
+.sigap-navbar__hamburger.is-active span:nth-child(3) {
+    transform: translateY(-6px) rotate(-45deg);
 }
 
 .sigap-navbar__hamburger.is-active span:nth-child(2) {
@@ -326,7 +330,7 @@
 /* ---------- Mobile Drawer ---------- */
 .sigap-navbar__drawer {
     position: fixed;
-    top: 70px;
+    top: 56px;
     left: 0;
     right: 0;
     background: rgba(255, 255, 255, 0.96);
@@ -344,7 +348,7 @@
 }
 
 .sigap-navbar__drawer.is-open {
-    max-height: calc(100vh - 70px);
+    max-height: calc(100vh - 56px);
     opacity: 1;
     transform: translateY(0);
     overflow-y: auto;
@@ -353,15 +357,15 @@
 .sigap-navbar__drawer-links {
     list-style: none;
     margin: 0;
-    padding: 12px 0;
+    padding: 8px 0;
 }
 
 .sigap-navbar__drawer-link {
     display: flex;
     align-items: center;
-    gap: 14px;
-    padding: 16px 24px;
-    font-size: 15px;
+    gap: 12px;
+    padding: 12px 18px;
+    font-size: 13px;
     font-weight: 600;
     color: #334155;
     text-decoration: none;
@@ -372,13 +376,13 @@
 .sigap-navbar__drawer-link:hover {
     background: rgba(4, 107, 210, 0.04);
     color: #15325F;
-    padding-left: 30px;
+    padding-left: 24px;
 }
 
 .sigap-navbar__drawer-link i {
-    width: 20px;
+    width: 18px;
     text-align: center;
-    font-size: 15px;
+    font-size: 13px;
     color: #94a3b8;
     transition: color 0.2s ease;
 }
@@ -388,7 +392,7 @@
 }
 
 .sigap-navbar__drawer-footer {
-    padding: 16px 24px 24px;
+    padding: 12px 18px 18px;
     border-top: 1px solid #e2e8f0;
 }
 
@@ -401,11 +405,11 @@
 .sigap-navbar__drawer-user-info {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
 }
 
 .sigap-navbar__drawer-user-name {
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 700;
     color: #0f172a;
     margin: 0;
@@ -413,7 +417,7 @@
 }
 
 .sigap-navbar__drawer-user-email {
-    font-size: 13px;
+    font-size: 11px;
     color: #64748b;
     margin: 0;
     line-height: 1.3;
@@ -423,10 +427,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 6px;
     width: 100%;
-    padding: 12px;
-    font-size: 14px;
+    padding: 10px;
+    font-size: 12px;
     font-weight: 600;
     color: #dc2626;
     background: rgba(220, 38, 38, 0.06);
@@ -446,10 +450,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
+    gap: 8px;
     width: 100%;
-    padding: 14px;
-    font-size: 15px;
+    padding: 12px;
+    font-size: 13px;
     font-weight: 700;
     color: #ffffff;
     background: linear-gradient(135deg, #15325F, #0D1F3C);
@@ -469,7 +473,7 @@
 .sigap-navbar__backdrop {
     position: fixed;
     inset: 0;
-    top: 70px;
+    top: 56px;
     background: rgba(15, 23, 42, 0.2);
     z-index: 1040;
     animation: navBackdropIn 0.3s ease forwards;
@@ -486,9 +490,9 @@
    ============================================ */
 .profile-dropdown {
     position: absolute;
-    top: calc(100% + 10px);
+    top: calc(100% + 8px);
     right: 0;
-    width: 280px;
+    width: 250px;
     background: rgba(255, 255, 255, 0.78);
     backdrop-filter: blur(24px) saturate(180%);
     -webkit-backdrop-filter: blur(24px) saturate(180%);
@@ -516,22 +520,22 @@
 }
 
 .profile-dropdown__header {
-    padding: 20px 20px 16px;
+    padding: 16px 16px 12px;
     border-bottom: 1px solid rgba(226, 232, 240, 0.6);
 }
 
 .profile-dropdown__name {
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 800;
     color: #0f172a;
-    margin: 0 0 6px;
+    margin: 0 0 4px;
     line-height: 1.3;
 }
 
 .profile-dropdown__badge {
     display: inline-block;
-    padding: 4px 10px;
-    font-size: 11px;
+    padding: 3px 8px;
+    font-size: 10px;
     font-weight: 700;
     border-radius: 99px;
     letter-spacing: 0.03em;
@@ -549,9 +553,9 @@
 }
 
 .profile-dropdown__email {
-    font-size: 12.5px;
+    font-size: 11px;
     color: #64748b;
-    margin: 6px 0 0;
+    margin: 4px 0 0;
     line-height: 1.3;
 }
 
@@ -562,9 +566,9 @@
 .profile-dropdown__item {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 20px;
-    font-size: 14px;
+    gap: 10px;
+    padding: 10px 16px;
+    font-size: 12px;
     font-weight: 500;
     color: #334155;
     text-decoration: none;
@@ -578,9 +582,9 @@
 }
 
 .profile-dropdown__item i {
-    width: 18px;
+    width: 16px;
     text-align: center;
-    font-size: 14px;
+    font-size: 12px;
     color: #94a3b8;
     transition: color 0.2s ease;
 }
@@ -598,10 +602,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 6px;
     width: 100%;
-    padding: 10px 16px;
-    font-size: 13.5px;
+    padding: 8px 12px;
+    font-size: 12px;
     font-weight: 600;
     color: #dc2626;
     background: rgba(220, 38, 38, 0.06);
@@ -629,9 +633,9 @@
 .profile-dropdown-login {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 24px;
-    font-size: 14px;
+    gap: 6px;
+    padding: 8px 18px;
+    font-size: 12px;
     font-weight: 700;
     color: #ffffff;
     background: linear-gradient(135deg, #15325F 0%, #0D1F3C 100%);
@@ -651,7 +655,7 @@
 }
 
 .profile-dropdown-login i {
-    font-size: 13px;
+    font-size: 11px;
 }
 
 .profile-dropdown-shell {
@@ -663,8 +667,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 44px;
-    height: 44px;
+    width: 38px;
+    height: 38px;
     padding: 0;
     border: 0;
     border-radius: 50%;
@@ -701,8 +705,8 @@
 .profile-dropdown-trigger__initials {
     position: relative;
     z-index: 1;
-    width: 36px;
-    height: 36px;
+    width: 30px;
+    height: 30px;
     border-radius: 50%;
 }
 
@@ -714,7 +718,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 800;
     color: #15325F;
     letter-spacing: 0.04em;
@@ -724,9 +728,9 @@
 
 .profile-dropdown-panel {
     position: absolute;
-    top: calc(100% + 10px);
+    top: calc(100% + 8px);
     right: 0;
-    width: min(300px, calc(100vw - 24px));
+    width: min(260px, calc(100vw - 24px));
     background: #ffffff;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
@@ -755,14 +759,14 @@
 .profile-dropdown-panel__header {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding: 18px 18px 14px;
+    gap: 6px;
+    padding: 14px 14px 10px;
     border-bottom: 1px solid #e2e8f0;
     background: #ffffff;
 }
 
 .profile-dropdown-panel__name {
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 800;
     color: #0f172a;
     margin: 0;
@@ -773,8 +777,8 @@
     display: inline-flex;
     align-items: center;
     width: fit-content;
-    padding: 5px 10px;
-    font-size: 11px;
+    padding: 4px 8px;
+    font-size: 10px;
     font-weight: 700;
     border-radius: 999px;
     letter-spacing: 0.03em;
@@ -791,17 +795,17 @@
 }
 
 .profile-dropdown-panel__menu {
-    padding: 8px;
+    padding: 6px;
     background: #ffffff;
 }
 
 .profile-dropdown-panel__item {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     width: 100%;
-    padding: 11px 12px;
-    font-size: 14px;
+    padding: 9px 10px;
+    font-size: 12px;
     font-weight: 600;
     color: #334155;
     text-decoration: none;
@@ -816,9 +820,9 @@
 }
 
 .profile-dropdown-panel__item i {
-    width: 18px;
+    width: 16px;
     text-align: center;
-    font-size: 14px;
+    font-size: 12px;
     color: #94a3b8;
     transition: color 0.2s ease;
 }
@@ -828,7 +832,7 @@
 }
 
 .profile-dropdown-panel__footer {
-    padding: 12px 8px 8px;
+    padding: 8px 6px 6px;
     border-top: 1px solid #e2e8f0;
     background: #ffffff;
 }
@@ -837,10 +841,10 @@
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    gap: 8px;
+    gap: 6px;
     width: 100%;
-    padding: 11px 12px;
-    font-size: 14px;
+    padding: 9px 10px;
+    font-size: 12px;
     font-weight: 600;
     color: #dc2626;
     background: #fff5f5;
@@ -859,7 +863,7 @@
 }
 
 .profile-dropdown-panel__logout i {
-    font-size: 13px;
+    font-size: 11px;
 }
 
 .cta-banner {
@@ -867,7 +871,7 @@
     width: 100%;
     max-width: 1200px;
     margin: 0 auto 0;
-    padding: 0 12px 24px;
+    padding: 0 10px 18px;
     box-sizing: border-box;
 }
 
@@ -878,8 +882,8 @@
     flex-direction: column;
     align-items: center;
     text-align: center;
-    padding: 46px 32px;
-    border-radius: 22px;
+    padding: 36px 24px;
+    border-radius: 18px;
     background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%);
     overflow: hidden;
     box-shadow:
@@ -919,9 +923,9 @@
 }
 
 .cta-banner__icon-wrap {
-    width: 54px;
-    height: 54px;
-    border-radius: 16px;
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
     background: linear-gradient(135deg, rgba(4, 107, 210, 0.3), rgba(56, 189, 248, 0.15));
     display: flex;
     align-items: center;
@@ -931,23 +935,23 @@
 }
 
 .cta-banner__icon-wrap i {
-    font-size: 22px;
+    font-size: 18px;
     color: #38bdf8;
 }
 
 .cta-banner__title {
-    font-size: clamp(1.4rem, 3vw, 1.85rem);
+    font-size: clamp(1.2rem, 3vw, 1.6rem);
     font-weight: 800;
     color: #ffffff;
-    margin: 0 0 10px;
+    margin: 0 0 8px;
     line-height: 1.25;
     letter-spacing: -0.02em;
 }
 
 .cta-banner__subtitle {
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     color: rgba(255, 255, 255, 0.65);
-    margin: 0 0 24px;
+    margin: 0 0 20px;
     max-width: 520px;
     line-height: 1.6;
 }
@@ -955,9 +959,9 @@
 .cta-banner__btn {
     display: inline-flex;
     align-items: center;
-    gap: 10px;
-    padding: 13px 28px;
-    font-size: 14px;
+    gap: 8px;
+    padding: 11px 22px;
+    font-size: 12px;
     font-weight: 700;
     border-radius: 99px;
     text-decoration: none;
@@ -992,7 +996,7 @@
 }
 
 .cta-banner__btn i {
-    font-size: 14px;
+    font-size: 12px;
 }
 
 /* ============================================
@@ -1001,7 +1005,7 @@
 
 @media (max-width: 1024px) {
     .sigap-navbar__inner {
-        padding: 0 16px;
+        padding: 0 14px;
     }
 
     .sigap-navbar__utility {
@@ -1013,14 +1017,14 @@
     }
 
     .sigap-navbar__link {
-        padding: 8px 12px;
-        font-size: 13px;
+        padding: 6px 10px;
+        font-size: 11px;
     }
 }
 
 @media (max-width: 768px) {
     .sigap-navbar__inner {
-        min-height: 64px;
+        min-height: 52px;
     }
 
     .sigap-navbar__nav {
@@ -1041,12 +1045,12 @@
 
     .sigap-navbar__drawer {
         display: block;
-        top: 64px;
+        top: 52px;
     }
 
     .sigap-navbar__backdrop {
         display: block;
-        top: 64px;
+        top: 52px;
     }
 
     .sigap-navbar__brand-text {
@@ -1054,61 +1058,61 @@
     }
 
     .sigap-navbar__logo {
-        width: 38px;
-        height: 38px;
+        width: 32px;
+        height: 32px;
     }
 
     .sigap-navbar__brand-line {
-        font-size: 15px;
+        font-size: 13px;
     }
 
     .sigap-navbar__brand-sub {
-        font-size: 11px;
+        font-size: 10px;
     }
 
     /* CTA */
     .cta-banner__content {
-        padding: 36px 22px;
-        border-radius: 18px;
+        padding: 28px 18px;
+        border-radius: 14px;
     }
 
     .cta-banner__title {
-        font-size: 1.25rem;
+        font-size: 1.1rem;
     }
 
     .cta-banner__subtitle {
-        font-size: 0.86rem;
+        font-size: 0.8rem;
     }
 
     .cta-banner__btn {
-        padding: 12px 22px;
-        font-size: 13.5px;
+        padding: 10px 18px;
+        font-size: 12px;
         width: 100%;
         justify-content: center;
     }
 
     /* Profile dropdown */
     .profile-dropdown-panel {
-        width: 260px;
+        width: 240px;
         right: -8px;
     }
 }
 
 @media (max-width: 480px) {
     .sigap-navbar__inner {
-        padding: 0 12px;
-        min-height: 58px;
-        gap: 10px;
+        padding: 0 10px;
+        min-height: 48px;
+        gap: 8px;
     }
 
     .sigap-navbar__logo {
-        width: 34px;
-        height: 34px;
-        border-radius: 10px;
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
     }
 
     .sigap-navbar__brand-line {
-        font-size: 14px;
+        font-size: 12px;
     }
 
     .sigap-navbar__brand-sub {
@@ -1117,51 +1121,51 @@
 
     .sigap-navbar__login-btn,
     .profile-dropdown-login {
-        padding: 8px 16px;
-        font-size: 13px;
+        padding: 6px 12px;
+        font-size: 11px;
     }
 
     .sigap-navbar__avatar,
     .profile-dropdown-trigger {
-        width: 36px;
-        height: 36px;
-    }
-
-    .profile-dropdown-trigger__image,
-    .profile-dropdown-trigger__initials {
         width: 30px;
         height: 30px;
     }
 
+    .profile-dropdown-trigger__image,
+    .profile-dropdown-trigger__initials {
+        width: 26px;
+        height: 26px;
+    }
+
     .sigap-navbar__drawer {
-        top: 58px;
+        top: 48px;
     }
 
     .sigap-navbar__backdrop {
-        top: 58px;
+        top: 48px;
     }
 
     .cta-banner {
-        padding: 0 8px 18px;
+        padding: 0 6px 14px;
     }
 
     .cta-banner__content {
-        padding: 28px 16px;
-        border-radius: 16px;
+        padding: 22px 14px;
+        border-radius: 14px;
     }
 
     .cta-banner__icon-wrap {
-        width: 44px;
-        height: 44px;
-        margin-bottom: 14px;
+        width: 36px;
+        height: 36px;
+        margin-bottom: 10px;
     }
 
     .cta-banner__icon-wrap i {
-        font-size: 18px;
+        font-size: 14px;
     }
 
     .cta-banner__btn {
-        padding: 11px 18px;
-        font-size: 13px;
+        padding: 9px 14px;
+        font-size: 11px;
     }
 }

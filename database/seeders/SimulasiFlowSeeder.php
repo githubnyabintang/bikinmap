@@ -9,6 +9,7 @@ use App\Models\Pegawai;
 use App\Models\Pengajuan;
 use App\Models\TimKegiatan;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -30,7 +31,7 @@ class SimulasiFlowSeeder extends Seeder
         $jenisPkm = JenisPkm::firstOrCreate(['nama_jenis' => 'Pemberdayaan Masyarakat']);
 
         $usersPemohon = [$user];
-        for ($i=2; $i<=5; $i++) {
+        for ($i = 2; $i <= 5; $i++) {
             $usersPemohon[] = User::firstOrCreate(
                 ['email' => "dosen$i@poltekpar.ac.id"],
                 ['name' => "Dosen Pemohon $i", 'password' => Hash::make('password'), 'role' => 'dosen']
@@ -69,7 +70,7 @@ class SimulasiFlowSeeder extends Seeder
         // 3. Buat Data Simulasi (Siklus Pengajuan 5 Tahun Terakhir)
         // Koordinat area timur/tengah sesuai sebaran di map ref
         $statusEnum = ['diproses', 'direvisi', 'ditolak', 'diterima'];
-        
+
         $lokasiList = [
             ['prov' => 'Sulawesi Selatan', 'kota' => 'Makassar', 'kec' => 'Tamalanrea', 'kel' => 'Bira', 'lat' => -5.1350, 'lng' => 119.4950],
             ['prov' => 'Sulawesi Selatan', 'kota' => 'Maros', 'kec' => 'Bantimurung', 'kel' => 'Kalabbirang', 'lat' => -5.0116, 'lng' => 119.6644],
@@ -91,12 +92,12 @@ class SimulasiFlowSeeder extends Seeder
             $tahun = rand(2021, 2026);
             $bulan = rand(1, 12);
             $hari = rand(1, 28);
-            
-            $created_at = \Carbon\Carbon::create($tahun, $bulan, $hari, rand(8, 16), rand(0, 59), 0);
-            
+
+            $created_at = Carbon::create($tahun, $bulan, $hari, rand(8, 16), rand(0, 59), 0);
+
             $u = $usersPemohon[array_rand($usersPemohon)];
             $j = $jenisPkms[array_rand($jenisPkms)];
-            
+
             $is_selesai = false;
             // Randomize status based on year (older more likely to be diterima and selesai)
             if ($tahun < 2024) {
@@ -108,9 +109,9 @@ class SimulasiFlowSeeder extends Seeder
             } else {
                 $status = $statusEnum[array_rand($statusEnum)];
             }
-            
+
             $lokasi = $lokasiList[array_rand($lokasiList)];
-            
+
             // slight randomization on coordinates to scatter pins nicely
             $lat = $lokasi['lat'] + (rand(-150, 150) / 1000);
             $lng = $lokasi['lng'] + (rand(-150, 150) / 1000);
@@ -125,8 +126,8 @@ class SimulasiFlowSeeder extends Seeder
                 'alamat_lengkap' => "Desa {$lokasi['kel']}, Kec. {$lokasi['kec']}, Kab. {$lokasi['kota']}",
                 'latitude' => $lat,
                 'longitude' => $lng,
-                'judul_kegiatan' => "Program " . $j->nama_jenis . " di " . $lokasi['kota'] . " #$i",
-                'instansi_mitra' => 'Mitra Lokal ' . $lokasi['kel'],
+                'judul_kegiatan' => 'Program '.$j->nama_jenis.' di '.$lokasi['kota']." #$i",
+                'instansi_mitra' => 'Mitra Lokal '.$lokasi['kel'],
                 'sumber_dana' => rand(1, 3) == 1 ? 'Mandiri' : 'DIPA Poltekpar',
                 'total_anggaran' => rand(5, 50) * 1000000,
                 'kebutuhan' => 'Kebutuhan standar program pemberdayaan dan pengembangan.',
@@ -144,31 +145,31 @@ class SimulasiFlowSeeder extends Seeder
                 $p = $pegawais[array_rand($pegawais)];
                 TimKegiatan::create(['id_pengajuan' => $pengajuan->id_pengajuan, 'id_pegawai' => $p->id_pegawai, 'peran_tim' => 'Ketua', 'created_at' => $created_at, 'updated_at' => $created_at]);
                 TimKegiatan::create(['id_pengajuan' => $pengajuan->id_pengajuan, 'nama_mahasiswa' => "Mahasiswa PKM $i", 'peran_tim' => 'Anggota (Mhs)', 'created_at' => $created_at, 'updated_at' => $created_at]);
-                
+
                 Aktivitas::create([
-                    'id_pengajuan' => $pengajuan->id_pengajuan, 
-                    'status_pelaksanaan' => $is_selesai ? 'selesai' : 'berjalan', 
-                    'catatan_pelaksanaan' => 'Pelaksanaan aktivitas berjalan dengan baik dan sesuai linimasa pengerjaan harian.', 
-                    'created_at' => (clone $created_at)->addDays(15), 
-                    'updated_at' => (clone $created_at)->addDays(15)
+                    'id_pengajuan' => $pengajuan->id_pengajuan,
+                    'status_pelaksanaan' => $is_selesai ? 'selesai' : 'berjalan',
+                    'catatan_pelaksanaan' => 'Pelaksanaan aktivitas berjalan dengan baik dan sesuai linimasa pengerjaan harian.',
+                    'created_at' => (clone $created_at)->addDays(15),
+                    'updated_at' => (clone $created_at)->addDays(15),
                 ]);
-                
+
                 if ($is_selesai) {
                     Arsip::create([
-                        'id_pengajuan' => $pengajuan->id_pengajuan, 
-                        'nama_dokumen' => 'Laporan Akhir (LPJ)', 
-                        'jenis_arsip' => 'Laporan', 
-                        'url_dokumen' => '#lpj', 
-                        'created_at' => (clone $created_at)->addDays(21), 
-                        'updated_at' => (clone $created_at)->addDays(21)
+                        'id_pengajuan' => $pengajuan->id_pengajuan,
+                        'nama_dokumen' => 'Laporan Akhir (LPJ)',
+                        'jenis_arsip' => 'Laporan',
+                        'url_dokumen' => '#lpj',
+                        'created_at' => (clone $created_at)->addDays(21),
+                        'updated_at' => (clone $created_at)->addDays(21),
                     ]);
                     Arsip::create([
-                        'id_pengajuan' => $pengajuan->id_pengajuan, 
-                        'nama_dokumen' => 'Sertifikat & Dokumentasi Foto', 
-                        'jenis_arsip' => 'Sertifikat', 
-                        'url_dokumen' => '#foto', 
-                        'created_at' => (clone $created_at)->addDays(22), 
-                        'updated_at' => (clone $created_at)->addDays(22)
+                        'id_pengajuan' => $pengajuan->id_pengajuan,
+                        'nama_dokumen' => 'Sertifikat & Dokumentasi Foto',
+                        'jenis_arsip' => 'Sertifikat',
+                        'url_dokumen' => '#foto',
+                        'created_at' => (clone $created_at)->addDays(22),
+                        'updated_at' => (clone $created_at)->addDays(22),
                     ]);
                 }
             }

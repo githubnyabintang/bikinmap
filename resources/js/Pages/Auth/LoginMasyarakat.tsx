@@ -4,17 +4,13 @@ import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-lea
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import Layout from '@/Layouts/DefaultLayout';
-import MobileTabBar from '@/Components/MobileTabBar';
-import BottomSheet from '@/Components/BottomSheet';
 import DocumentationGallery from '@/Components/DocumentationGallery';
 import TestimonialSidebarDisplay from '@/Components/TestimonialSidebarDisplay';
 import LandingCharts from '@/Components/LandingCharts';
 import MapLegend from '@/Components/MapLegend';
-import LoginMasyarakatMobile from '@/Components/LoginMasyarakatMobile';
 import {
     resolveUserPkmData,
     resolveUserSubmissionData,
-    resolveUserSubmissionHistory,
 } from '@/data/sigapData';
 import { createPkmMarkerIcon } from '@/data/pkmMapVisuals';
 import { PkmData } from '@/types';
@@ -60,14 +56,6 @@ const getStatusPengajuanStyle = (status: string): StatusStyle => {
             return { bg: '#f1f5f9', color: '#64748b', icon: 'fa-circle-info', label: status };
     }
 };
-
-const createPengajuanDateLabel = (): string => (
-    new Intl.DateTimeFormat('id-ID', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-    }).format(new Date())
-);
 
 interface MapEventsProps {
     setSidebarPkm: React.Dispatch<React.SetStateAction<PkmData | null>>;
@@ -293,7 +281,6 @@ const StatusPengajuanPanel: React.FC<StatusPengajuanPanelProps> = ({ isOpen, onC
 interface LoginMasyarakatProps {
     userPkmData?: PkmData[] | null;
     userSubmissionData?: PengajuanData[] | null;
-    userSubmissionHistory?: PengajuanData[] | null;
 }
 
 interface SubmissionData extends PengajuanData {
@@ -303,122 +290,23 @@ interface SubmissionData extends PengajuanData {
 export default function LoginMasyarakat({
     userPkmData = null,
     userSubmissionData = null,
-    userSubmissionHistory = null,
 }: LoginMasyarakatProps): JSX.Element {
-    const [isMobileViewport, setIsMobileViewport] = useState(() => (
-        typeof window !== 'undefined' ? window.matchMedia('(max-width: 768px)').matches : false
-    ));
     const [pkmData] = useState<PkmData[]>(() => resolveUserPkmData(userPkmData));
     const [sidebarPkm, setSidebarPkm] = useState<PkmData | null>(null);
     const [isMenuListOpen, setIsMenuListOpen] = useState(false);
-    const [mobileActiveTab, setMobileActiveTab] = useState<'peta' | 'dashboard' | 'kegiatan'>('peta');
-    const [mobileBottomSheet, setMobileBottomSheet] = useState<'detail' | 'kegiatan' | null>(null);
-    const [pengajuanData, setPengajuanData] = useState<SubmissionData[]>(() => resolveUserSubmissionData(userSubmissionData, { role: 'masyarakat' }));
-    const [submissionHistoryData] = useState<PengajuanData[]>(() => resolveUserSubmissionHistory(userSubmissionHistory, 'masyarakat'));
+    const [pengajuanData] = useState<SubmissionData[]>(() => resolveUserSubmissionData(userSubmissionData, { role: 'masyarakat' }));
 
     const handleMarkerClick = (pkm: PkmData) => {
-        if (window.innerWidth <= 768) {
-            setSidebarPkm(pkm);
-            setMobileBottomSheet('detail');
-            return;
-        }
         setSidebarPkm(pkm);
         setIsMenuListOpen(false);
-    };
-
-    const handleMobileTabChange = (tabId: 'peta' | 'dashboard' | 'kegiatan') => {
-        setMobileActiveTab(tabId);
-        if (tabId === 'kegiatan') {
-            setMobileBottomSheet('kegiatan');
-        }
-    };
-
-    const closeMobileBottomSheet = () => {
-        setMobileBottomSheet(null);
-        if (mobileActiveTab === 'kegiatan') {
-            setMobileActiveTab('peta');
-        }
     };
 
     const totalPkm = pkmData.length;
     const totalSelesai = pkmData.filter((item) => item.status === 'selesai').length;
     const totalBerlangsung = pkmData.filter((item) => item.status === 'berlangsung').length;
-    const latestPengajuan = pengajuanData[0] ?? null;
     const hasSubmissionHistory = pengajuanData.length > 0;
     const pengajuanHref = '/pengajuan?role=masyarakat&view=form';
     const cekStatusHref = hasSubmissionHistory ? '/pengajuan?role=masyarakat&view=status' : pengajuanHref;
-    const currentSubmissionStatus = latestPengajuan?.status ?? 'belum_diajukan';
-    const currentPkmStatusData = ['berlangsung', 'selesai'].includes(currentSubmissionStatus)
-        ? pkmData.find((item) => item.status === currentSubmissionStatus) ?? null
-        : null;
-
-    const handleUpdateLatestPengajuanStatus = (nextStatus: string) => {
-        if (nextStatus === 'belum_diajukan') {
-            setPengajuanData([]);
-            return;
-        }
-
-        setPengajuanData((previous) => {
-            if (previous.length === 0) {
-                return [{
-                    id: Date.now(),
-                    judul: 'Pengajuan PKM Masyarakat',
-                    ringkasan: 'Status diperbarui dari aksi pada akun masyarakat.',
-                    tanggal: createPengajuanDateLabel(),
-                    status: nextStatus,
-                }];
-            }
-
-            return previous.map((item, index) => (
-                index === 0
-                    ? { ...item, status: nextStatus, tanggal: createPengajuanDateLabel() }
-                    : item
-            ));
-        });
-    };
-
-    useEffect(() => {
-        if (typeof window === 'undefined') {
-            return undefined;
-        }
-
-        const mediaQuery = window.matchMedia('(max-width: 768px)');
-        const updateViewport = (event: MediaQueryListEvent) => {
-            setIsMobileViewport(event.matches);
-        };
-
-        setIsMobileViewport(mediaQuery.matches);
-
-        if (mediaQuery.addEventListener) {
-            mediaQuery.addEventListener('change', updateViewport);
-            return () => mediaQuery.removeEventListener('change', updateViewport);
-        }
-
-        mediaQuery.addListener(updateViewport);
-        return () => mediaQuery.removeListener(updateViewport);
-    }, []);
-
-    if (isMobileViewport) {
-        return (
-            <Layout
-                mainClassName="site-main-content site-main-content--landing-balanced"
-                mainStyle={{ flex: '0 0 auto' }}
-            >
-                <Head title="Login Masyarakat - P3M Poltekpar Makassar" />
-                <LoginMasyarakatMobile
-                    pkmData={pkmData}
-                    submissionStatus={currentSubmissionStatus}
-                    latestSubmission={latestPengajuan}
-                    pkmStatusData={currentPkmStatusData}
-                    submissionHistory={submissionHistoryData}
-                    onUpdateSubmissionStatus={handleUpdateLatestPengajuanStatus}
-                    onSubmitted={(submission: SubmissionData) => {
-                        setPengajuanData((previous) => [submission, ...previous]);
-                    }}
-                />
-            </Layout>
-        );
-    }
 
     return (
         <Layout
@@ -428,7 +316,7 @@ export default function LoginMasyarakat({
             <Head title="Login Masyarakat - P3M Poltekpar Makassar" />
 
             <div className="landing-page login-dosen-page">
-                <div className={`landing-map-row ${mobileActiveTab !== 'peta' ? 'mobile-hidden' : ''}`}>
+                <div className="landing-map-row">
                     <section className="fintech-map-section landing-map-panel" id="peta-sebaran">
                         <div className="fintech-panel-header">
                             <h2 className="fintech-panel-title">
@@ -461,7 +349,7 @@ export default function LoginMasyarakat({
                                     className="map-container"
                                     style={{ width: '100%', height: '100%' }}
                                 >
-                                    <MapSizeInvalidator watchKey={`${mobileActiveTab}-${sidebarPkm?.id ?? 'none'}-${isMenuListOpen ? 'menu' : 'closed'}`} />
+                                    <MapSizeInvalidator watchKey={`desktop-${sidebarPkm?.id ?? 'none'}-${isMenuListOpen ? 'menu' : 'closed'}`} />
                                     <TileLayer
                                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -541,7 +429,7 @@ export default function LoginMasyarakat({
                 </div>
 
                 <div
-                    className={`${mobileActiveTab !== 'dashboard' ? 'mobile-hidden' : ''} landing-insight-layout--fullwidth`}
+                    className="landing-insight-layout--fullwidth"
                     style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 12px 28px', boxSizing: 'border-box' }}
                 >
                     <LandingCharts pkmData={pkmData} />
@@ -579,84 +467,6 @@ export default function LoginMasyarakat({
                         </div>
                     </div>
                 </section>
-
-                <BottomSheet
-                    isOpen={mobileBottomSheet === 'detail'}
-                    onClose={() => {
-                        closeMobileBottomSheet();
-                        setSidebarPkm(null);
-                    }}
-                    title={sidebarPkm?.nama}
-                >
-                    {sidebarPkm && (
-                        <div className="mobile-detail-content">
-                            <div className="mobile-detail-image" style={sidebarPkm.thumbnail ? { backgroundImage: `url(${sidebarPkm.thumbnail})` } : {}}>
-                                {!sidebarPkm.thumbnail && <i className="fa-solid fa-image" style={{ fontSize: '2rem', color: '#cbd5e1' }}></i>}
-                            </div>
-                            <div className="mobile-detail-body">
-                                <div className="mobile-detail-meta">
-                                    <span className={`card-status ${getStatusBadge(sidebarPkm.status)}`}>
-                                        <i className={`fa-solid ${getStatusIcon(sidebarPkm.status)}`}></i> {getStatusText(sidebarPkm.status)}
-                                    </span>
-                                    <span className="card-year">{sidebarPkm.tahun}</span>
-                                </div>
-                                <p className="mobile-detail-desc">{sidebarPkm.deskripsi}</p>
-
-                                <DocumentationGallery status={sidebarPkm.status} />
-                                <TestimonialSidebarDisplay status={sidebarPkm.status} />
-
-                                <div className="mobile-detail-location">
-                                    <i className="fa-solid fa-map-pin"></i>
-                                    <span>{sidebarPkm.desa}, Kec. {sidebarPkm.kecamatan}, {sidebarPkm.kabupaten}, {sidebarPkm.provinsi}</span>
-                                </div>
-                                <div className="mobile-detail-actions">
-                                    <button className="mobile-action-btn primary" onClick={() => window.open(`https://maps.google.com/?q=${sidebarPkm.lat},${sidebarPkm.lng}`)}>
-                                        <i className="fa-solid fa-location-arrow"></i> Rute
-                                    </button>
-                                    <button className="mobile-action-btn secondary" onClick={() => sidebarPkm.laporan && window.open(sidebarPkm.laporan)} disabled={!sidebarPkm.laporan}>
-                                        <i className="fa-solid fa-file-alt"></i> Laporan
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </BottomSheet>
-
-                <BottomSheet
-                    isOpen={mobileBottomSheet === 'kegiatan'}
-                    onClose={closeMobileBottomSheet}
-                    title="Kegiatan Saya"
-                >
-                    <div className="mobile-kegiatan-list">
-                        {pkmData.map((pkm) => (
-                            <div
-                                key={pkm.id}
-                                className="mobile-kegiatan-item"
-                                onClick={() => {
-                                    setSidebarPkm(pkm);
-                                    setMobileBottomSheet('detail');
-                                    setMobileActiveTab('peta');
-                                }}
-                            >
-                                <div className="mobile-kegiatan-thumb" style={pkm.thumbnail ? { backgroundImage: `url(${pkm.thumbnail})` } : {}}>
-                                    {!pkm.thumbnail && <i className="fa-solid fa-image" style={{ color: '#cbd5e1', fontSize: '20px' }}></i>}
-                                </div>
-                                <div className="mobile-kegiatan-info">
-                                    <div className="mobile-kegiatan-name">{pkm.nama}</div>
-                                    <div className="mobile-kegiatan-loc">
-                                        <i className="fa-solid fa-location-dot"></i> {pkm.desa}, Kec. {pkm.kecamatan}
-                                    </div>
-                                    <div className="mobile-kegiatan-status">
-                                        <span className={`status-dot ${pkm.status}`}></span>
-                                        <span>{pkm.status === 'berlangsung' ? 'Berlangsung' : 'Selesai'}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </BottomSheet>
-
-                <MobileTabBar activeTab={mobileActiveTab} onTabChange={handleMobileTabChange} />
             </div>
         </Layout>
     );

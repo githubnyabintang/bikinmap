@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Testimoni extends Model
 {
     protected $table = 'testimoni';
+
     protected $primaryKey = 'id_testimoni';
 
     protected $fillable = [
@@ -18,6 +19,6 @@ class Testimoni extends Model
 
     public function aktivitas()
     {
-        return $this->belongsTo(Aktivitas::class , 'id_aktivitas', 'id_aktivitas');
+        return $this->belongsTo(Aktivitas::class, 'id_aktivitas', 'id_aktivitas');
     }
 }

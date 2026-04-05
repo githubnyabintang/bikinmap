@@ -10,6 +10,7 @@ class TimKegiatan extends Model
     use SoftDeletes;
 
     protected $table = 'tim_kegiatan';
+
     protected $primaryKey = 'id_tim';
 
     protected $fillable = [

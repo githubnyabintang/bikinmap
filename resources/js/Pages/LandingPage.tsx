@@ -156,18 +156,18 @@ export default function LandingPage({ publicPkmData = null }: { publicPkmData?: 
         <Layout mainClassName="site-main-content" mainStyle={{ flex: '1', display: 'flex', flexDirection: 'column', backgroundColor: '#f8fafc' }}>
             <Head title="Geospatial PKM Dashboard" />
 
-            <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 flex-1 flex flex-col py-8">
+            <div className="max-w-6xl mx-auto w-full px-4 sm:px-6 flex-1 flex flex-col py-4">
                 {/* Combined Map + Dashboard Card */}
-                <div className="bg-white rounded-[48px] shadow-2xl shadow-sigappa-navy/5 border border-slate-100 overflow-hidden mb-8 p-6">
+                <div className="bg-white rounded-2xl shadow-xl shadow-sigappa-navy/5 border border-slate-100 overflow-hidden mb-4 p-3">
                     {/* Dashboard Evaluasi PKM Header */}
-                    <div className="mb-4">
-                        <h2 className="text-2xl font-bold text-slate-900">
+                    <div className="mb-2.5 px-1">
+                        <h2 className="text-lg font-bold text-slate-900">
                             Dashboard Evaluasi <span className="text-poltekpar-primary">PKM</span>
                         </h2>
                     </div>
 
                     {/* Map Section */}
-                    <div className="relative w-full h-[115vh] overflow-hidden z-10">
+                    <div className="relative w-full h-[60vh] overflow-hidden z-10">
                         <MapContainer
                             center={[-2.5, 118]}
                             zoom={5}
@@ -190,17 +190,17 @@ export default function LandingPage({ publicPkmData = null }: { publicPkmData?: 
                         </MapContainer>
 
                         {/* Top Right Action Button */}
-                        <div className={`absolute top-6 right-6 z-[1000] transition-all duration-500 ease-in-out ${isListSidebarOpen || !!sidebarPkm ? 'opacity-0 -translate-y-4 pointer-events-none scale-90' : 'opacity-100 translate-y-0 scale-100'}`}>
+                        <div className={`absolute top-3 right-3 z-[1000] transition-all duration-500 ease-in-out ${isListSidebarOpen || !!sidebarPkm ? 'opacity-0 -translate-y-4 pointer-events-none scale-90' : 'opacity-100 translate-y-0 scale-100'}`}>
                             <button
                                 onClick={() => {
                                     setIsListSidebarOpen(true);
                                     setSidebarPkm(null);
                                     setListSelectedPkm(null);
                                 }}
-                                className="bg-white/95 backdrop-blur-md border border-slate-100 shadow-xl rounded-2xl px-5 py-3 flex items-center gap-3 text-sm font-black text-slate-700 hover:text-poltekpar-primary hover:scale-[1.02] active:scale-95 transition-all"
+                                className="bg-white/95 backdrop-blur-md border border-slate-100 shadow-md rounded-lg px-3.5 py-2 flex items-center gap-2 text-[11px] font-black text-slate-700 hover:text-poltekpar-primary hover:scale-[1.02] active:scale-95 transition-all"
                             >
                                 <i className="fa-solid fa-list-ul"></i>
-                                DAFTAR KEGIATAN PKM
+                                DAFTAR PKM
                             </button>
                         </div>
 
@@ -216,88 +216,90 @@ export default function LandingPage({ publicPkmData = null }: { publicPkmData?: 
                             onToggleStatus={toggleStatus}
                         />
 
-                        {/* Sidebar PKM Detail Overlay - Right Side to avoid overlap with Legend */}
-                        <div className={`pk-detail-sidebar absolute top-8 bottom-8 right-8 w-[400px] max-w-[calc(100%-64px)] bg-white/95 backdrop-blur-xl rounded-[40px] shadow-2xl z-[1100] p-8 overflow-y-auto transition-transform duration-700 border border-white/60 ${!sidebarPkm ? 'translate-x-[120%]' : 'translate-x-0'}`}>
+                        {/* Sidebar PKM Detail Overlay - Right Side */}
+                        <div className={`pk-detail-sidebar absolute top-3 bottom-3 right-3 w-[300px] max-w-[calc(100%-24px)] bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl z-[1100] p-4 overflow-y-auto transition-transform duration-700 border border-white/60 ${!sidebarPkm ? 'translate-x-[120%]' : 'translate-x-0'}`}>
                             {sidebarPkm && (
-                                <div className="space-y-8 animate-in fade-in slide-in-from-right-8 duration-500">
+                                <div className="space-y-4 animate-in fade-in slide-in-from-right-8 duration-500">
                                     <div className="flex items-center justify-between">
                                         {(() => {
                                             const s = sidebarPkm.status;
                                             const m = getPkmStatusMeta(s);
                                             const cls = s === 'berlangsung' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700';
                                             return (
-                                                <span className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${cls}`}>
+                                                <span className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${cls}`}>
                                                     <i className={`fa-solid ${m.markerIcon}`}></i> {m.label}
                                                 </span>
                                             );
                                         })()}
-                                        <button onClick={() => setSidebarPkm(null)} className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all flex items-center justify-center"><i className="fa-solid fa-xmark"></i></button>
+                                        <button onClick={() => setSidebarPkm(null)} className="w-7 h-7 rounded-lg bg-slate-50 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all flex items-center justify-center"><i className="fa-solid fa-xmark text-xs"></i></button>
                                     </div>
-                                    <div className="aspect-video rounded-[32px] overflow-hidden shadow-xl border border-slate-100 bg-slate-50 group">
+                                    <div className="aspect-video rounded-xl overflow-hidden shadow-md border border-slate-100 bg-slate-50 group">
                                         {sidebarPkm.thumbnail ? (
                                             <img src={sidebarPkm.thumbnail} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="" />
                                         ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-slate-200"><i className="fa-solid fa-mountain-sun text-5xl"></i></div>
+                                            <div className="w-full h-full flex items-center justify-center text-slate-200"><i className="fa-solid fa-mountain-sun text-3xl"></i></div>
                                         )}
                                     </div>
-                                    <div className="space-y-6">
-                                        <h3 className="text-2xl font-black text-slate-900 leading-tight tracking-tight">{sidebarPkm.nama}</h3>
-                                        <div className="p-6 bg-slate-50 rounded-[28px] border border-slate-100">
-                                            <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Ringkasan Kegiatan</span>
-                                            <p className="text-sm font-bold text-slate-600 leading-relaxed text-justify">{sidebarPkm.deskripsi}</p>
+                                    <div className="space-y-4">
+                                        <h3 className="text-base font-black text-slate-900 leading-tight tracking-tight">{sidebarPkm.nama}</h3>
+                                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                            <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Ringkasan</span>
+                                            <p className="text-[11px] font-bold text-slate-600 leading-relaxed text-justify">{sidebarPkm.deskripsi}</p>
                                         </div>
-                                        <div className="flex flex-col gap-3 text-[12px] font-bold text-slate-400 uppercase tracking-widest">
-                                            <div className="flex items-center gap-3"><div className="w-8 h-8 rounded-lg bg-sigappa-primary/10 text-sigappa-primary flex items-center justify-center"><i className="fa-solid fa-location-dot"></i></div> {sidebarPkm.desa}, {sidebarPkm.kecamatan}, {sidebarPkm.kabupaten}, {sidebarPkm.provinsi}</div>
-                                            <div className="flex items-center gap-3"><div className="w-8 h-8 rounded-lg bg-sigappa-primary/10 text-sigappa-primary flex items-center justify-center"><i className="fa-solid fa-calendar"></i></div> Tahun {sidebarPkm.tahun}</div>
+                                        <div className="flex flex-col gap-2 text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                                            <div className="flex items-center gap-2"><div className="w-6 h-6 rounded-md bg-sigappa-primary/10 text-sigappa-primary flex items-center justify-center text-[10px]"><i className="fa-solid fa-location-dot"></i></div> {sidebarPkm.desa}, {sidebarPkm.kabupaten}</div>
+                                            <div className="flex items-center gap-2"><div className="w-6 h-6 rounded-md bg-sigappa-primary/10 text-sigappa-primary flex items-center justify-center text-[10px]"><i className="fa-solid fa-calendar"></i></div> Tahun {sidebarPkm.tahun}</div>
                                         </div>
 
                                         {/* Tim Pelaksana */}
-                                        <div className="pt-4 border-t border-slate-100">
-                                            <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Tim Pelaksana</span>
+                                        <div className="pt-3 border-t border-slate-100">
+                                            <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Tim Pelaksana</span>
                                             {sidebarPkm.tim_kegiatan && sidebarPkm.tim_kegiatan.length > 0 ? (
-                                                <div className="space-y-2">
+                                                <div className="space-y-1.5">
                                                     {sidebarPkm.tim_kegiatan.map((t, i) => (
-                                                        <div key={i} className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-xl border border-slate-100">
-                                                            <div className="w-8 h-8 rounded-lg bg-poltekpar-primary/10 text-poltekpar-primary flex items-center justify-center text-[10px] font-black">{t.nama?.charAt(0)?.toUpperCase() || '?'}</div>
-                                                            <div>
-                                                                <span className="text-xs font-bold text-slate-700 block leading-tight">{t.nama}</span>
-                                                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t.peran}</span>
+                                                        <div key={i} className="flex items-center gap-2 p-1.5 bg-slate-50 rounded-lg border border-slate-100">
+                                                            <div className="w-6 h-6 rounded-md bg-poltekpar-primary/10 text-poltekpar-primary flex items-center justify-center text-[8px] font-black">{t.nama?.charAt(0)?.toUpperCase() || '?'}</div>
+                                                            <div className="min-w-0">
+                                                                <span className="text-[10px] font-bold text-slate-700 block leading-tight truncate">{t.nama}</span>
+                                                                <span className="text-[8px] text-slate-400 font-bold uppercase tracking-wider">{t.peran}</span>
                                                             </div>
                                                         </div>
                                                     ))}
                                                 </div>
                                             ) : (
-                                                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-center">
-                                                    <span className="text-xs font-bold text-slate-400">Belum ada data tim pelaksana</span>
+                                                <div className="p-2 bg-slate-50 rounded-lg border border-slate-100 text-center">
+                                                    <span className="text-[9px] font-bold text-slate-400">Belum ada data tim</span>
                                                 </div>
                                             )}
                                         </div>
 
                                         {/* Anggaran */}
-                                        <div className="pt-4 border-t border-slate-100">
-                                            <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Total Anggaran</span>
-                                            <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-xl bg-poltekpar-primary/10 text-poltekpar-primary flex items-center justify-center"><i className="fa-solid fa-money-bill-wave"></i></div>
-                                                <span className="text-lg font-black text-poltekpar-primary">Rp {Number(sidebarPkm.total_anggaran || 0).toLocaleString('id-ID')}</span>
+                                        <div className="pt-3 border-t border-slate-100">
+                                            <div className="p-2.5 bg-blue-50 rounded-xl border border-blue-100 flex items-center gap-2">
+                                                <div className="w-7 h-7 rounded-lg bg-poltekpar-primary/10 text-poltekpar-primary flex items-center justify-center text-xs"><i className="fa-solid fa-money-bill-wave"></i></div>
+                                                <div className="flex-1">
+                                                    <span className="block text-[8px] font-black text-poltekpar-primary/60 uppercase tracking-widest">Total Anggaran</span>
+                                                    <span className="text-sm font-black text-poltekpar-primary">Rp {Number(sidebarPkm.total_anggaran || 0).toLocaleString('id-ID')}</span>
+                                                </div>
                                             </div>
                                         </div>
 
                                         {/* Testimoni */}
                                         {sidebarPkm.testimoni && sidebarPkm.testimoni.length > 0 && (
-                                            <div className="pt-4 border-t border-slate-100">
-                                                <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Testimoni</span>
-                                                <div className="space-y-3">
-                                                    {sidebarPkm.testimoni.map((t, i) => (
-                                                        <div key={i} className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                                                            <div className="flex items-center justify-between mb-1">
-                                                                <span className="text-xs font-bold text-slate-700">{t.nama_pemberi}</span>
+                                            <div className="pt-3 border-t border-slate-100">
+                                                <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Testimoni</span>
+                                                <div className="space-y-2">
+                                                    {sidebarPkm.testimoni.slice(0, 2).map((t, i) => (
+                                                        <div key={i} className="p-2 bg-slate-50 rounded-lg border border-slate-100">
+                                                            <div className="flex items-center justify-between mb-0.5">
+                                                                <span className="text-[10px] font-bold text-slate-700">{t.nama_pemberi}</span>
                                                                 <div className="flex gap-0.5">
                                                                     {[...Array(5)].map((_, si) => (
-                                                                        <i key={si} className={`fa-solid fa-star text-[10px] ${si < t.rating ? 'text-poltekpar-gold' : 'text-slate-200'}`}></i>
+                                                                        <i key={si} className={`fa-solid fa-star text-[7px] ${si < t.rating ? 'text-poltekpar-gold' : 'text-slate-200'}`}></i>
                                                                     ))}
                                                                 </div>
                                                             </div>
-                                                            <p className="text-[11px] text-slate-500 leading-relaxed">{t.pesan_ulasan}</p>
+                                                            <p className="text-[9px] text-slate-500 leading-relaxed truncate">{t.pesan_ulasan}</p>
                                                         </div>
                                                     ))}
                                                 </div>
@@ -309,126 +311,87 @@ export default function LandingPage({ publicPkmData = null }: { publicPkmData?: 
                         </div>
 
                         {/* Sidebar PKM List Overlay */}
-                        <div className={`absolute top-8 bottom-8 right-8 w-[400px] max-w-[calc(100%-64px)] bg-white/95 backdrop-blur-xl rounded-[40px] shadow-2xl z-[1150] overflow-hidden flex flex-col transition-transform duration-700 border border-white/60 ${!isListSidebarOpen ? 'translate-x-[120%]' : 'translate-x-0'}`}>
+                        <div className={`absolute top-3 bottom-3 right-3 w-[300px] max-w-[calc(100%-24px)] bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl z-[1150] overflow-hidden flex flex-col transition-transform duration-700 border border-white/60 ${!isListSidebarOpen ? 'translate-x-[120%]' : 'translate-x-0'}`}>
                             {listSelectedPkm ? (
                                 <>
-                                    <div className="p-8 pb-4 bg-white/95 backdrop-blur-xl z-20 border-b border-slate-100 flex-shrink-0">
-                                        <div className="flex items-center gap-4">
-                                            <button onClick={() => setListSelectedPkm(null)} className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-500 hover:bg-slate-200 transition-all flex items-center justify-center flex-shrink-0">
-                                                <i className="fa-solid fa-arrow-left"></i>
+                                    <div className="p-4 pb-2 bg-white/95 backdrop-blur-xl z-20 border-b border-slate-100 flex-shrink-0">
+                                        <div className="flex items-center gap-2.5">
+                                            <button onClick={() => setListSelectedPkm(null)} className="w-7 h-7 rounded-lg bg-slate-50 text-slate-500 hover:bg-slate-200 transition-all flex items-center justify-center flex-shrink-0">
+                                                <i className="fa-solid fa-arrow-left text-xs"></i>
                                             </button>
                                             <div className="flex-1 min-w-0">
-                                                <h3 className="text-xl font-black text-slate-900 tracking-tight truncate">{listSelectedPkm.nama}</h3>
+                                                <h3 className="text-sm font-black text-slate-900 tracking-tight truncate">{listSelectedPkm.nama}</h3>
                                                 {(() => {
                                                     const s = listSelectedPkm.status;
                                                     const m = getPkmStatusMeta(s);
                                                     const cls = s === 'berlangsung' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700';
                                                     return (
-                                                        <span className={`inline-flex items-center gap-1.5 mt-1 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${cls}`}>
+                                                        <span className={`inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest ${cls}`}>
                                                             <i className={`fa-solid ${m.markerIcon}`}></i> {m.label}
                                                         </span>
                                                     );
                                                 })()}
                                             </div>
-                                            <button onClick={() => { setIsListSidebarOpen(false); setListSelectedPkm(null); }} className="w-10 h-10 flex items-center justify-center rounded-2xl bg-slate-50 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors flex-shrink-0">
-                                                <i className="fa-solid fa-xmark"></i>
+                                            <button onClick={() => { setIsListSidebarOpen(false); setListSelectedPkm(null); }} className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-50 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors flex-shrink-0">
+                                                <i className="fa-solid fa-xmark text-xs"></i>
                                             </button>
                                         </div>
                                     </div>
-                                    <div className="p-8 overflow-y-auto flex-1 space-y-8 animate-in fade-in slide-in-from-right-8 duration-500 custom-scrollbar">
-                                        <div className="aspect-video rounded-[32px] overflow-hidden shadow-xl border border-slate-100 bg-slate-50 group">
+                                    <div className="p-4 overflow-y-auto flex-1 space-y-4 animate-in fade-in slide-in-from-right-8 duration-500 custom-scrollbar">
+                                        <div className="aspect-video rounded-xl overflow-hidden shadow-md border border-slate-100 bg-slate-50 group">
                                             {listSelectedPkm.thumbnail ? (
                                                 <img src={listSelectedPkm.thumbnail} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="" />
                                             ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-slate-200"><i className="fa-solid fa-mountain-sun text-5xl"></i></div>
+                                                <div className="w-full h-full flex items-center justify-center text-slate-200"><i className="fa-solid fa-mountain-sun text-3xl"></i></div>
                                             )}
                                         </div>
-                                        <div className="space-y-6">
-                                            <div className="p-6 bg-slate-50 rounded-[28px] border border-slate-100">
-                                                <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Ringkasan Kegiatan</span>
-                                                <p className="text-sm font-bold text-slate-600 leading-relaxed text-justify">{listSelectedPkm.deskripsi}</p>
+                                        <div className="space-y-4">
+                                            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                                <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Ringkasan</span>
+                                                <p className="text-[11px] font-bold text-slate-600 leading-relaxed text-justify">{listSelectedPkm.deskripsi}</p>
                                             </div>
-                                            <div className="flex flex-col gap-3 text-[12px] font-bold text-slate-400 uppercase tracking-widest">
-                                                <div className="flex items-center gap-3"><div className="w-8 h-8 rounded-lg bg-sigappa-primary/10 text-sigappa-primary flex items-center justify-center"><i className="fa-solid fa-location-dot"></i></div> {listSelectedPkm.desa}, {listSelectedPkm.kecamatan}, {listSelectedPkm.kabupaten}, {listSelectedPkm.provinsi}</div>
-                                                <div className="flex items-center gap-3"><div className="w-8 h-8 rounded-lg bg-sigappa-primary/10 text-sigappa-primary flex items-center justify-center"><i className="fa-solid fa-calendar"></i></div> Tahun {listSelectedPkm.tahun}</div>
-                                            </div>
-
-                                            {/* Tim Pelaksana */}
-                                            <div className="pt-4 border-t border-slate-100">
-                                                <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Tim Pelaksana</span>
-                                                {listSelectedPkm.tim_kegiatan && listSelectedPkm.tim_kegiatan.length > 0 ? (
-                                                    <div className="space-y-2">
-                                                        {listSelectedPkm.tim_kegiatan.map((t, i) => (
-                                                            <div key={i} className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-xl border border-slate-100">
-                                                                <div className="w-8 h-8 rounded-lg bg-poltekpar-primary/10 text-poltekpar-primary flex items-center justify-center text-[10px] font-black">{t.nama?.charAt(0)?.toUpperCase() || '?'}</div>
-                                                                <div>
-                                                                    <span className="text-xs font-bold text-slate-700 block leading-tight">{t.nama}</span>
-                                                                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t.peran}</span>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                ) : (
-                                                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-center">
-                                                        <span className="text-xs font-bold text-slate-400">Belum ada data tim pelaksana</span>
-                                                    </div>
-                                                )}
+                                            <div className="flex flex-col gap-2 text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                                                <div className="flex items-center gap-2"><div className="w-6 h-6 rounded-md bg-sigappa-primary/10 text-sigappa-primary flex items-center justify-center text-[10px]"><i className="fa-solid fa-location-dot"></i></div> {listSelectedPkm.desa}, {listSelectedPkm.kabupaten}</div>
+                                                <div className="flex items-center gap-2"><div className="w-6 h-6 rounded-md bg-sigappa-primary/10 text-sigappa-primary flex items-center justify-center text-[10px]"><i className="fa-solid fa-calendar"></i></div> Tahun {listSelectedPkm.tahun}</div>
                                             </div>
 
-                                            {/* Anggaran */}
-                                            <div className="pt-4 border-t border-slate-100">
-                                                <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Total Anggaran</span>
-                                                <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-xl bg-poltekpar-primary/10 text-poltekpar-primary flex items-center justify-center"><i className="fa-solid fa-money-bill-wave"></i></div>
-                                                    <span className="text-lg font-black text-poltekpar-primary">Rp {Number(listSelectedPkm.total_anggaran || 0).toLocaleString('id-ID')}</span>
+                                            {/* Tim & Anggaran (Combined Compact) */}
+                                            <div className="pt-3 border-t border-slate-100 space-y-2">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Tim Pelaksana</span>
+                                                    <span className="text-[9px] font-black text-poltekpar-primary">Rp {Number(listSelectedPkm.total_anggaran || 0).toLocaleString('id-ID')}</span>
                                                 </div>
-                                            </div>
-
-                                            {/* Testimoni */}
-                                            {listSelectedPkm.testimoni && listSelectedPkm.testimoni.length > 0 && (
-                                                <div className="pt-4 border-t border-slate-100">
-                                                    <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Testimoni</span>
-                                                    <div className="space-y-3">
-                                                        {listSelectedPkm.testimoni.map((t, i) => (
-                                                            <div key={i} className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                                                                <div className="flex items-center justify-between mb-1">
-                                                                    <span className="text-xs font-bold text-slate-700">{t.nama_pemberi}</span>
-                                                                    <div className="flex gap-0.5">
-                                                                        {[...Array(5)].map((_, si) => (
-                                                                            <i key={si} className={`fa-solid fa-star text-[10px] ${si < t.rating ? 'text-poltekpar-gold' : 'text-slate-200'}`}></i>
-                                                                        ))}
-                                                                    </div>
-                                                                </div>
-                                                                <p className="text-[11px] text-slate-500 leading-relaxed">{t.pesan_ulasan}</p>
-                                                            </div>
-                                                        ))}
+                                                {listSelectedPkm.tim_kegiatan && listSelectedPkm.tim_kegiatan.slice(0, 3).map((t, i) => (
+                                                    <div key={i} className="flex items-center gap-2 p-1.5 bg-slate-50 rounded-lg border border-slate-100">
+                                                        <div className="w-5 h-5 rounded bg-poltekpar-primary/10 text-poltekpar-primary flex items-center justify-center text-[7px] font-black">{t.nama?.charAt(0)?.toUpperCase() || '?'}</div>
+                                                        <span className="text-[10px] font-bold text-slate-700 truncate">{t.nama}</span>
                                                     </div>
-                                                </div>
-                                            )}
+                                                ))}
+                                            </div>
                                         </div>
                                     </div>
                                 </>
                             ) : (
                                 <>
-                                    <div className="p-8 pb-4 bg-white/95 backdrop-blur-xl z-20 border-b border-slate-100 flex-shrink-0">
-                                        <div className="flex items-center justify-between mb-6">
-                                            <h3 className="text-xl font-black text-slate-900 tracking-tight">Daftar PKM</h3>
-                                            <button onClick={() => setIsListSidebarOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors">
-                                                <i className="fa-solid fa-xmark"></i>
+                                    <div className="p-4 pb-2 bg-white/95 backdrop-blur-xl z-20 border-b border-slate-100 flex-shrink-0">
+                                        <div className="flex items-center justify-between mb-3 px-1">
+                                            <h3 className="text-sm font-black text-slate-900 tracking-tight">Daftar PKM</h3>
+                                            <button onClick={() => setIsListSidebarOpen(false)} className="w-6 h-6 flex items-center justify-center rounded-md bg-slate-50 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors">
+                                                <i className="fa-solid fa-xmark text-[10px]"></i>
                                             </button>
                                         </div>
                                         <div className="relative">
-                                            <i className="fa-solid fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                            <i className="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]"></i>
                                             <input
                                                 type="text"
-                                                placeholder="Cari desa, kegiatan, lokasi..."
+                                                placeholder="Cari desa atau kegiatan..."
                                                 value={searchKeyword}
                                                 onChange={(e) => setSearchKeyword(e.target.value)}
-                                                className="w-full bg-slate-50 border border-slate-100 placeholder:text-slate-400 text-slate-700 text-sm font-bold rounded-2xl py-3 pl-11 pr-4 outline-none focus:border-poltekpar-primary focus:bg-white transition-all shadow-inner"
+                                                className="w-full bg-slate-50 border border-slate-100 placeholder:text-slate-400 text-slate-700 text-[10px] font-bold rounded-lg py-2 pl-8 pr-3 outline-none focus:border-poltekpar-primary focus:bg-white transition-all shadow-inner"
                                             />
                                         </div>
                                     </div>
-                                    <div className="p-8 pt-4 overflow-y-auto flex-1 space-y-4 custom-scrollbar">
+                                    <div className="p-4 pt-2 overflow-y-auto flex-1 space-y-2 custom-scrollbar">
                                         {filteredPkmData.map(pkm => {
                                             const typeColor = getPkmTypeMeta(pkm).color;
                                             return (
@@ -437,26 +400,25 @@ export default function LandingPage({ publicPkmData = null }: { publicPkmData?: 
                                                     onClick={() => {
                                                         setListSelectedPkm(pkm);
                                                     }}
-                                                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 flex flex-col gap-3 text-left hover:bg-poltekpar-primary hover:text-white hover:border-poltekpar-primary transition-all group shadow-sm cursor-pointer"
+                                                    className="w-full bg-slate-50 border border-slate-100 rounded-lg p-3 flex flex-col gap-1.5 text-left hover:bg-poltekpar-primary hover:text-white hover:border-poltekpar-primary transition-all group shadow-sm cursor-pointer"
                                                 >
                                                     <div className="flex items-center justify-between w-full">
-                                                        <div className="flex items-center gap-3 w-[90%]">
-                                                            <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-sm group-hover:ring-2 group-hover:ring-white/50" style={{ backgroundColor: typeColor }}></div>
-                                                            <div className="font-black text-sm text-slate-800 group-hover:text-white transition-colors truncate">{pkm.nama}</div>
+                                                        <div className="flex items-center gap-2 w-[90%]">
+                                                            <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: typeColor }}></div>
+                                                            <div className="font-black text-[11px] text-slate-800 group-hover:text-white transition-colors truncate">{pkm.nama}</div>
                                                         </div>
-                                                        <i className="fa-solid fa-arrow-right text-slate-300 group-hover:text-white transition-colors flex-shrink-0"></i>
+                                                        <i className="fa-solid fa-arrow-right text-slate-300 group-hover:text-white transition-colors flex-shrink-0 text-[8px]"></i>
                                                     </div>
-                                                    <div className="flex flex-col gap-1.5 pl-[22px] text-[10px] font-bold text-slate-400 group-hover:text-white/80 transition-colors uppercase tracking-widest">
-                                                        <div className="flex items-center gap-2"><i className="fa-solid fa-location-dot"></i> {pkm.desa}, {pkm.kabupaten}</div>
-                                                        <div className="flex items-center gap-2"><i className="fa-solid fa-calendar"></i> Tahun {pkm.tahun}</div>
+                                                    <div className="flex items-center gap-3 pl-3.5 text-[8px] font-bold text-slate-400 group-hover:text-white/80 transition-colors uppercase tracking-widest">
+                                                        <span className="flex items-center gap-1"><i className="fa-solid fa-location-dot"></i> {pkm.desa}</span>
+                                                        <span className="flex items-center gap-1"><i className="fa-solid fa-calendar"></i> {pkm.tahun}</span>
                                                     </div>
                                                 </button>
                                             );
                                         })}
                                         {filteredPkmData.length === 0 && (
-                                            <div className="text-center py-8">
-                                                <div className="w-12 h-12 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner"><i className="fa-solid fa-search text-xl"></i></div>
-                                                <p className="text-xs font-bold text-slate-400">Tidak ada kegiatan yang ditemukan.</p>
+                                            <div className="text-center py-4">
+                                                <p className="text-[9px] font-bold text-slate-400">Data tidak ditemukan.</p>
                                             </div>
                                         )}
                                     </div>

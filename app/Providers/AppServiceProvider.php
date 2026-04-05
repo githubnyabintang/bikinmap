@@ -3,11 +3,11 @@
 namespace App\Providers;
 
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\SQLiteConnection;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Database\SQLiteConnection;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -26,11 +26,13 @@ class AppServiceProvider extends ServiceProvider
 
             DB::connection()->getPdo()->sqliteCreateFunction('FIELD', function () {
                 $args = func_get_args();
-                if (count($args) < 2)
+                if (count($args) < 2) {
                     return 0;
+                }
 
                 $value = array_shift($args);
                 $index = array_search($value, $args);
+
                 return $index === false ? 0 : $index + 1;
             }, -1);
         }

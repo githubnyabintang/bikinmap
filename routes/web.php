@@ -142,15 +142,15 @@ Route::middleware('guest')->group(function () {
     })->name('verification.notice');
 });
 
-// User Pages (Pengajuan & Status)
-Route::get('/pengajuan', [PengajuanUserController::class, 'index'])->name('pengajuan.form');
-Route::get('/cek-status', [PengajuanUserController::class, 'index'])->name('pengajuan.status');
-
 // ─────────────────────────────────────────────
 // Authenticated routes
 // ─────────────────────────────────────────────
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+    // User Pages (Pengajuan & Status)
+    Route::get('/pengajuan', [PengajuanUserController::class, 'index'])->name('pengajuan.form');
+    Route::get('/cek-status', [PengajuanUserController::class, 'index'])->name('pengajuan.status');
 
     // User: submit pengajuan
     Route::post('/pengajuan', [PengajuanUserController::class, 'store'])->name('pengajuan.store');

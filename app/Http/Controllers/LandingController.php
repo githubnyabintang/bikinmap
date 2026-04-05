@@ -19,7 +19,7 @@ class LandingController extends Controller
         $pkmData = Pengajuan::with(['aktivitas', 'timKegiatan', 'jenisPkm'])
             ->whereNotNull('latitude')
             ->get()
-            ->map(fn($p) => [
+            ->map(fn ($p) => [
                 'id' => $p->id_pengajuan,
                 'nama' => $p->judul_kegiatan,
                 'tahun' => $p->created_at?->year ?? date('Y'),
@@ -36,9 +36,9 @@ class LandingController extends Controller
                 'lat' => (float) ($p->latitude ?? 0),
                 'lng' => (float) ($p->longitude ?? 0),
                 'total_anggaran' => $p->total_anggaran ?? 0,
-                'tim_kegiatan' => $p->timKegiatan->map(fn($t) => [
-                    'nama' => $t->nama_anggota,
-                    'peran' => $t->peran,
+                'tim_kegiatan' => $p->timKegiatan->map(fn ($t) => [
+                    'nama' => $t->pegawai ? $t->pegawai->nama_pegawai : $t->nama_mahasiswa,
+                    'peran' => $t->peran_tim,
                 ])->toArray(),
             ]);
 
@@ -59,8 +59,8 @@ class LandingController extends Controller
 
         $chartStats = [
             'years' => $years,
-            'selesai' => collect($years)->map(fn($y) => $allPengajuan->where('year', $y)->where('status_pengajuan', 'selesai')->sum('total'))->toArray(),
-            'berlangsung' => collect($years)->map(fn($y) => $allPengajuan->where('year', $y)->where('status_pengajuan', 'diterima')->sum('total'))->toArray(),
+            'selesai' => collect($years)->map(fn ($y) => $allPengajuan->where('year', $y)->where('status_pengajuan', 'selesai')->sum('total'))->toArray(),
+            'berlangsung' => collect($years)->map(fn ($y) => $allPengajuan->where('year', $y)->where('status_pengajuan', 'diterima')->sum('total'))->toArray(),
             'total_pengajuan' => (int) ($statusCounts->total ?? 0),
             'total_diterima' => (int) ($statusCounts->total_diterima ?? 0),
             'total_selesai' => (int) ($statusCounts->total_selesai ?? 0),
@@ -139,7 +139,7 @@ class LandingController extends Controller
         ]));
 
         foreach (($request->dokumen_lainnya ?? []) as $link) {
-            if (!empty($link)) {
+            if (! empty($link)) {
                 Arsip::create(array_merge($commonData, [
                     'nama_dokumen' => 'Dokumen Tambahan',
                     'jenis_arsip' => 'dokumen_lain',

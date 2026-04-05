@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class JenisPkm extends Model
 {
     protected $table = 'jenis_pkm';
+
     protected $primaryKey = 'id_jenis_pkm';
 
     protected $fillable = [
@@ -16,6 +17,6 @@ class JenisPkm extends Model
 
     public function pengajuan()
     {
-        return $this->hasMany(Pengajuan::class , 'id_jenis_pkm');
+        return $this->hasMany(Pengajuan::class, 'id_jenis_pkm');
     }
 }
