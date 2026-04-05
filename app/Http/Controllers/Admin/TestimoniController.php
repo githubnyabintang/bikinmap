@@ -1,0 +1,92 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Aktivitas;
+use App\Models\Testimoni;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+
+class TestimoniController extends Controller
+{
+    public function index(Request $request)
+    {
+        $listTestimoni = Testimoni::with(['aktivitas.pengajuan.user'])
+            ->when($request->search, function ($query, $search) {
+                $escaped = addcslashes($search, '\\%_');
+                $query->where(function ($q) use ($escaped) {
+                    $q->where('nama_pemberi', 'like', "%{$escaped}%")
+                        ->orWhere('pesan_ulasan', 'like', "%{$escaped}%")
+                        ->orWhereHas('aktivitas.pengajuan', fn ($p) => $p->where('judul_kegiatan', 'like', "%{$escaped}%"));
+                });
+            })
+            ->when($request->rating, function ($query, $rating) {
+                $query->where('rating', $rating);
+            })
+            ->latest()
+            ->paginate(12)
+            ->withQueryString();
+
+        $listAktivitas = Aktivitas::whereNotNull('id_pengajuan')
+            ->where(function ($query) {
+                $query->where('status_pelaksanaan', 'selesai')
+                      ->orWhereHas('pengajuan', function ($q) {
+                          $q->where('status_pengajuan', 'selesai');
+                      });
+            })
+            ->with('pengajuan')
+            ->get()
+            ->map(fn ($a) => [
+                'id_aktivitas' => $a->id_aktivitas,
+                'judul_kegiatan' => $a->pengajuan?->judul_kegiatan ?? 'Tanpa Judul',
+            ]);
+
+        return Inertia::render('Admin/Testimoni/Index', [
+            'listTestimoni' => $listTestimoni,
+            'listAktivitas' => $listAktivitas,
+            'filters' => [
+                'search' => $request->search ?? '',
+                'rating' => $request->rating ?? '',
+            ],
+        ]);
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'id_aktivitas' => 'nullable|exists:aktivitas,id_aktivitas',
+            'nama_pemberi' => 'required|string|max:255',
+            'rating' => 'required|integer|min:1|max:5',
+            'pesan_ulasan' => 'nullable|string|max:2000',
+        ]);
+
+        Testimoni::create($request->only('id_aktivitas', 'nama_pemberi', 'rating', 'pesan_ulasan'));
+
+        return redirect()->back()->with('success', 'Testimoni berhasil ditambahkan.');
+    }
+
+    public function update(Request $request, int $id)
+    {
+        $testimoni = Testimoni::findOrFail($id);
+
+        $request->validate([
+            'id_aktivitas' => 'nullable|exists:aktivitas,id_aktivitas',
+            'nama_pemberi' => 'required|string|max:255',
+            'rating' => 'required|integer|min:1|max:5',
+            'pesan_ulasan' => 'nullable|string|max:2000',
+        ]);
+
+        $testimoni->update($request->only('id_aktivitas', 'nama_pemberi', 'rating', 'pesan_ulasan'));
+
+        return redirect()->back()->with('success', 'Testimoni berhasil diperbarui.');
+    }
+
+    public function destroy(int $id)
+    {
+        $testimoni = Testimoni::findOrFail($id);
+        $testimoni->delete();
+
+        return redirect()->back()->with('success', 'Testimoni berhasil dihapus.');
+    }
+}

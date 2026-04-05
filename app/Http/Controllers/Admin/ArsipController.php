@@ -1,0 +1,78 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Arsip;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+
+class ArsipController extends Controller
+{
+    public function index(Request $request)
+    {
+        $listArsip = Arsip::with(['pengajuan.user', 'aktivitas.pengajuan'])
+            ->when($request->search, function ($query, $search) {
+                $escaped = addcslashes($search, '\\%_');
+                $query->where('nama_dokumen', 'like', "%{$escaped}%")
+                    ->orWhereHas('pengajuan', function ($q) use ($escaped) {
+                        $q->where('judul_kegiatan', 'like', "%{$escaped}%");
+                    });
+            })
+            ->latest()
+            ->paginate(15)
+            ->withQueryString();
+
+        return Inertia::render('Admin/Arsip/Index', [
+            'listArsip' => $listArsip,
+            'filters' => [
+                'search' => $request->search ?? '',
+            ],
+        ]);
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'id_pengajuan' => 'required|exists:pengajuan,id_pengajuan',
+            'nama_dokumen' => 'required|string|max:255',
+            'jenis_arsip' => 'required|in:laporan,sertifikat,laporan_akhir,daftar_hadir,foto_kegiatan,dokumen_lain',
+            'url_dokumen' => 'required|url|max:2048',
+            'keterangan' => 'nullable|string|max:500',
+        ]);
+
+        Arsip::create($request->only([
+            'id_pengajuan',
+            'nama_dokumen',
+            'jenis_arsip',
+            'url_dokumen',
+            'keterangan',
+        ]));
+
+        return redirect()->back()->with('success', 'Arsip berhasil ditambahkan.');
+    }
+
+    public function update(Request $request, int $id)
+    {
+        $arsip = Arsip::findOrFail($id);
+
+        $request->validate([
+            'nama_dokumen' => 'required|string|max:255',
+            'jenis_arsip' => 'required|in:laporan,sertifikat,laporan_akhir,daftar_hadir,foto_kegiatan,dokumen_lain',
+            'url_dokumen' => 'required|url|max:2048',
+            'keterangan' => 'nullable|string|max:500',
+        ]);
+
+        $arsip->update($request->only(['nama_dokumen', 'jenis_arsip', 'url_dokumen', 'keterangan']));
+
+        return redirect()->back()->with('success', 'Arsip berhasil diperbarui.');
+    }
+
+    public function destroy(int $id)
+    {
+        $arsip = Arsip::findOrFail($id);
+        $arsip->delete();
+
+        return redirect()->back()->with('success', 'Arsip berhasil dihapus.');
+    }
+}

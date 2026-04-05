@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+/vendor
+
+# Environment
+/.env
+/.env.backup
+/.env.production
+
+# Laravel
+/.phpunit.result.cache
+.phpunit.result.cache
+/public/build
+/public/hot
+/public/storage
+/storage/*.key
+/storage/app/public/*
+/storage/framework/cache/data/*
+/storage/framework/sessions/*
+/storage/framework/testing/*
+/storage/framework/views/*
+/storage/logs/*
+
+# Test artifacts (generated)
+/tests/Feature/*
+/tests/Unit/*
+
+# Dev tools
+Homestead.json
+Homestead.yaml
+auth.json
+.DS_Store
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log
+yarn-error.log
+
+# Diff / temp files
+diff.txt
+diff8.txt
+*.diff
+*.patch
