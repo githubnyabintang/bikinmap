@@ -15,6 +15,17 @@ class Pengajuan extends Model
 
     public $timestamps = true;
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (empty($model->kode_unik)) {
+                $model->kode_unik = \Illuminate\Support\Str::random(12);
+            }
+        });
+    }
+
     protected $fillable = [
         'id_user',
         'id_jenis_pkm',

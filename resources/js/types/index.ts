@@ -39,7 +39,9 @@ export interface PkmData {
     deskripsi: string;
     thumbnail: string | null;
     laporan?: string | null;
+    arsip_laporan?: string | null;
     dokumentasi?: string | null;
+    tambahan?: { nama: string; url: string }[];
     provinsi: string;
     kabupaten: string;
     kecamatan: string;

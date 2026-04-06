@@ -12,18 +12,18 @@ export default function PengumpulanArsip({ namaKegiatan = 'NAMA KEGIATAN PKM', k
     const { data, setData, post, processing } = useForm({
         laporan: '',
         dokumentasi: '',
-        dokumen_lainnya: ['']
+        dokumen_lainnya: [{ nama_dokumen: '', url_dokumen: '' }]
     });
 
     const [submitted, setSubmitted] = useState(false);
 
     const handleAddLink = () => {
-        setData('dokumen_lainnya', [...data.dokumen_lainnya, '']);
+        setData('dokumen_lainnya', [...data.dokumen_lainnya, { nama_dokumen: '', url_dokumen: '' }]);
     };
 
-    const handleLinkChange = (index: number, value: string) => {
+    const handleLinkChange = (index: number, field: 'nama_dokumen' | 'url_dokumen', value: string) => {
         const updated = [...data.dokumen_lainnya];
-        updated[index] = value;
+        updated[index][field] = value;
         setData('dokumen_lainnya', updated);
     };
     
@@ -33,7 +33,7 @@ export default function PengumpulanArsip({ namaKegiatan = 'NAMA KEGIATAN PKM', k
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        post('/kumpul-arsip/public', {
+        post(kode ? `/kumpul-arsip/${kode}` : '/kumpul-arsip/public', {
             onSuccess: () => setSubmitted(true),
         });
     };
@@ -175,22 +175,36 @@ export default function PengumpulanArsip({ namaKegiatan = 'NAMA KEGIATAN PKM', k
                                             </button>
                                         </div>
                                         <div className="space-y-3">
-                                            {data.dokumen_lainnya.map((link, idx) => (
-                                                <div key={idx} className="flex gap-3 group">
-                                                    <div className="relative flex-1">
-                                                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-                                                            <i className="fa-solid fa-paperclip"></i>
+                                            {data.dokumen_lainnya.map((item, idx) => (
+                                                <div key={idx} className="flex flex-col sm:flex-row gap-3 group">
+                                                    <div className="flex-1 space-y-2">
+                                                        <div className="relative">
+                                                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                                                                <i className="fa-solid fa-tag"></i>
+                                                            </div>
+                                                            <input 
+                                                                type="text" 
+                                                                value={item.nama_dokumen} 
+                                                                onChange={e => handleLinkChange(idx, 'nama_dokumen', e.target.value)} 
+                                                                className="w-full pl-11 pr-4 py-3 bg-slate-50 group-hover:bg-white border-2 border-transparent group-hover:border-slate-100 rounded-xl text-sm font-bold transition-all outline-none placeholder:text-slate-400" 
+                                                                placeholder="Nama Tautan (Opsional)" 
+                                                            />
                                                         </div>
-                                                        <input 
-                                                            type="url" 
-                                                            value={link} 
-                                                            onChange={e => handleLinkChange(idx, e.target.value)} 
-                                                            className="w-full pl-12 pr-4 py-3 bg-slate-50 group-hover:bg-white border-2 border-transparent group-hover:border-slate-100 rounded-xl text-sm font-bold transition-all outline-none" 
-                                                            placeholder="Tautan tambahan lainnya..." 
-                                                        />
+                                                        <div className="relative">
+                                                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                                                                <i className="fa-solid fa-link"></i>
+                                                            </div>
+                                                            <input 
+                                                                type="url" 
+                                                                value={item.url_dokumen} 
+                                                                onChange={e => handleLinkChange(idx, 'url_dokumen', e.target.value)} 
+                                                                className="w-full pl-11 pr-4 py-3 bg-slate-50 group-hover:bg-white border-2 border-transparent group-hover:border-slate-100 rounded-xl text-sm font-bold transition-all outline-none placeholder:text-slate-400" 
+                                                                placeholder="https://..." 
+                                                            />
+                                                        </div>
                                                     </div>
                                                     {data.dokumen_lainnya.length > 1 && (
-                                                        <button type="button" onClick={() => handleRemoveLink(idx)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm">
+                                                        <button type="button" onClick={() => handleRemoveLink(idx)} className="w-full sm:w-12 h-12 mt-auto flex items-center justify-center rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm">
                                                             <i className="fa-solid fa-xmark"></i>
                                                         </button>
                                                     )}

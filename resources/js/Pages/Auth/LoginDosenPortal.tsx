@@ -44,18 +44,10 @@ export default function LoginDosenPortal({ initialNip = null, autoCheck = false 
             const result = response.data;
 
             if (result.status === 'registered') {
-                setNipStatus({ status: 'registered', message: result.message });
-                setMode('login');
-                clearErrors();
-                setData((prev) => ({
-                    ...prev,
-                    nip: nipValue,
-                    email: result.email,
-                    name: result.name,
-                    password: '',
-                    password_confirmation: '',
-                }));
-                setStep('form-expand');
+                setNipStatus({ status: 'registered', message: 'Akun Anda telah terdaftar sebelumnya. Mengalihkan ke halaman login...' });
+                setTimeout(() => {
+                    window.location.href = '/login';
+                }, 2500);
             } else if (result.status === 'claimable') {
                 setNipStatus({ status: 'claimable', message: result.message });
                 setMode('register');
@@ -196,13 +188,15 @@ export default function LoginDosenPortal({ initialNip = null, autoCheck = false 
                                         required
                                     />
                                     <i className="fa-solid fa-id-card input-icon"></i>
-                                    {data.nip.length === 18 && step === 'nip-entry' && (
+                                    {step === 'nip-entry' && (
                                         <button
                                             type="button"
                                             onClick={handleNipCheck}
-                                            className="absolute right-3 bg-blue-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg hover:bg-blue-700 transition-colors"
+                                            disabled={data.nip.length !== 18 || nipStatus.status === 'checking'}
+                                            className={`absolute right-3 top-1/2 -translate-y-1/2 bg-blue-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg transition-colors ${data.nip.length !== 18 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'}`}
+                                            title={data.nip.length !== 18 ? "NIP harus 18 digit angka" : "Cek ketersediaan NIP"}
                                         >
-                                            {nipStatus.status === 'checking' ? <i className="fa-solid fa-spinner fa-spin"></i> : 'CEK'}
+                                            {nipStatus.status === 'checking' ? <i className="fa-solid fa-spinner fa-spin"></i> : 'CEK NIP'}
                                         </button>
                                     )}
                                 </div>
@@ -332,6 +326,24 @@ export default function LoginDosenPortal({ initialNip = null, autoCheck = false 
                     <i className="fa-solid fa-arrow-left"></i> Kembali ke Beranda
                 </Link>
             </div>
+
+            {/* Modal Redirect */}
+            {nipStatus.status === 'registered' && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full text-center scale-100 transition-transform duration-300">
+                        <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-5 text-4xl shadow-inner">
+                            <i className="fa-solid fa-user-check"></i>
+                        </div>
+                        <h3 className="text-xl font-black text-slate-800 mb-2">Akun Ditemukan</h3>
+                        <p className="text-[13px] font-medium text-slate-500 mb-6 leading-relaxed">
+                            NIP Anda telah terhubung dengan sebuah akun yang aktif. Anda akan segera dialihkan ke halaman login utama.
+                        </p>
+                        <div className="flex items-center justify-center gap-2 text-[11px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 py-3 rounded-xl">
+                            <i className="fa-solid fa-spinner fa-spin text-blue-500"></i> Mengalihkan...
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -40,12 +40,14 @@ interface PengajuanProps {
     initialView?: string;
     /** Daftar pengajuan milik user yang login, dikirim dari server */
     userSubmissions?: PengajuanRecord[] | null;
+    jenisPkmOptions?: { value: number; label: string }[];
 }
 
 export default function Pengajuan({
     role = 'masyarakat',
     initialView = 'form',
     userSubmissions = null,
+    jenisPkmOptions = [],
 }: PengajuanProps) {
     const resolvedRole = role === 'dosen' ? 'dosen' : 'masyarakat';
 
@@ -112,6 +114,7 @@ export default function Pengajuan({
                             onSubmitted={handleSubmitted}
                             onUpdateSubmissionStatus={handleUpdateStatus}
                             onlyShowStatus={activeView === 'status'}
+                            jenisPkmOptions={jenisPkmOptions}
                             hideMainTabNav
                         />
                     ) : (

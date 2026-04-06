@@ -29,24 +29,9 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
-        $pkmMapData = Pengajuan::with(['jenisPkm', 'aktivitas.testimoni', 'timKegiatan'])
+        $pkmMapData = Pengajuan::with(['jenisPkm', 'aktivitas.testimoni', 'aktivitas.arsip', 'timKegiatan.pegawai'])
             ->whereNotNull('latitude')
-            ->whereIn('status_pengajuan', ['diproses', 'diterima', 'direvisi', 'ditolak'])
-            ->get([
-                'id_pengajuan',
-                'judul_kegiatan',
-                'id_jenis_pkm',
-                'status_pengajuan',
-                'created_at',
-                'provinsi',
-                'kota_kabupaten',
-                'kecamatan',
-                'kelurahan_desa',
-                'latitude',
-                'longitude',
-                'kebutuhan',
-                'total_anggaran',
-            ])
+            ->get()
             ->map(fn($p) => [
                 'id' => $p->id_pengajuan,
                 'nama' => $p->judul_kegiatan,
@@ -54,10 +39,10 @@ class DashboardController extends Controller
                 'jenis_pkm' => $p->jenisPkm?->nama_jenis ?? '',
                 'warna_icon' => $p->jenisPkm?->warna_icon ?? '#64748b',
                 'tahun' => $p->created_at?->year ?? date('Y'),
-                // Status pin: ikuti status aktivitas jika ada, fallback ke status pengajuan
-                'status' => $p->aktivitas?->status_pelaksanaan === 'selesai'
-                    ? 'selesai'
-                    : ($p->status_pengajuan === 'diterima' ? 'berlangsung' : $p->status_pengajuan),
+                'status' => $p->aktivitas
+                    ? ($p->aktivitas->status_pelaksanaan === 'selesai' ? 'selesai'
+                        : (in_array($p->aktivitas->status_pelaksanaan, ['berjalan', 'persiapan']) ? 'berlangsung' : 'belum_mulai'))
+                    : ($p->status_pengajuan === 'diterima' ? 'belum_mulai' : $p->status_pengajuan),
                 'status_pengajuan' => $p->status_pengajuan,
                 'deskripsi' => $p->kebutuhan ?? '',
                 'thumbnail' => $p->aktivitas?->url_thumbnail,
@@ -70,8 +55,8 @@ class DashboardController extends Controller
                 'total_anggaran' => (float) ($p->total_anggaran ?? 0),
                 'tim_kegiatan' => $p->timKegiatan
                     ->map(fn($tim) => [
-                        'nama' => $tim->nama_anggota,
-                        'peran' => $tim->peran,
+                        'nama' => $tim->pegawai ? $tim->pegawai->nama_pegawai : $tim->nama_mahasiswa,
+                        'peran' => $tim->peran_tim,
                     ])
                     ->values()
                     ->toArray(),
@@ -80,6 +65,15 @@ class DashboardController extends Controller
                         'nama_pemberi' => $testimoni->nama_pemberi,
                         'rating' => (int) $testimoni->rating,
                         'pesan_ulasan' => $testimoni->pesan_ulasan,
+                    ])
+                    ->values()
+                    ->toArray(),
+                'arsip_laporan' => $p->aktivitas?->arsip?->where('jenis_arsip', 'laporan_akhir')->first()?->url_dokumen ?? null,
+                'dokumentasi' => $p->aktivitas?->arsip?->where('jenis_arsip', 'foto_kegiatan')->first()?->url_dokumen ?? null,
+                'tambahan' => ($p->aktivitas?->arsip?->where('jenis_arsip', 'dokumen_lain') ?? collect())
+                    ->map(fn($a) => [
+                        'nama' => $a->nama_dokumen ?? 'Dokumen Lainnya',
+                        'url' => $a->url_dokumen,
                     ])
                     ->values()
                     ->toArray(),

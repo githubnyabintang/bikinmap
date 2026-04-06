@@ -25,15 +25,19 @@ class PengajuanUserController extends Controller
         // Ambil pengajuan milik user dari database
         $userSubmissions = $user
             ? Pengajuan::where('id_user', $user->id_user)
-                ->with(['timKegiatan.pegawai', 'jenisPkm', 'user'])
+                ->with(['timKegiatan.pegawai', 'jenisPkm', 'user', 'aktivitas'])
                 ->latest()
                 ->get()
                 ->map(fn ($p) => [
                     'id' => $p->id_pengajuan,
+                    'kode_unik' => $p->kode_unik,
                     'judul' => $p->judul_kegiatan,
                     'ringkasan' => $p->kebutuhan ?: ($p->instansi_mitra ?: '-'),
                     'tanggal' => optional($p->created_at)->format('d M Y') ?? '-',
-                    'status' => $p->status_pengajuan,
+                    'status' => $p->aktivitas 
+                        ? ($p->aktivitas->status_pelaksanaan === 'selesai' ? 'selesai' 
+                            : (in_array($p->aktivitas->status_pelaksanaan, ['berjalan', 'persiapan']) ? 'berlangsung' : 'diterima'))
+                        : $p->status_pengajuan,
                     'catatan' => $p->catatan_admin,
                     'instansi_mitra' => $p->instansi_mitra,
                     'no_telepon' => $p->no_telepon,
@@ -68,10 +72,15 @@ class PengajuanUserController extends Controller
                 ->toArray()
             : [];
 
+        $jenisPkmOptions = JenisPkm::select('id_jenis_pkm', 'nama_jenis')
+            ->get()
+            ->map(fn($j) => ['value' => $j->id_jenis_pkm, 'label' => $j->nama_jenis]);
+
         return Inertia::render('Auth/Pengajuan', [
             'role' => $role,
             'initialView' => $request->routeIs('pengajuan.status') ? 'status' : 'form',
             'userSubmissions' => $userSubmissions,
+            'jenisPkmOptions' => $jenisPkmOptions,
         ]);
     }
 
@@ -103,7 +112,7 @@ class PengajuanUserController extends Controller
             'total_anggaran' => 'nullable|numeric|min:0',
             'tgl_mulai' => 'nullable|date',
             'tgl_selesai' => 'nullable|date|after_or_equal:tgl_mulai',
-            'surat_proposal' => 'nullable|file|mimes:pdf,doc,docx|max:10240',
+            'surat_proposal' => 'required|file|mimes:pdf,doc,docx|max:10240',
             'surat_permohonan' => 'nullable|file|mimes:pdf,doc,docx|max:10240',
             'rab' => 'nullable|string|max:2048',
             'rab_items' => 'nullable|array',
@@ -200,6 +209,127 @@ class PengajuanUserController extends Controller
             ->with('success', 'Pengajuan PKM berhasil dikirim! Silakan tunggu konfirmasi dari admin.');
     }
 
+    public function update(Request $request, $id)
+    {
+        $user = Auth::user();
+
+        if ($user->role === 'masyarakat') {
+            return redirect()->back()->with('error', 'Edit masyarakat belum didukung di antarmuka ini.');
+        }
+
+        $pengajuan = Pengajuan::where('id_pengajuan', $id)->where('id_user', $user->id_user)->firstOrFail();
+
+        if ($pengajuan->status_pengajuan !== 'direvisi') {
+            return redirect()->back()->with('error', 'Hanya pengajuan dengan status direvisi yang dapat diubah.');
+        }
+
+        $request->validate([
+            'id_jenis_pkm' => 'nullable|exists:jenis_pkm,id_jenis_pkm',
+            'judul_kegiatan' => 'required|string|max:255',
+            'nama_dosen' => 'required|string|max:255',
+            'email' => 'nullable|email|max:255',
+            'instansi_mitra' => 'nullable|string|max:255',
+            'no_telepon' => 'nullable|string|max:20',
+            'provinsi' => 'required|string|max:100',
+            'kota_kabupaten' => 'required|string|max:100',
+            'kecamatan' => 'nullable|string|max:100',
+            'kelurahan_desa' => 'nullable|string|max:100',
+            'alamat_lengkap' => 'nullable|string|max:1000',
+            'sumber_dana' => 'nullable|string|max:255',
+            'total_anggaran' => 'nullable|numeric|min:0',
+            'tgl_mulai' => 'nullable|date',
+            'tgl_selesai' => 'nullable|date|after_or_equal:tgl_mulai',
+            'surat_proposal' => 'nullable|file|mimes:pdf,doc,docx|max:10240',
+            'surat_permohonan' => 'nullable|file|mimes:pdf,doc,docx|max:10240',
+            'rab' => 'nullable|string|max:2048',
+            'rab_items' => 'nullable|array',
+            'rab_items.*.nama_item' => 'nullable|string|max:255',
+            'rab_items.*.jumlah' => 'nullable|numeric|min:1',
+            'rab_items.*.harga' => 'nullable|numeric|min:0',
+            'dosen_terlibat' => 'nullable|array',
+            'dosen_terlibat.*' => 'string|max:255',
+            'staff_terlibat' => 'nullable|array',
+            'staff_terlibat.*' => 'string|max:255',
+            'mahasiswa_terlibat' => 'nullable|array',
+            'mahasiswa_terlibat.*' => 'string|max:255',
+        ]);
+
+        $suratPermohonanUrl = $pengajuan->surat_permohonan;
+        $suratProposalUrl = $pengajuan->proposal;
+
+        if ($request->hasFile('surat_permohonan')) {
+            $suratPermohonanUrl = '/storage/' . $request->file('surat_permohonan')->store('pengajuan/dokumen', 'public');
+        }
+        if ($request->hasFile('surat_proposal')) {
+            $suratProposalUrl = '/storage/' . $request->file('surat_proposal')->store('pengajuan/dokumen', 'public');
+        }
+
+        $rabItems = $this->normalizeRabItems($request->input('rab_items', []));
+
+        $pengajuan->update([
+            'id_jenis_pkm' => $request->id_jenis_pkm ?? $pengajuan->id_jenis_pkm,
+            'provinsi' => $request->provinsi,
+            'kota_kabupaten' => $request->kota_kabupaten,
+            'kecamatan' => $request->kecamatan ?? '',
+            'kelurahan_desa' => $request->kelurahan_desa ?? '',
+            'alamat_lengkap' => $request->alamat_lengkap ?? '',
+            'judul_kegiatan' => $request->judul_kegiatan,
+            'nama_pengusul' => $request->nama_dosen,
+            'email_pengusul' => $request->email ?: $user->email,
+            'kebutuhan' => $request->kebutuhan ?? '',
+            'instansi_mitra' => $request->instansi_mitra ?? '',
+            'no_telepon' => $request->no_telepon ?? '',
+            'sumber_dana' => $request->sumber_dana ?? '',
+            'total_anggaran' => $rabItems !== [] ? collect($rabItems)->sum('total') : ($request->total_anggaran ?? 0),
+            'dana_perguruan_tinggi' => $request->dana_perguruan_tinggi,
+            'dana_pemerintah' => $request->dana_pemerintah,
+            'dana_lembaga_dalam' => $request->dana_lembaga_dalam,
+            'dana_lembaga_luar' => $request->dana_lembaga_luar,
+            'tgl_mulai' => $request->tgl_mulai,
+            'tgl_selesai' => $request->tgl_selesai,
+            'proposal' => $suratProposalUrl ?? '',
+            'surat_permohonan' => $suratPermohonanUrl ?? '',
+            'rab' => $request->rab ?? '',
+            'rab_items' => $rabItems,
+            'status_pengajuan' => 'diproses',
+        ]);
+
+        TimKegiatan::where('id_pengajuan', $pengajuan->id_pengajuan)->delete();
+
+        $pegawai = Pegawai::where('id_user', $user->id_user)->first();
+        $teamMembers = [];
+        if ($pegawai) {
+            $teamMembers[] = [
+                'id_pegawai' => $pegawai->id_pegawai,
+                'nama_mahasiswa' => null,
+                'peran_tim' => 'Ketua/Dosen Pengusul',
+            ];
+        } else {
+            $teamMembers[] = [
+                'id_pegawai' => null,
+                'nama_mahasiswa' => trim($request->nama_dosen),
+                'peran_tim' => 'Ketua/Dosen Pengusul',
+            ];
+        }
+
+        $this->addTeamMembers($teamMembers, $request->dosen_terlibat, 'Dosen');
+        $this->addTeamMembers($teamMembers, $request->staff_terlibat, 'Staff');
+        $this->addTeamMembers($teamMembers, $request->mahasiswa_terlibat, 'Mahasiswa');
+
+        if (count($teamMembers) > 0) {
+            $now = now();
+            $rows = array_map(fn($m) => array_merge($m, [
+                'id_pengajuan' => $pengajuan->id_pengajuan,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]), $teamMembers);
+            TimKegiatan::insert($rows);
+        }
+
+        return redirect()->back()
+            ->with('success', 'Pengajuan PKM berhasil diperbarui!');
+    }
+
     /**
      * Store a submission from Masyarakat.
      */
@@ -217,7 +347,7 @@ class PengajuanUserController extends Controller
             'kelurahan_desa' => 'nullable|string|max:100',
             'alamat_lengkap' => 'nullable|string|max:1000',
             'surat_permohonan' => 'nullable|file|mimes:pdf,doc,docx|max:10240',
-            'surat_proposal' => 'nullable|file|mimes:pdf,doc,docx|max:10240',
+            'surat_proposal' => 'required|file|mimes:pdf,doc,docx|max:10240',
         ]);
 
         $defaultJenisPkm = JenisPkm::first();
@@ -251,7 +381,7 @@ class PengajuanUserController extends Controller
             'no_telepon' => $request->whatsapp,
             'surat_permohonan' => $suratPermohonanUrl,
             'proposal' => $suratProposalUrl,
-            'rab' => $request->input('link_tambahan') ? implode(', ', $request->input('link_tambahan')) : '',
+            'rab' => $request->input('link_tambahan') ?: '',
             'status_pengajuan' => 'diproses',
         ]);
 

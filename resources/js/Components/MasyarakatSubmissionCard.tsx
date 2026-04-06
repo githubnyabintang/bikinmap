@@ -7,6 +7,7 @@ import type { PkmData } from '@/types';
 
 interface Submission {
     id: number;
+    kode_unik?: string;
     judul: string;
     ringkasan: string;
     tanggal: string;
@@ -79,7 +80,7 @@ interface FormData {
     alamat_lengkap: string;
     surat_permohonan: string;
     surat_proposal: string;
-    link_tambahan: string[];
+    link_tambahan: { name: string; url: string }[];
 }
 
 export default function MasyarakatSubmissionCard({
@@ -99,6 +100,40 @@ export default function MasyarakatSubmissionCard({
     const [selectedDetail, setSelectedDetail] = useState<Submission | null>(null);
     const [isMockSubmitting, setIsMockSubmitting] = useState(false);
     const [feedbackDialog, setFeedbackDialog] = useState<{ show: boolean; type: 'success' | 'error'; title: string; message: string }>({ show: false, type: 'success', title: '', message: '' });
+    const [sortOption, setSortOption] = useState<'default' | 'status' | 'waktu_terbaru' | 'waktu_terlama'>('default');
+    const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
+
+    const sortedHistory = useMemo(() => {
+        let history = [...submissionHistory];
+        switch (sortOption) {
+            case 'default':
+                history.sort((a, b) => {
+                    const isAPri = a.status === 'direvisi' || a.status === 'diproses';
+                    const isBPri = b.status === 'direvisi' || b.status === 'diproses';
+                    if (isAPri && !isBPri) return -1;
+                    if (!isAPri && isBPri) return 1;
+                    const diff = new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime();
+                    return isNaN(diff) ? 0 : diff;
+                });
+                break;
+            case 'status':
+                history.sort((a, b) => a.status.localeCompare(b.status));
+                break;
+            case 'waktu_terbaru':
+                history.sort((a, b) => {
+                    const diff = new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime();
+                    return isNaN(diff) ? 0 : diff;
+                });
+                break;
+            case 'waktu_terlama':
+                history.sort((a, b) => {
+                    const diff = new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime();
+                    return isNaN(diff) ? 0 : diff;
+                });
+                break;
+        }
+        return history;
+    }, [submissionHistory, sortOption]);
 
     const { data, setData, errors, setError, clearErrors, reset } = useForm<FormData>({
         name: '',
@@ -113,24 +148,24 @@ export default function MasyarakatSubmissionCard({
         alamat_lengkap: '',
         surat_permohonan: '',
         surat_proposal: '',
-        link_tambahan: [''],
+        link_tambahan: [{ name: '', url: '' }],
     });
 
     const [filePermohonan, setFilePermohonan] = useState<File | null>(null);
     const [fileProposal, setFileProposal] = useState<File | null>(null);
 
-    const handleAddLink = () => setData('link_tambahan', [...data.link_tambahan, '']);
+    const handleAddLink = () => setData('link_tambahan', [...data.link_tambahan, { name: '', url: '' }]);
     const handleRemoveLink = (index: number) => setData('link_tambahan', data.link_tambahan.filter((_, i) => i !== index));
-    const handleLinkChange = (index: number, value: string) => {
+    const handleLinkChange = (index: number, field: 'name' | 'url', value: string) => {
         const updated = [...data.link_tambahan];
-        updated[index] = value;
+        updated[index] = { ...updated[index], [field]: value };
         setData('link_tambahan', updated);
     };
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
-        if (!data.name.trim() || !data.institution.trim() || !data.needs.trim() || !filePermohonan) {
-            setFeedbackDialog({ show: true, type: 'error', title: 'Form Belum Lengkap', message: 'Mohon lengkapi data identitas, kebutuhan, dan upload surat permohonan.' });
+        if (!data.name.trim() || !data.institution.trim() || !data.needs.trim() || !filePermohonan || !fileProposal) {
+            setFeedbackDialog({ show: true, type: 'error', title: 'Form Belum Lengkap', message: 'Mohon lengkapi data identitas, kebutuhan, surat permohonan, dan surat proposal (wajib).' });
             return;
         }
 
@@ -149,7 +184,7 @@ export default function MasyarakatSubmissionCard({
         formData.append('alamat_lengkap', data.alamat_lengkap);
         if (filePermohonan) formData.append('surat_permohonan', filePermohonan);
         if (fileProposal) formData.append('surat_proposal', fileProposal);
-        data.link_tambahan.filter(v => v.trim() !== '').forEach(v => formData.append('link_tambahan[]', v));
+        formData.append('link_tambahan', JSON.stringify(data.link_tambahan.filter(v => v.url.trim() !== '')));
 
         router.post('/pengajuan', formData as any, {
             preserveScroll: true,
@@ -163,8 +198,12 @@ export default function MasyarakatSubmissionCard({
                     status: 'diproses'
                 });
                 onUpdateSubmissionStatus?.('diproses');
-                setFeedbackDialog({ show: true, type: 'success', title: 'Pengajuan Berhasil', message: 'Pengajuan Anda telah dikirim.' });
+                setFeedbackDialog({ show: true, type: 'success', title: 'Pengajuan Berhasil', message: 'Pengajuan Anda telah dikirim. Mengarahkan ke halaman status...' });
                 reset();
+                // Redirect to cek-status after a brief delay so the user sees the success message
+                setTimeout(() => {
+                    router.visit('/cek-status');
+                }, 1800);
             },
             onError: () => {
                 setIsMockSubmitting(false);
@@ -253,16 +292,30 @@ export default function MasyarakatSubmissionCard({
                                         </div>
                                         {selectedDetail.rab && (
                                             <div className="space-y-2 pt-2 border-t border-slate-200">
-                                                {selectedDetail.rab.split(',').map((link, i) => {
-                                                    const url = link.trim();
-                                                    if (!url) return null;
-                                                    return (
-                                                        <p key={i} className="text-[12px] bg-white p-2 rounded-lg border border-slate-100">
-                                                            <span className="text-slate-500 font-bold text-[10px] uppercase block mb-0.5">Tautan Tambahan {i + 1}: </span>
-                                                            <a href={url} target="_blank" className="text-poltekpar-primary font-medium hover:underline break-all">{url}</a>
-                                                        </p>
-                                                    );
-                                                })}
+                                                {(() => {
+                                                    try {
+                                                        const arr = JSON.parse(selectedDetail.rab);
+                                                        if (Array.isArray(arr)) {
+                                                            return arr.map((item, i) => (
+                                                                <p key={i} className="text-[12px] bg-white p-2 rounded-lg border border-slate-100">
+                                                                    <span className="text-slate-500 font-bold text-[10px] uppercase block mb-0.5">{item.name || `Tautan Tambahan ${i + 1}`}: </span>
+                                                                    <a href={item.url} target="_blank" className="text-poltekpar-primary font-medium hover:underline break-all">{item.url}</a>
+                                                                </p>
+                                                            ));
+                                                        }
+                                                    } catch(e) {}
+                                                    
+                                                    return selectedDetail.rab.split(',').map((link, i) => {
+                                                        const url = link.trim();
+                                                        if (!url) return null;
+                                                        return (
+                                                            <p key={i} className="text-[12px] bg-white p-2 rounded-lg border border-slate-100">
+                                                                <span className="text-slate-500 font-bold text-[10px] uppercase block mb-0.5">Tautan Tambahan {i + 1}: </span>
+                                                                <a href={url} target="_blank" className="text-poltekpar-primary font-medium hover:underline break-all">{url}</a>
+                                                            </p>
+                                                        );
+                                                    });
+                                                })()}
                                             </div>
                                         )}
                                     </div>
@@ -282,7 +335,12 @@ export default function MasyarakatSubmissionCard({
                         )}
                     </div>
 
-                    <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+                    <div className="p-4 bg-slate-50 border-t border-slate-100 flex flex-wrap justify-end gap-3">
+                        {selectedDetail.status === 'selesai' && (
+                            <a target="_blank" rel="noopener noreferrer" href={`/testimoni/${selectedDetail.kode_unik || selectedDetail.id}`} className="px-6 py-2 bg-emerald-500 text-white text-sm font-bold rounded-xl hover:bg-emerald-600 transition-colors shadow-sm flex items-center gap-2">
+                                <i className="fa-solid fa-comment-dots"></i> Isi Testimoni PKM
+                            </a>
+                        )}
                         <button onClick={() => setSelectedDetail(null)} className="px-6 py-2 bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl hover:bg-slate-50 transition-colors shadow-sm">Tutup</button>
                     </div>
                 </div>
@@ -294,6 +352,39 @@ export default function MasyarakatSubmissionCard({
         return (
             <div className="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
                 <div className="p-6">
+                    <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <h3 className="text-sm font-bold text-slate-900 border-l-4 border-poltekpar-primary pl-3">Daftar Riwayat Pengajuan</h3>
+                        <div className="relative">
+                            <button 
+                                onClick={() => setIsSortMenuOpen(!isSortMenuOpen)}
+                                className="flex bg-white hover:bg-slate-50 transition-colors border border-slate-200 rounded-xl items-center shadow-sm overflow-hidden group w-full sm:w-[220px]"
+                            >
+                                <div className="pl-3.5 pr-1.5 py-2 text-slate-400 group-hover:text-poltekpar-primary transition-colors flex items-center justify-center">
+                                    <i className="fa-solid fa-filter text-xs"></i>
+                                </div>
+                                <div className="flex-1 text-left py-2 pl-1.5 text-[11px] font-bold text-slate-700 truncate">
+                                    {sortOption === 'default' ? 'Prioritas (Revisi & Diproses)' : 
+                                     sortOption === 'status' ? 'Berdasarkan Status' : 
+                                     sortOption === 'waktu_terbaru' ? 'Waktu (Terbaru)' : 'Waktu (Terlama)'}
+                                </div>
+                                <div className={`pr-3.5 text-slate-400 transition-transform ${isSortMenuOpen ? 'rotate-180' : ''}`}>
+                                    <i className="fa-solid fa-chevron-down text-[10px]"></i>
+                                </div>
+                            </button>
+
+                            {isSortMenuOpen && (
+                                <>
+                                    <div className="fixed inset-0 z-40" onClick={() => setIsSortMenuOpen(false)}></div>
+                                    <div className="absolute top-11 right-0 w-full sm:w-[220px] bg-white border border-slate-100 rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                                        <button onClick={() => { setSortOption('default'); setIsSortMenuOpen(false); }} className={`w-full text-left px-4 py-2.5 text-[11px] font-bold transition-colors ${sortOption === 'default' ? 'bg-poltekpar-primary/10 text-poltekpar-primary' : 'text-slate-600 hover:bg-slate-50'}`}><i className="fa-solid fa-star text-amber-400 mr-2 opacity-70"></i>Prioritas (Revisi & Diproses)</button>
+                                        <button onClick={() => { setSortOption('status'); setIsSortMenuOpen(false); }} className={`w-full text-left px-4 py-2.5 text-[11px] font-bold transition-colors border-t border-slate-50 ${sortOption === 'status' ? 'bg-poltekpar-primary/10 text-poltekpar-primary' : 'text-slate-600 hover:bg-slate-50'}`}><i className="fa-solid fa-list-check text-indigo-400 mr-2 opacity-70"></i>Berdasarkan Status</button>
+                                        <button onClick={() => { setSortOption('waktu_terbaru'); setIsSortMenuOpen(false); }} className={`w-full text-left px-4 py-2.5 text-[11px] font-bold transition-colors border-t border-slate-50 ${sortOption === 'waktu_terbaru' ? 'bg-poltekpar-primary/10 text-poltekpar-primary' : 'text-slate-600 hover:bg-slate-50'}`}><i className="fa-regular fa-clock text-sky-400 mr-2 opacity-70"></i>Waktu (Terbaru)</button>
+                                        <button onClick={() => { setSortOption('waktu_terlama'); setIsSortMenuOpen(false); }} className={`w-full text-left px-4 py-2.5 text-[11px] font-bold transition-colors border-t border-slate-50 ${sortOption === 'waktu_terlama' ? 'bg-poltekpar-primary/10 text-poltekpar-primary' : 'text-slate-600 hover:bg-slate-50'}`}><i className="fa-solid fa-clock-rotate-left text-slate-400 mr-2 opacity-70"></i>Waktu (Terlama)</button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
                     <div className="border border-slate-200 rounded-2xl overflow-hidden overflow-x-auto">
                         <table className="w-full text-left border-collapse min-w-[600px]">
                             <thead className="bg-slate-50 border-b border-slate-100">
@@ -305,8 +396,8 @@ export default function MasyarakatSubmissionCard({
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
-                                {submissionHistory.length > 0 ? (
-                                    submissionHistory.map(item => {
+                                {sortedHistory.length > 0 ? (
+                                    sortedHistory.map(item => {
                                         const style = getSubmissionStatusStyle(item.status);
                                         return (
                                             <tr key={item.id} className="hover:bg-slate-50/50 transition-colors group">
@@ -388,17 +479,18 @@ export default function MasyarakatSubmissionCard({
                     </div>
                     <div className="space-y-1.5">
                         <div className="flex items-center justify-between">
-                            <label className="text-xs font-semibold text-slate-700">Proposal (Opsional)</label>
+                            <label className="text-xs font-semibold text-slate-700">Proposal (Wajib) <span className="text-red-500">*</span></label>
                             <a href="/template/proposal" target="_blank" rel="noreferrer" className="text-[10px] font-bold text-poltekpar-primary hover:underline flex items-center gap-1.5"><i className="fa-solid fa-download"></i> Download Template Proposal</a>
                         </div>
-                        <input type="file" accept=".pdf,.doc,.docx" onChange={e => setFileProposal(e.target.files?.[0] || null)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-poltekpar-primary/10 file:text-poltekpar-primary" />
+                        <input type="file" accept=".pdf,.doc,.docx" onChange={e => setFileProposal(e.target.files?.[0] || null)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-poltekpar-primary/10 file:text-poltekpar-primary" required />
                     </div>
                     <div className="space-y-3">
                         <label className="text-xs font-semibold text-slate-700">Link Tambahan</label>
                         {data.link_tambahan.map((l, i) => (
                             <div key={i} className="flex gap-2">
-                                <input type="url" value={l} onChange={e => handleLinkChange(i, e.target.value)} className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary" placeholder="Link lainnya..." />
-                                {data.link_tambahan.length > 1 && <button type="button" onClick={() => handleRemoveLink(i)} className="w-10 h-10 flex items-center justify-center rounded-lg bg-red-50 text-red-500"><i className="fa-solid fa-trash-can"></i></button>}
+                                <input type="text" value={l.name} onChange={e => handleLinkChange(i, 'name', e.target.value)} className="w-1/3 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary" placeholder="Nama Tautan" />
+                                <input type="url" value={l.url} onChange={e => handleLinkChange(i, 'url', e.target.value)} className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary" placeholder="Link lainnya..." />
+                                {data.link_tambahan.length > 1 && <button type="button" onClick={() => handleRemoveLink(i)} className="w-10 h-10 shrink-0 flex items-center justify-center rounded-lg bg-red-50 text-red-500"><i className="fa-solid fa-trash-can"></i></button>}
                             </div>
                         ))}
                         <button type="button" onClick={handleAddLink} className="text-xs font-bold text-poltekpar-primary hover:underline flex items-center gap-1.5"><i className="fa-solid fa-plus-circle"></i>Tambah Tautan Lagi</button>

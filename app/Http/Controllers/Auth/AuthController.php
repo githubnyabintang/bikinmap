@@ -55,20 +55,22 @@ class AuthController extends Controller
 
         if (! $pegawai) {
             return response()->json([
-                'status' => 'not_found',
-                'message' => 'NIP belum memiliki akun dosen. Silakan lengkapi data registrasi.',
+                'status' => 'error',
+                'message' => 'NIP tidak ditemukan dalam data pegawai. Tidak dapat mendaftar sebagai Dosen.',
             ]);
         }
 
         if ($pegawai->id_user) {
             $user = User::where('id_user', $pegawai->id_user)->first();
 
-            return response()->json([
-                'status' => 'registered',
-                'email' => $user->email,
-                'name' => $user->name,
-                'message' => 'NIP sudah terdaftar. Silakan masukkan kata sandi.',
-            ]);
+            if ($user) {
+                return response()->json([
+                    'status' => 'registered',
+                    'email' => $user->email,
+                    'name' => $user->name,
+                    'message' => 'NIP sudah terdaftar. Silakan masukkan kata sandi.',
+                ]);
+            }
         }
 
         return response()->json([
@@ -85,7 +87,7 @@ class AuthController extends Controller
         }
 
         $user = $request->user();
-        $pkmData = Pengajuan::with(['aktivitas.testimoni', 'timKegiatan', 'jenisPkm'])
+        $pkmData = Pengajuan::with(['aktivitas.testimoni', 'timKegiatan.pegawai', 'jenisPkm'])
             ->whereNotNull('latitude')
             ->get()
             ->map(fn ($pengajuan) => [
@@ -106,8 +108,8 @@ class AuthController extends Controller
                 'lng' => (float) ($pengajuan->longitude ?? 0),
                 'total_anggaran' => $pengajuan->total_anggaran ?? 0,
                 'tim_kegiatan' => $pengajuan->timKegiatan->map(fn ($tim) => [
-                    'nama' => $tim->nama_anggota,
-                    'peran' => $tim->peran,
+                    'nama' => $tim->pegawai ? $tim->pegawai->nama_pegawai : $tim->nama_mahasiswa,
+                    'peran' => $tim->peran_tim,
                 ])->toArray(),
                 'testimoni' => ($pengajuan->aktivitas?->testimoni ?? collect())->map(fn ($testimoni) => [
                     'nama_pemberi' => $testimoni->nama_pemberi,
@@ -150,27 +152,7 @@ class AuthController extends Controller
             $request->session()->regenerate();
             $user = Auth::user();
 
-            if ($user->role === 'dosen' && $loginSource !== 'dosen') {
-                Auth::logout();
-                $request->session()->invalidate();
-                $request->session()->regenerateToken();
-
-                return redirect()
-                    ->route('login')
-                    ->with('error', 'Akun dosen harus masuk melalui tombol "Akses sebagai Akun Dosen" di bawah.');
-            }
-
-            if ($user->role === 'masyarakat' && $loginSource === 'dosen') {
-                Auth::logout();
-                $request->session()->invalidate();
-                $request->session()->regenerateToken();
-
-                return redirect()
-                    ->route('login.dosen')
-                    ->with('error', 'Akun masyarakat harus login melalui Login Umum.');
-            }
-
-            $default = $user->role === 'admin' ? '/admin/dashboard' : '/';
+            $default = in_array($user->role, ['admin', 'superadmin']) ? '/admin/dashboard' : '/';
 
             return redirect()->intended($default);
         }
@@ -214,7 +196,13 @@ class AuthController extends Controller
         if ($request->filled('nip')) {
             $pegawai = Pegawai::where('nip', $request->nip)->first();
 
-            if ($pegawai && $pegawai->id_user) {
+            if (!$pegawai) {
+                return back()->withErrors([
+                    'nip' => 'NIP tidak ditemukan dalam data pegawai. Tidak dapat mendaftar sebagai Dosen.',
+                ])->withInput();
+            }
+
+            if ($pegawai->id_user) {
                 return back()->withErrors([
                     'nip' => 'NIP ini sudah terhubung ke akun dosen. Silakan login menggunakan email dan kata sandi Anda.',
                 ])->withInput();
@@ -231,20 +219,10 @@ class AuthController extends Controller
         ]);
 
         if ($role === 'dosen') {
-            if ($pegawai) {
-                $pegawai->update([
-                    'id_user' => $user->id_user,
-                    'nama_pegawai' => $request->name,
-                ]);
-            } else {
-                Pegawai::create([
-                    'id_user' => $user->id_user,
-                    'nip' => $request->nip,
-                    'nama_pegawai' => $request->name,
-                    'jabatan' => 'Dosen',
-                    'posisi' => 'Akun Portal Dosen',
-                ]);
-            }
+            $pegawai->update([
+                'id_user' => $user->id_user,
+                'nama_pegawai' => $request->name,
+            ]);
         }
 
         if ($portalDosenFlow && $role === 'dosen') {

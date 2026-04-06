@@ -15,6 +15,7 @@ class Testimoni extends Model
         'nama_pemberi',
         'rating',
         'pesan_ulasan',
+        'masukan',
     ];
 
     public function aktivitas()

@@ -3,6 +3,9 @@
 use App\Http\Controllers\Admin\AktivitasController;
 use App\Http\Controllers\Admin\ArsipController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\EvaluasiSistemController;
+use App\Http\Controllers\Admin\ImportController;
+use App\Http\Controllers\Admin\KontakController;
 use App\Http\Controllers\Admin\MasterDataController;
 use App\Http\Controllers\Admin\PegawaiController;
 use App\Http\Controllers\Admin\PengajuanController;
@@ -12,8 +15,13 @@ use App\Http\Controllers\Admin\TestimoniController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\LandingController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Secret\AppreciationController;
 use App\Http\Controllers\User\PengajuanUserController;
 use App\Models\Aktivitas;
+use App\Models\DeveloperAppreciation;
+use App\Models\DeveloperDocumentation;
+use App\Models\Pegawai;
 use App\Models\Pengajuan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -32,6 +40,23 @@ Route::get('/panduan', function () {
 
 // Testimoni publik (Umum)
 Route::post('/testimoni/public', [LandingController::class, 'storePublicTestimoni'])->middleware('throttle:10,1')->name('testimoni.public.store');
+
+// Evaluasi Sistem (Umum)
+Route::get('/evaluasi', function () {
+    return Inertia::render('Public/Evaluasi');
+})->name('evaluasi.index');
+Route::post('/evaluasi-sistem', [LandingController::class, 'storeEvaluasiSistem'])->middleware('throttle:5,1')->name('evaluasi.store');
+
+// Developer Crew
+Route::get('/developer-crew', function () {
+    $developers = DeveloperAppreciation::orderBy('urutan')->get();
+    $docs = DeveloperDocumentation::orderBy('urutan')->get();
+
+    return Inertia::render('Public/DeveloperAppreciation', [
+        'developers' => $developers,
+        'docs' => $docs,
+    ]);
+});
 
 // Geocode proxy — Rate limited 30 req/menit per IP
 Route::get('/api/geocode', function (Request $request) {
@@ -157,12 +182,38 @@ Route::get('/cek-status', [PengajuanUserController::class, 'index'])->name('peng
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-    // User Pages (Pengajuan & Status)
-    Route::get('/pengajuan', [PengajuanUserController::class, 'index'])->name('pengajuan.form');
-    Route::get('/cek-status', [PengajuanUserController::class, 'index'])->name('pengajuan.status');
+    // Profile edit (all roles)
+    Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/profile/edit', [ProfileController::class, 'update'])->name('profile.update');
 
-    // User: submit pengajuan
+    // User: submit/update pengajuan
     Route::post('/pengajuan', [PengajuanUserController::class, 'store'])->name('pengajuan.store');
+    Route::put('/pengajuan/{id}', [PengajuanUserController::class, 'update'])->name('pengajuan.update');
+
+    // Pegawai names for autocomplete recommendations
+    Route::get('/api/pegawai-options', function () {
+        $pegawai = Pegawai::select('nama_pegawai', 'jabatan')->get();
+
+        return response()->json([
+            'dosen' => $pegawai->filter(fn ($p) => stripos($p->jabatan, 'dosen') !== false)->pluck('nama_pegawai')->values(),
+            'staff' => $pegawai->filter(fn ($p) => stripos($p->jabatan, 'dosen') === false)->pluck('nama_pegawai')->values(),
+        ]);
+    })->name('api.pegawai-options');
+
+    // ─────────────────────────────────────────
+    // Secret routes
+    // ─────────────────────────────────────────
+    Route::prefix('secret')->name('secret.')->middleware('secret')->group(function () {
+        Route::get('/appreciation', [AppreciationController::class, 'index'])->name('appreciation.index');
+
+        Route::post('/appreciation/dev', [AppreciationController::class, 'storeDev'])->name('appreciation.dev.store');
+        Route::put('/appreciation/dev/{id}', [AppreciationController::class, 'updateDev'])->name('appreciation.dev.update');
+        Route::delete('/appreciation/dev/{id}', [AppreciationController::class, 'destroyDev'])->name('appreciation.dev.destroy');
+
+        Route::post('/appreciation/doc', [AppreciationController::class, 'storeDoc'])->name('appreciation.doc.store');
+        Route::put('/appreciation/doc/{id}', [AppreciationController::class, 'updateDoc'])->name('appreciation.doc.update');
+        Route::delete('/appreciation/doc/{id}', [AppreciationController::class, 'destroyDoc'])->name('appreciation.doc.destroy');
+    });
 
     // ─────────────────────────────────────────
     // Admin routes
@@ -200,6 +251,8 @@ Route::middleware('auth')->group(function () {
         Route::delete('/users/{id}', [UserController::class, 'destroy'])->name('users.destroy');
 
         // Aktivitas CRUD
+        Route::get('/aktivitas/export', [AktivitasController::class, 'export'])->name('aktivitas.export');
+        Route::post('/aktivitas/send-undangan', [AktivitasController::class, 'sendUndangan'])->name('aktivitas.send_undangan');
         Route::get('/aktivitas', [AktivitasController::class, 'index'])->name('aktivitas.index');
         Route::get('/aktivitas/{id}', [AktivitasController::class, 'show'])->name('aktivitas.show');
         Route::put('/aktivitas/{id}', [AktivitasController::class, 'update'])->name('aktivitas.update');
@@ -228,6 +281,16 @@ Route::middleware('auth')->group(function () {
         Route::put('/arsip/{id}', [ArsipController::class, 'update'])->name('arsip.update');
         Route::delete('/arsip/{id}', [ArsipController::class, 'destroy'])->name('arsip.destroy');
 
+        // Kontak CRUD
+        Route::get('/kontak', [KontakController::class, 'index'])->name('kontak.index');
+        Route::post('/kontak', [KontakController::class, 'store'])->name('kontak.store');
+        Route::put('/kontak/{id}', [KontakController::class, 'update'])->name('kontak.update');
+        Route::delete('/kontak/{id}', [KontakController::class, 'destroy'])->name('kontak.destroy');
+
+        // Evaluasi Sistem
+        Route::get('/evaluasi-sistem', [EvaluasiSistemController::class, 'index'])->name('evaluasi-sistem.index');
+        Route::delete('/evaluasi-sistem/{id}', [EvaluasiSistemController::class, 'destroy'])->name('evaluasi-sistem.destroy');
+
         // Notifications API
         Route::get('/api/notifications', function () {
             $counts = Pengajuan::selectRaw("
@@ -246,9 +309,9 @@ Route::middleware('auth')->group(function () {
             ]);
         })->name('api.notifications');
 
-        // Profile
-        Route::get('/profile', function () {
-            return Inertia::render('Admin/Profile', ['user' => Auth::user()]);
-        })->name('profile');
+        // Import History (Superadmin only inside controller)
+        Route::get('/import-history', [ImportController::class, 'index'])->name('import.index');
+        Route::post('/import-history/preview', [ImportController::class, 'preview'])->name('import.preview');
+        Route::post('/import-history', [ImportController::class, 'store'])->name('import.store');
     });
 });

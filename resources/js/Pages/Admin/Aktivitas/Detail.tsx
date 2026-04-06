@@ -57,6 +57,7 @@ interface Aktivitas {
     arsip?: Arsip[];
     pengajuan: {
         id_pengajuan: number;
+        kode_unik?: string;
         judul_kegiatan: string;
         status_pengajuan: string;
         created_at: string;
@@ -159,20 +160,18 @@ const Detail: React.FC<Props> = ({ aktivitas }) => {
         if (thumbnailAktivitas) {
             formData.append('thumbnail', thumbnailAktivitas);
         }
+        // Include location data in the same save action
+        if (lat !== null && lng !== null) {
+            formData.append('latitude', String(lat));
+            formData.append('longitude', String(lng));
+            formData.append('provinsi', provinsi);
+            formData.append('kota_kabupaten', kotaKabupaten);
+            formData.append('kecamatan', kecamatan);
+            formData.append('kelurahan_desa', kelurahanDesa);
+            formData.append('alamat_lengkap', alamatLengkap);
+            formData.append('save_location', '1');
+        }
         router.post(`/admin/aktivitas/${aktivitas.id_aktivitas}`, formData);
-    };
-
-    const handleSaveLokasi = () => {
-        if (lat === null || lng === null) return;
-        router.put(`/admin/pengajuan/${pengajuan.id_pengajuan}/lokasi`, {
-            latitude: lat,
-            longitude: lng,
-            provinsi: provinsi,
-            kota_kabupaten: kotaKabupaten,
-            kecamatan: kecamatan,
-            kelurahan_desa: kelurahanDesa,
-            alamat_lengkap: alamatLengkap,
-        });
     };
 
     const handleDelete = () => setConfirmOpen(true);
@@ -209,6 +208,43 @@ const Detail: React.FC<Props> = ({ aktivitas }) => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* LEFT COLUMN */}
                 <div className="lg:col-span-2 space-y-6">
+                    {/* Tautan Publik Pengumpulan Data */}
+                    {['diterima', 'berlangsung', 'selesai'].includes(pengajuan.status_pengajuan) && (
+                        <div className="flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 p-5 shadow-sm">
+                            <div className="mt-1 flex-shrink-0 text-blue-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                            </div>
+                            <div className="w-full">
+                                <div className="text-[14px] font-bold text-blue-900 mb-1">Tautan Publik Pengumpulan Data</div>
+                                <p className="text-[12px] text-blue-700 mb-4">Bagikan tautan berikut kepada pengusul kegiatan agar mereka dapat mengunggah arsip laporan & testimoni kegiatan secara mandiri.</p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="rounded-lg border border-blue-100 bg-white p-3 shadow-sm">
+                                        <div className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                                            <FileText size={14} className="text-amber-500" /> Form Pengumpulan Arsip
+                                        </div>
+                                        <div className="flex gap-2 items-center">
+                                            <input readOnly value={`${window.location.origin}/kumpul-arsip/${pengajuan.kode_unik || pengajuan.id_pengajuan}`} className="text-xs w-full bg-slate-50 border border-slate-200 rounded-md px-3 py-2 outline-none text-slate-600 font-medium" />
+                                            <button type="button" onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/kumpul-arsip/${pengajuan.kode_unik || pengajuan.id_pengajuan}`); alert('Tautan Arsip disalin ke clipboard!'); }} className="h-8 w-8 flex items-center justify-center shrink-0 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-colors rounded-md" title="Salin Tautan">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="rounded-lg border border-blue-100 bg-white p-3 shadow-sm">
+                                        <div className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg> Form Pengisian Testimoni
+                                        </div>
+                                        <div className="flex gap-2 items-center">
+                                            <input readOnly value={`${window.location.origin}/testimoni/${pengajuan.kode_unik || pengajuan.id_pengajuan}`} className="text-xs w-full bg-slate-50 border border-slate-200 rounded-md px-3 py-2 outline-none text-slate-600 font-medium" />
+                                            <button type="button" onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/testimoni/${pengajuan.kode_unik || pengajuan.id_pengajuan}`); alert('Tautan Testimoni disalin ke clipboard!'); }} className="h-8 w-8 flex items-center justify-center shrink-0 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-colors rounded-md" title="Salin Tautan">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Pengaturan Aktivitas */}
                     <div className="bg-white rounded-xl border border-zinc-200 shadow-sm overflow-hidden">
                         <div className="px-6 py-4 border-b border-zinc-100 bg-zinc-50/50 flex items-center gap-2">
@@ -240,10 +276,6 @@ const Detail: React.FC<Props> = ({ aktivitas }) => {
                                     <option value="selesai">🟢 Selesai</option>
                                 </select>
                             </div>
-                            <button onClick={handleSimpan}
-                                className="w-full flex justify-center items-center gap-2 py-3 rounded-lg text-[14px] font-bold text-white bg-zinc-900 hover:bg-zinc-800 shadow-md transition-colors">
-                                <Save size={16} /> Simpan Perubahan
-                            </button>
                         </div>
                     </div>
 
@@ -370,9 +402,9 @@ const Detail: React.FC<Props> = ({ aktivitas }) => {
                                 </div>
                             </div>
 
-                            <button onClick={handleSaveLokasi} disabled={lat === null || lng === null}
-                                className="w-full flex justify-center items-center gap-2 py-2.5 rounded-lg text-[13px] font-medium text-white bg-emerald-600 hover:bg-emerald-700 transition-colors disabled:opacity-50 shadow-sm">
-                                <MapPin size={14} /> Simpan Lokasi & Alamat
+                            <button onClick={handleSimpan}
+                                className="w-full flex justify-center items-center gap-2 py-3 rounded-lg text-[14px] font-bold text-white bg-zinc-900 hover:bg-zinc-800 shadow-md transition-colors">
+                                <Save size={16} /> Simpan Semua Perubahan
                             </button>
                         </div>
                     </div>

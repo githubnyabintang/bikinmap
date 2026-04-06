@@ -12,23 +12,21 @@ class TestimoniController extends Controller
 {
     public function index(Request $request)
     {
-        $listTestimoni = Testimoni::with(['aktivitas.pengajuan.user'])
+        $listGroupedTestimoni = Aktivitas::whereHas('testimoni')
+            ->with(['pengajuan', 'testimoni'])
             ->when($request->search, function ($query, $search) {
-                $escaped = addcslashes($search, '\\%_');
-                $query->where(function ($q) use ($escaped) {
-                    $q->where('nama_pemberi', 'like', "%{$escaped}%")
-                        ->orWhere('pesan_ulasan', 'like', "%{$escaped}%")
-                        ->orWhereHas('aktivitas.pengajuan', fn ($p) => $p->where('judul_kegiatan', 'like', "%{$escaped}%"));
-                });
+                $query->whereHas('pengajuan', fn($q) => $q->where('judul_kegiatan', 'like', "%{$search}%"));
             })
-            ->when($request->rating, function ($query, $rating) {
-                $query->where('rating', $rating);
-            })
-            ->latest()
             ->paginate(12)
             ->withQueryString();
 
         $listAktivitas = Aktivitas::whereNotNull('id_pengajuan')
+            ->where(function ($query) {
+                $query->where('status_pelaksanaan', 'selesai')
+                      ->orWhereHas('pengajuan', function ($q) {
+                          $q->where('status_pengajuan', 'selesai');
+                      });
+            })
             ->with('pengajuan')
             ->get()
             ->map(fn ($a) => [
@@ -37,11 +35,10 @@ class TestimoniController extends Controller
             ]);
 
         return Inertia::render('Admin/Testimoni/Index', [
-            'listTestimoni' => $listTestimoni,
+            'listGroupedTestimoni' => $listGroupedTestimoni,
             'listAktivitas' => $listAktivitas,
             'filters' => [
                 'search' => $request->search ?? '',
-                'rating' => $request->rating ?? '',
             ],
         ]);
     }
@@ -53,9 +50,10 @@ class TestimoniController extends Controller
             'nama_pemberi' => 'required|string|max:255',
             'rating' => 'required|integer|min:1|max:5',
             'pesan_ulasan' => 'nullable|string|max:2000',
+            'masukan' => 'nullable|string|max:2000',
         ]);
 
-        Testimoni::create($request->only('id_aktivitas', 'nama_pemberi', 'rating', 'pesan_ulasan'));
+        Testimoni::create($request->only('id_aktivitas', 'nama_pemberi', 'rating', 'pesan_ulasan', 'masukan'));
 
         return redirect()->back()->with('success', 'Testimoni berhasil ditambahkan.');
     }
@@ -65,12 +63,14 @@ class TestimoniController extends Controller
         $testimoni = Testimoni::findOrFail($id);
 
         $request->validate([
+            'id_aktivitas' => 'nullable|exists:aktivitas,id_aktivitas',
             'nama_pemberi' => 'required|string|max:255',
             'rating' => 'required|integer|min:1|max:5',
             'pesan_ulasan' => 'nullable|string|max:2000',
+            'masukan' => 'nullable|string|max:2000',
         ]);
 
-        $testimoni->update($request->only('nama_pemberi', 'rating', 'pesan_ulasan'));
+        $testimoni->update($request->only('id_aktivitas', 'nama_pemberi', 'rating', 'pesan_ulasan', 'masukan'));
 
         return redirect()->back()->with('success', 'Testimoni berhasil diperbarui.');
     }
