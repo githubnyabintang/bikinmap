@@ -29,9 +29,9 @@ class LandingController extends Controller
                 'warna_icon' => $p->jenisPkm?->warna_icon ?? '',
                 'status' => $p->aktivitas
                     ? ($p->aktivitas->status_pelaksanaan === 'selesai' ? 'selesai'
-                        : (in_array($p->aktivitas->status_pelaksanaan, ['berjalan', 'persiapan']) ? 'berlangsung' : 'belum_mulai'))
-                    : ($p->admin_read_at === null ? 'ada_pengajuan' : 
-                        (in_array($p->status_pengajuan, ['diterima', 'berlangsung']) ? 'belum_mulai' : 'belum_mulai')),
+                        : ($p->aktivitas->status_pelaksanaan === 'berjalan' ? 'berlangsung' : 'belum_mulai'))
+                    : ($p->status_pengajuan === 'diproses' ? 'ada_pengajuan' : ($p->status_pengajuan === 'diterima' ? 'belum_mulai' : 'belum_mulai')),
+                'is_review' => $p->status_pengajuan === 'diproses' && $p->admin_read_at !== null,
                 'deskripsi' => $p->kebutuhan ?? '',
                 'thumbnail' => $p->aktivitas?->url_thumbnail ?? '',
                 'provinsi' => $p->provinsi ?? '',
@@ -69,20 +69,36 @@ class LandingController extends Controller
 
         $years = $allPengajuan->pluck('year')->unique()->sort()->values()->toArray();
 
-        // Ringkasan statistik: 1 query untuk total per-status
-        $statusCounts = Pengajuan::selectRaw("
-            COUNT(*) as total,
-            SUM(status_pengajuan = 'diterima') as total_diterima,
-            SUM(status_pengajuan = 'selesai')  as total_selesai
-        ")->first();
+        // Ringkasan statistik detail: 1 query untuk status pkm (mengikut logika dashboard admin)
+        $pkmSummary = Pengajuan::leftJoin('aktivitas', 'pengajuan.id_pengajuan', '=', 'aktivitas.id_pengajuan')
+            ->selectRaw("
+                COUNT(*) as total,
+                SUM(status_pengajuan = 'selesai') as total_selesai,
+                SUM(CASE WHEN status_pengajuan = 'diterima' AND (aktivitas.status_pelaksanaan IS NULL OR aktivitas.status_pelaksanaan IN ('belum_mulai', 'persiapan')) THEN 1 ELSE 0 END) as total_belum_mulai,
+                SUM(CASE WHEN status_pengajuan = 'diterima' AND aktivitas.status_pelaksanaan = 'berjalan' THEN 1 ELSE 0 END) as total_berlangsung
+            ")->first();
+
+        // Data per tahun untuk chart
+        $yearlyStats = Pengajuan::leftJoin('aktivitas', 'pengajuan.id_pengajuan', '=', 'aktivitas.id_pengajuan')
+            ->selectRaw("
+                YEAR(pengajuan.created_at) as year,
+                SUM(status_pengajuan = 'selesai') as selesai,
+                SUM(CASE WHEN status_pengajuan = 'diterima' AND (aktivitas.status_pelaksanaan IS NULL OR aktivitas.status_pelaksanaan IN ('belum_mulai', 'persiapan')) THEN 1 ELSE 0 END) as belum_mulai,
+                SUM(CASE WHEN status_pengajuan = 'diterima' AND aktivitas.status_pelaksanaan = 'berjalan' THEN 1 ELSE 0 END) as berlangsung
+            ")
+            ->whereNotNull('pengajuan.created_at')
+            ->groupBy('year')
+            ->get();
 
         $chartStats = [
             'years' => $years,
-            'selesai' => collect($years)->map(fn ($y) => $allPengajuan->where('year', $y)->where('status_pengajuan', 'selesai')->sum('total'))->toArray(),
-            'berlangsung' => collect($years)->map(fn ($y) => $allPengajuan->where('year', $y)->where('status_pengajuan', 'diterima')->sum('total'))->toArray(),
-            'total_pengajuan' => (int) ($statusCounts->total ?? 0),
-            'total_diterima' => (int) ($statusCounts->total_diterima ?? 0),
-            'total_selesai' => (int) ($statusCounts->total_selesai ?? 0),
+            'selesai' => collect($years)->map(fn ($y) => $yearlyStats->where('year', $y)->first()?->selesai ?? 0)->toArray(),
+            'berlangsung' => collect($years)->map(fn ($y) => $yearlyStats->where('year', $y)->first()?->berlangsung ?? 0)->toArray(),
+            'belum_mulai' => collect($years)->map(fn ($y) => $yearlyStats->where('year', $y)->first()?->belum_mulai ?? 0)->toArray(),
+            'total_pengajuan' => (int) ($pkmSummary->total ?? 0),
+            'total_diterima' => (int) (($pkmSummary->total_belum_mulai ?? 0) + ($pkmSummary->total_berlangsung ?? 0)),
+            'total_selesai' => (int) ($pkmSummary->total_selesai ?? 0),
+            'total_belum_mulai' => (int) ($pkmSummary->total_belum_mulai ?? 0),
         ];
 
         $testimonials = Testimoni::latest()->limit(10)->get();

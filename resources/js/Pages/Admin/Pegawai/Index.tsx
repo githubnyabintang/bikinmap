@@ -3,6 +3,7 @@ import { router } from '@inertiajs/react';
 import AdminLayout from '../../../Layouts/AdminLayout';
 import ConfirmDialog from '../../../Components/ConfirmDialog';
 import { Edit, Trash2, X, Plus, Search, Upload, User, Users } from 'lucide-react';
+import BulkActionBar, { CheckboxCell, CheckboxHeader } from '../../../Components/BulkActionBar';
 
 interface Pegawai {
     id_pegawai: number;
@@ -68,6 +69,28 @@ const PegawaiPage: React.FC<Props> = ({ listPegawai, filters }) => {
 
     const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
 
+    const filtered = data.filter((p: Pegawai) => p.nama_pegawai.toLowerCase().includes(search.toLowerCase()) || (p.nip || '').includes(search));
+
+    // ── Bulk Delete ──
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
+    const allIdsOnPage = filtered.map(p => p.id_pegawai);
+    const allChecked = allIdsOnPage.length > 0 && allIdsOnPage.every(id => selectedIds.includes(id));
+    const toggleAll = () => {
+        if (allChecked) setSelectedIds(prev => prev.filter(id => !allIdsOnPage.includes(id)));
+        else setSelectedIds(prev => [...new Set([...prev, ...allIdsOnPage])]);
+    };
+    const toggleOne = (id: number) =>
+        setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    const handleBulkDelete = () => {
+        if (confirm(`Hapus ${selectedIds.length} pegawai terpilih?`)) {
+            router.delete('/admin/pegawai/bulk', {
+                data: { ids: selectedIds },
+                onSuccess: () => setSelectedIds([]),
+                preserveState: true,
+            });
+        }
+    };
+
     const handleCsvUpload = () => {
         const input = document.createElement('input');
         input.type = 'file';
@@ -83,7 +106,7 @@ const PegawaiPage: React.FC<Props> = ({ listPegawai, filters }) => {
         input.click();
     };
 
-    const filtered = data.filter((p: Pegawai) => p.nama_pegawai.toLowerCase().includes(search.toLowerCase()) || (p.nip || '').includes(search));
+
 
     return (
         <AdminLayout title="">
@@ -102,6 +125,10 @@ const PegawaiPage: React.FC<Props> = ({ listPegawai, filters }) => {
                 </div>
             </div>
 
+
+
+            <BulkActionBar selectedCount={selectedIds.length} onDelete={handleBulkDelete} onClear={() => setSelectedIds([])} entityLabel="pegawai" />
+
             <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden flex flex-col">
                 {/* Search */}
                 <div className="p-4 border-b border-zinc-200/80 bg-zinc-50/50 flex gap-4">
@@ -119,6 +146,7 @@ const PegawaiPage: React.FC<Props> = ({ listPegawai, filters }) => {
                     <table className="w-full text-left min-w-[700px]">
                         <thead>
                             <tr className="border-b border-zinc-200">
+                                <CheckboxHeader allChecked={allChecked} onToggleAll={toggleAll} />
                                 <th className="py-3 px-6 text-zinc-500 text-[11px] font-semibold uppercase tracking-wider w-12 border-r border-zinc-100 bg-zinc-50">No</th>
                                 <th className="py-3 px-6 text-zinc-500 text-[11px] font-semibold uppercase tracking-wider">Nama Lengkap & NIP</th>
                                 <th className="py-3 px-6 text-zinc-500 text-[11px] font-semibold uppercase tracking-wider">Jabatan / Posisi</th>
@@ -128,8 +156,11 @@ const PegawaiPage: React.FC<Props> = ({ listPegawai, filters }) => {
                         <tbody className="divide-y divide-zinc-100">
                             {filtered.length === 0 ? (
                                 <tr><td colSpan={5} className="py-12 text-center text-zinc-400 text-[13px]">Tidak ada data.</td></tr>
-                            ) : filtered.map((item, i) => (
-                                <tr key={item.id_pegawai} className="hover:bg-zinc-50/50 transition-colors group">
+                            ) : filtered.map((item, i) => {
+                                const checked = selectedIds.includes(item.id_pegawai);
+                                return (
+                                <tr key={item.id_pegawai} className={`hover:bg-zinc-50/50 transition-colors group ${checked ? 'bg-red-50/40' : ''}`}>
+                                    <CheckboxCell checked={checked} onChange={() => toggleOne(item.id_pegawai)} />
                                     <td className="py-4 px-6 text-zinc-500 text-[13px] font-mono border-r border-zinc-100 bg-zinc-50/30 text-center font-medium">{String(i + 1).padStart(2, '0')}</td>
                                     <td className="py-4 px-6">
                                         <div className="flex items-center gap-3">
@@ -153,7 +184,8 @@ const PegawaiPage: React.FC<Props> = ({ listPegawai, filters }) => {
                                         </div>
                                     </td>
                                 </tr>
-                            ))}
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>

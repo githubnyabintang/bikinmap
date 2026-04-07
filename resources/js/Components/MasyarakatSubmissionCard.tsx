@@ -1,6 +1,7 @@
 import React, { useRef, useState, useMemo, ChangeEvent, FormEvent } from 'react';
 import { useForm, router } from '@inertiajs/react';
 import ActionFeedbackDialog from './ActionFeedbackDialog';
+import MapLocationPicker from './MapLocationPicker';
 import DocumentationGallery from './DocumentationGallery';
 import TestimonialSidebarDisplay from './TestimonialSidebarDisplay';
 import type { PkmData } from '@/types';
@@ -78,10 +79,41 @@ interface FormData {
     kecamatan: string;
     kelurahan_desa: string;
     alamat_lengkap: string;
+    latitude: number | null;
+    longitude: number | null;
+    tgl_mulai: string | null;
+    tgl_selesai: string | null;
+    is_tahun_saja: boolean;
     surat_permohonan: string;
     surat_proposal: string;
     link_tambahan: { name: string; url: string }[];
 }
+
+interface EvaluasiFormData {
+    nama: string;
+    asal_instansi: string;
+    no_telp: string;
+    q1: number;
+    q2: number;
+    q3: number;
+    q4: number;
+    q5: number;
+    masukan: string;
+}
+
+const EVALUATION_QUESTIONS = [
+    'Website SIGAPPA mudah diakses dan memiliki navigasi yang jelas.',
+    'Informasi yang tersedia lengkap, akurat, dan mudah dipahami.',
+    'Fitur peta SIGAPPA membantu memahami sebaran kegiatan PKM.',
+    'Proses pengajuan layanan PKM melalui SIGAPPA mudah dilakukan.',
+    'Secara keseluruhan, saya puas terhadap layanan SIGAPPA.',
+];
+
+const getEvaluationLabel = (value: number): string => {
+    if (value === 0) return 'Pilih rating...';
+
+    return ['(1) Sangat Tidak Setuju', '(2) Tidak Setuju', '(3) Cukup Setuju', '(4) Setuju', '(5) Sangat Setuju'][value - 1];
+};
 
 export default function MasyarakatSubmissionCard({
     submissionStatus = 'belum_diajukan',
@@ -99,6 +131,19 @@ export default function MasyarakatSubmissionCard({
     const [expandedHubSections, setExpandedHubSections] = useState({ kegiatan: false, riwayat: false });
     const [selectedDetail, setSelectedDetail] = useState<Submission | null>(null);
     const [isMockSubmitting, setIsMockSubmitting] = useState(false);
+    const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+    const [evaluasiSubmitting, setEvaluasiSubmitting] = useState(false);
+    const [evaluasiForm, setEvaluasiForm] = useState<EvaluasiFormData>({
+        nama: '',
+        asal_instansi: '',
+        no_telp: '',
+        q1: 0,
+        q2: 0,
+        q3: 0,
+        q4: 0,
+        q5: 0,
+        masukan: '',
+    });
     const [feedbackDialog, setFeedbackDialog] = useState<{ show: boolean; type: 'success' | 'error'; title: string; message: string }>({ show: false, type: 'success', title: '', message: '' });
     const [sortOption, setSortOption] = useState<'default' | 'status' | 'waktu_terbaru' | 'waktu_terlama'>('default');
     const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
@@ -146,6 +191,11 @@ export default function MasyarakatSubmissionCard({
         kecamatan: '',
         kelurahan_desa: '',
         alamat_lengkap: '',
+        latitude: null,
+        longitude: null,
+        tgl_mulai: null,
+        tgl_selesai: null,
+        is_tahun_saja: false,
         surat_permohonan: '',
         surat_proposal: '',
         link_tambahan: [{ name: '', url: '' }],
@@ -164,11 +214,66 @@ export default function MasyarakatSubmissionCard({
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
-        if (!data.name.trim() || !data.institution.trim() || !data.needs.trim() || !filePermohonan || !fileProposal) {
-            setFeedbackDialog({ show: true, type: 'error', title: 'Form Belum Lengkap', message: 'Mohon lengkapi data identitas, kebutuhan, surat permohonan, dan surat proposal (wajib).' });
+        if (!data.name.trim() || !data.institution.trim() || !data.needs.trim() || !filePermohonan) {
+            setFeedbackDialog({ show: true, type: 'error', title: 'Form Belum Lengkap', message: 'Mohon lengkapi data identitas, kebutuhan, dan surat permohonan.' });
             return;
         }
 
+        setEvaluasiForm({
+            nama: data.name,
+            asal_instansi: data.institution,
+            no_telp: data.whatsapp,
+            q1: 0,
+            q2: 0,
+            q3: 0,
+            q4: 0,
+            q5: 0,
+            masukan: '',
+        });
+        setShowFeedbackModal(true);
+    };
+
+    const handleEvaluasiFieldChange = (field: keyof EvaluasiFormData, value: string | number) => {
+        setEvaluasiForm(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleFinalSubmit = async () => {
+        if (!evaluasiForm.nama.trim() || !evaluasiForm.no_telp.trim()) {
+            setFeedbackDialog({ show: true, type: 'error', title: 'Evaluasi Belum Lengkap', message: 'Nama dan nomor telepon pada evaluasi wajib diisi.' });
+            return;
+        }
+
+        if ([evaluasiForm.q1, evaluasiForm.q2, evaluasiForm.q3, evaluasiForm.q4, evaluasiForm.q5].some(value => value === 0)) {
+            setFeedbackDialog({ show: true, type: 'error', title: 'Evaluasi Belum Lengkap', message: 'Mohon isi seluruh penilaian bintang pada evaluasi aplikasi.' });
+            return;
+        }
+
+        setEvaluasiSubmitting(true);
+
+        try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            const evaluasiResponse = await fetch('/evaluasi-sistem', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': csrfToken,
+                },
+                body: JSON.stringify(evaluasiForm),
+            });
+
+            if (!evaluasiResponse.ok) {
+                throw new Error('Evaluasi aplikasi gagal disimpan.');
+            }
+        } catch (error) {
+            setEvaluasiSubmitting(false);
+            setFeedbackDialog({ show: true, type: 'error', title: 'Gagal Menyimpan Evaluasi', message: 'Evaluasi aplikasi belum berhasil dikirim. Pengajuan belum disimpan.' });
+            return;
+        }
+
+        setShowFeedbackModal(false);
         setIsMockSubmitting(true);
 
         const formData = new FormData();
@@ -182,14 +287,21 @@ export default function MasyarakatSubmissionCard({
         formData.append('kecamatan', data.kecamatan);
         formData.append('kelurahan_desa', data.kelurahan_desa);
         formData.append('alamat_lengkap', data.alamat_lengkap);
+        if (data.latitude) formData.append('latitude', data.latitude.toString());
+        if (data.longitude) formData.append('longitude', data.longitude.toString());
+        if (data.tgl_mulai) formData.append('tgl_mulai', data.tgl_mulai);
+        if (data.tgl_selesai) formData.append('tgl_selesai', data.tgl_selesai);
+        formData.append('is_tahun_saja', data.is_tahun_saja ? '1' : '0');
         if (filePermohonan) formData.append('surat_permohonan', filePermohonan);
         if (fileProposal) formData.append('surat_proposal', fileProposal);
         formData.append('link_tambahan', JSON.stringify(data.link_tambahan.filter(v => v.url.trim() !== '')));
 
         router.post('/pengajuan', formData as any, {
             preserveScroll: true,
+            preserveState: true,
             onSuccess: () => {
                 setIsMockSubmitting(false);
+                setEvaluasiSubmitting(false);
                 onSubmitted?.({
                     id: Date.now(),
                     judul: `Pengajuan PKM ${data.institution}`,
@@ -198,15 +310,18 @@ export default function MasyarakatSubmissionCard({
                     status: 'diproses'
                 });
                 onUpdateSubmissionStatus?.('diproses');
+                setEvaluasiForm({ nama: '', asal_instansi: '', no_telp: '', q1: 0, q2: 0, q3: 0, q4: 0, q5: 0, masukan: '' });
                 setFeedbackDialog({ show: true, type: 'success', title: 'Pengajuan Berhasil', message: 'Pengajuan Anda telah dikirim. Mengarahkan ke halaman status...' });
-                reset();
-                // Redirect to cek-status after a brief delay so the user sees the success message
                 setTimeout(() => {
+                    reset();
+                    setFilePermohonan(null);
+                    setFileProposal(null);
                     router.visit('/cek-status');
                 }, 1800);
             },
             onError: () => {
                 setIsMockSubmitting(false);
+                setEvaluasiSubmitting(false);
                 setFeedbackDialog({ show: true, type: 'error', title: 'Gagal Mengirim', message: 'Terjadi kesalahan saat mengirim pengajuan.' });
             },
         });
@@ -465,6 +580,33 @@ export default function MasyarakatSubmissionCard({
                     <div className="space-y-1.5"><label className="text-xs font-semibold text-slate-700">Kelurahan / Desa</label><input type="text" value={data.kelurahan_desa} onChange={e => setData('kelurahan_desa', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary" placeholder="Kelurahan/Desa" /></div>
                     <div className="md:col-span-2 space-y-1.5"><label className="text-xs font-semibold text-slate-700">Alamat Lengkap</label><textarea value={data.alamat_lengkap} onChange={e => setData('alamat_lengkap', e.target.value)} rows={2} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary resize-none" placeholder="Detail alamat..." /></div>
                 </div>
+                <div className="space-y-1.5 mt-4">
+                    <label className="text-xs font-semibold text-slate-700">Tandai Lokasi di Peta (Koordinat)</label>
+                    <p className="text-[10px] text-slate-500 mb-2">Geser peta atau klik untuk menandai lokasi spesifik agar mempermudah tim survei.</p>
+                    <MapLocationPicker
+                        latitude={data.latitude}
+                        longitude={data.longitude}
+                        onChange={(lat, lng, address) => {
+                            const newData: any = { latitude: lat, longitude: lng };
+                            if (address) {
+                                if (address.state || address.province) newData.provinsi = address.state || address.province;
+                                if (address.city || address.town || address.county) newData.kota_kabupaten = address.city || address.town || address.county;
+                                if (address.suburb || address.village) newData.kecamatan = address.suburb || address.village;
+                                if (address.neighbourhood || address.residential || address.hamlet) newData.kelurahan_desa = address.neighbourhood || address.residential || address.hamlet;
+                            }
+                            // In inertia, calling setData with object assigns the keys
+                            Object.entries(newData).forEach(([key, val]) => setData(key as any, val as any));
+                        }}
+                    />
+                    {data.latitude && data.longitude ? (
+                        <p className="text-[10px] text-slate-500 mt-1 font-mono">Lat: {data.latitude.toFixed(6)}, Lng: {data.longitude.toFixed(6)}</p>
+                    ) : data.kelurahan_desa ? (
+                        <p className="text-[10px] text-red-500 mt-1 font-bold animate-pulse flex items-center gap-1">
+                            <i className="fa-solid fa-triangle-exclamation"></i>
+                            Nama desa terisi namun titik peta belum ditandai. Mohon tandai di peta!
+                        </p>
+                    ) : null}
+                </div>
             </section>
 
             <section className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-4">
@@ -475,14 +617,30 @@ export default function MasyarakatSubmissionCard({
                             <label className="text-xs font-semibold text-slate-700">Surat Permohonan <span className="text-red-500">*</span></label>
                             <a href="/template/surat_permohonan" target="_blank" rel="noreferrer" className="text-[10px] font-bold text-poltekpar-primary hover:underline flex items-center gap-1.5"><i className="fa-solid fa-download"></i> Download Template Surat Permohonan</a>
                         </div>
-                        <input type="file" accept=".pdf,.doc,.docx" onChange={e => setFilePermohonan(e.target.files?.[0] || null)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-poltekpar-primary/10 file:text-poltekpar-primary" required />
+                        <input type="file" accept=".pdf" onChange={e => setFilePermohonan(e.target.files?.[0] || null)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-poltekpar-primary/10 file:text-poltekpar-primary" required />
+                        {filePermohonan && filePermohonan.type === 'application/pdf' && (
+                            <div className="mt-2 border border-slate-200 rounded-lg overflow-hidden h-64 bg-slate-50 relative shadow-inner">
+                                <span className="absolute top-2 right-2 text-[10px] font-bold bg-slate-800 text-white px-2 py-1 rounded-md opacity-50 z-10">Preview</span>
+                                <object data={URL.createObjectURL(filePermohonan)} type="application/pdf" className="w-full h-full relative z-20">
+                                    <div className="flex items-center justify-center h-full text-xs text-slate-400">Browser tidak mendukung preview PDF secara instan.</div>
+                                </object>
+                            </div>
+                        )}
                     </div>
                     <div className="space-y-1.5">
                         <div className="flex items-center justify-between">
-                            <label className="text-xs font-semibold text-slate-700">Proposal (Wajib) <span className="text-red-500">*</span></label>
+                            <label className="text-xs font-semibold text-slate-700">Proposal (Opsional)</label>
                             <a href="/template/proposal" target="_blank" rel="noreferrer" className="text-[10px] font-bold text-poltekpar-primary hover:underline flex items-center gap-1.5"><i className="fa-solid fa-download"></i> Download Template Proposal</a>
                         </div>
-                        <input type="file" accept=".pdf,.doc,.docx" onChange={e => setFileProposal(e.target.files?.[0] || null)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-poltekpar-primary/10 file:text-poltekpar-primary" required />
+                        <input type="file" accept=".pdf" onChange={e => setFileProposal(e.target.files?.[0] || null)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-poltekpar-primary/10 file:text-poltekpar-primary" />
+                        {fileProposal && fileProposal.type === 'application/pdf' && (
+                            <div className="mt-2 border border-slate-200 rounded-lg overflow-hidden h-64 bg-slate-50 relative shadow-inner">
+                                <span className="absolute top-2 right-2 text-[10px] font-bold bg-slate-800 text-white px-2 py-1 rounded-md opacity-50 z-10">Preview</span>
+                                <object data={URL.createObjectURL(fileProposal)} type="application/pdf" className="w-full h-full relative z-20">
+                                    <div className="flex items-center justify-center h-full text-xs text-slate-400">Browser tidak mendukung preview PDF.</div>
+                                </object>
+                            </div>
+                        )}
                     </div>
                     <div className="space-y-3">
                         <label className="text-xs font-semibold text-slate-700">Link Tambahan</label>
@@ -519,6 +677,133 @@ export default function MasyarakatSubmissionCard({
             {!hideMainTabNav && mainTab === 'arsip' ? null : renderSubmissionTab()}
             <ActionFeedbackDialog show={feedbackDialog.show} type={feedbackDialog.type} title={feedbackDialog.title} message={feedbackDialog.message} onClose={() => setFeedbackDialog({ ...feedbackDialog, show: false })} />
             {renderDetailModal()}
+            
+            {/* Modal Evaluasi Aplikasi Sebelum Submit */}
+            {showFeedbackModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-300">
+                    <div className="bg-white rounded-[32px] shadow-2xl border border-slate-100 w-full max-w-3xl overflow-hidden animate-in zoom-in-95 duration-300 max-h-[90vh] flex flex-col">
+                        <div className="bg-poltekpar-navy text-white px-8 py-7 text-center relative overflow-hidden">
+                            <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] animate-pulse-slow"></div>
+                            <div className="relative z-10">
+                                <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-5 backdrop-blur-sm">
+                                    <i className="fa-solid fa-comment-dots text-2xl"></i>
+                                </div>
+                                <h3 className="text-2xl font-black mb-2 tracking-tight">Evaluasi Sistem SIGAPPA</h3>
+                                <p className="text-white/80 text-sm max-w-2xl mx-auto font-medium">Sebelum pengajuan dikirim, mohon isi evaluasi aplikasi berikut terlebih dahulu.</p>
+                            </div>
+                        </div>
+
+                        <div className="p-6 md:p-8 overflow-y-auto space-y-8">
+                            <div className="space-y-5">
+                                <div className="flex items-center gap-3 border-b-2 border-slate-100 pb-3">
+                                    <h4 className="text-lg font-black text-slate-800 uppercase tracking-wide">1. Data Responden</h4>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                    <div>
+                                        <label className="text-sm font-bold text-slate-700 block mb-2">Nama Lengkap <span className="text-red-500">*</span></label>
+                                        <input
+                                            type="text"
+                                            value={evaluasiForm.nama}
+                                            onChange={e => handleEvaluasiFieldChange('nama', e.target.value)}
+                                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-poltekpar-primary focus:bg-white transition-all font-medium"
+                                            placeholder="Cth: John Doe"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-bold text-slate-700 block mb-2">No. Telepon / WA <span className="text-red-500">*</span></label>
+                                        <input
+                                            type="text"
+                                            value={evaluasiForm.no_telp}
+                                            onChange={e => handleEvaluasiFieldChange('no_telp', e.target.value)}
+                                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-poltekpar-primary focus:bg-white transition-all font-medium"
+                                            placeholder="Cth: 08123456789"
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-sm font-bold text-slate-700 block mb-2">Asal Instansi (Opsional)</label>
+                                    <input
+                                        type="text"
+                                        value={evaluasiForm.asal_instansi}
+                                        onChange={e => handleEvaluasiFieldChange('asal_instansi', e.target.value)}
+                                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-poltekpar-primary focus:bg-white transition-all font-medium"
+                                        placeholder="Cth: Universitas XYZ / Desa ABC"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-6">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b-2 border-slate-100 pb-3 gap-2">
+                                    <h4 className="text-lg font-black text-slate-800 uppercase tracking-wide">2. Kuesioner Evaluasi</h4>
+                                    <span className="text-[11px] font-bold text-poltekpar-primary bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">Bintang 1 - 5</span>
+                                </div>
+
+                                {EVALUATION_QUESTIONS.map((question, index) => {
+                                    const key = `q${index + 1}` as keyof Pick<EvaluasiFormData, 'q1' | 'q2' | 'q3' | 'q4' | 'q5'>;
+                                    const currentValue = evaluasiForm[key];
+
+                                    return (
+                                        <div key={key} className="bg-slate-50 rounded-2xl p-5 border border-slate-100 hover:border-poltekpar-primary/30 transition-colors">
+                                            <p className="text-[15px] font-bold text-slate-700 leading-relaxed mb-4">{index + 1}. {question}</p>
+                                            <div className="flex flex-wrap items-center gap-3">
+                                                <div className="flex gap-2">
+                                                    {[1, 2, 3, 4, 5].map((value) => (
+                                                        <button
+                                                            key={value}
+                                                            type="button"
+                                                            onClick={() => handleEvaluasiFieldChange(key, value)}
+                                                            className={`p-3 rounded-xl border-2 transition-all duration-300 ${currentValue >= value ? 'bg-amber-50 border-amber-300 text-amber-500 scale-110 shadow-sm' : 'bg-white border-slate-200 text-slate-300 hover:border-amber-200 hover:text-amber-300'}`}
+                                                        >
+                                                            <i className={`fa-solid fa-star text-xl ${currentValue >= value ? 'text-amber-400' : ''}`}></i>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                                <div className="w-full sm:w-auto sm:ml-4 text-[13px] font-bold text-slate-500 py-1.5 px-3 bg-white rounded-lg border border-slate-100">
+                                                    {getEvaluationLabel(currentValue)}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-3 border-b-2 border-slate-100 pb-3">
+                                    <h4 className="text-lg font-black text-slate-800 uppercase tracking-wide">3. Umpan Balik Tambahan</h4>
+                                </div>
+                                <div>
+                                    <label className="text-sm font-bold text-slate-700 block mb-2">Masukan & Saran Konstruktif (Opsional)</label>
+                                    <textarea
+                                        rows={4}
+                                        value={evaluasiForm.masukan}
+                                        onChange={e => handleEvaluasiFieldChange('masukan', e.target.value)}
+                                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-poltekpar-primary focus:bg-white transition-all font-medium custom-scrollbar"
+                                        placeholder="Silakan tuliskan jika ada hal lain yang ingin disampaikan mengenai sistem ini..."
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-6 border-t border-slate-100 bg-white flex flex-col sm:flex-row gap-3">
+                            <button 
+                                    type="button"
+                                onClick={() => setShowFeedbackModal(false)}
+                                className="flex-1 py-4 px-6 border border-slate-200 text-slate-500 font-bold rounded-2xl hover:bg-slate-50 transition-all active:scale-95"
+                            >
+                                BATAL
+                            </button>
+                            <button 
+                                    type="button"
+                                onClick={handleFinalSubmit}
+                                disabled={evaluasiSubmitting}
+                                className={`flex-1 py-4 px-6 font-black rounded-2xl shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2 ${evaluasiSubmitting ? 'bg-slate-200 text-slate-500 cursor-not-allowed' : 'bg-poltekpar-primary text-white shadow-poltekpar-primary/20 hover:shadow-poltekpar-primary/40'}`}
+                            >
+                                {evaluasiSubmitting ? 'MENYIMPAN EVALUASI...' : 'KIRIM EVALUASI & SUBMIT'} <i className="fa-solid fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

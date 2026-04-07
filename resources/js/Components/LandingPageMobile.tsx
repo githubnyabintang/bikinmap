@@ -7,10 +7,10 @@ import MapLegend from './MapLegend';
 import DocumentationGallery from './DocumentationGallery';
 import TestimonialSidebarDisplay from './TestimonialSidebarDisplay';
 import MobileSplashScreen from './MobileSplashScreen';
-import { createPkmMarkerIcon } from '@/data/pkmMapVisuals';
+import { createPkmMarkerIcon, extractDynamicPkmTypes } from '@/data/pkmMapVisuals';
 import type { PkmData } from '@/types';
 
-delete L.Icon.Default.prototype._getIconUrl;
+(L.Icon.Default.prototype as any)._getIconUrl = undefined;
 L.Icon.Default.mergeOptions({
     iconRetinaUrl: new URL('leaflet/dist/images/marker-icon-2x.png', import.meta.url).href,
     iconUrl: new URL('leaflet/dist/images/marker-icon.png', import.meta.url).href,
@@ -129,8 +129,8 @@ function MobileMenuDrawer({ isOpen, onClose }: MobileMenuDrawerProps) {
     );
 }
 
-interface MobileMapPanelProps { pkmData: PkmData[]; selectedPkm: PkmData | null; onSelectPkm: (pkm: PkmData) => void; onClosePkm: () => void; totals: { totalPkm: number; totalSelesai: number; totalBerlangsung: number }; }
-function MobileMapPanel({ pkmData, selectedPkm, onSelectPkm, onClosePkm, totals }: MobileMapPanelProps) {
+interface MobileMapPanelProps { pkmData: PkmData[]; selectedPkm: PkmData | null; onSelectPkm: (pkm: PkmData) => void; onClosePkm: () => void; totals: { totalPkm: number; totalSelesai: number; totalBerlangsung: number }; typesMeta: any[]; }
+function MobileMapPanel({ pkmData, selectedPkm, onSelectPkm, onClosePkm, totals, typesMeta }: MobileMapPanelProps) {
     return (
         <section className="relative h-full">
             <div className="absolute inset-0">
@@ -139,7 +139,11 @@ function MobileMapPanel({ pkmData, selectedPkm, onSelectPkm, onClosePkm, totals 
                     <ZoomControl position="topleft" />
                     <MobileMapInvalidator watchKey={selectedPkm?.id ?? 'none'} />
                     <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' />
-                    {pkmData.map((pkm) => <Marker key={pkm.id} position={[parseFloat(pkm.lat), parseFloat(pkm.lng)]} icon={createPkmMarkerIcon(pkm)} eventHandlers={{ click: () => onSelectPkm(pkm) }} />)}
+                    {pkmData.map((pkm) => {
+                        const typeMeta = typesMeta.find(t => t.key === ((typeof pkm.jenis_pkm === 'string' ? pkm.jenis_pkm : (pkm.jenis_pkm as any)?.nama_jenis) || 'Lainnya').trim() || 'Lainnya');
+                        const markerColor = typeMeta ? typeMeta.color : '#15325F';
+                        return <Marker key={pkm.id} position={[parseFloat(String(pkm.lat)), parseFloat(String(pkm.lng))]} icon={createPkmMarkerIcon(pkm.status, markerColor, (pkm as any).is_review)} eventHandlers={{ click: () => onSelectPkm(pkm) }} />;
+                    })}
                     <MobileMapEvents onMapClick={onClosePkm} />
                 </MapContainer>
             </div>
@@ -147,7 +151,7 @@ function MobileMapPanel({ pkmData, selectedPkm, onSelectPkm, onClosePkm, totals 
             {/* Summary Panel */}
             <div className={`absolute bottom-4 left-4 right-4 z-[40] transition-opacity ${selectedPkm ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                 <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-4">
-                    <MapLegend compact />
+                    <MapLegend compact typesMeta={typesMeta} />
                     <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-slate-100">
                         <div className="text-center">
                             <span className="text-xs text-slate-500 block">Total PKM</span>
@@ -254,6 +258,8 @@ export default function LandingPageMobile({ pkmData = [] }: LandingPageMobilePro
         totalBerlangsung: pkmData.filter((item) => item.status === 'berlangsung').length,
     }), [pkmData]);
 
+    const typesMeta = useMemo(() => extractDynamicPkmTypes(pkmData), [pkmData]);
+
     const closeMenuPanel = () => {
         setIsMenuOpen(false);
         if (parkedPkm) { setSelectedPkm(parkedPkm); setParkedPkm(null); }
@@ -287,7 +293,7 @@ export default function LandingPageMobile({ pkmData = [] }: LandingPageMobilePro
             <MobileMenuDrawer isOpen={isMenuOpen} onClose={closeMenuPanel} />
 
             <div className="flex-1 overflow-hidden">
-                {activeTab === 'peta' && <MobileMapPanel pkmData={pkmData} selectedPkm={selectedPkm} onSelectPkm={handleSelectPkm} onClosePkm={closePkmPanel} totals={totals} />}
+                {activeTab === 'peta' && <MobileMapPanel pkmData={pkmData} selectedPkm={selectedPkm} onSelectPkm={handleSelectPkm} onClosePkm={closePkmPanel} totals={totals} typesMeta={typesMeta} />}
                 {activeTab === 'dashboard' && <MobileDashboardPanel pkmData={pkmData} />}
                 {activeTab === 'akses' && <MobileAccessPanel />}
             </div>

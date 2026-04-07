@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Link, router } from '@inertiajs/react';
 import AdminLayout from '../../../Layouts/AdminLayout';
 import ConfirmDialog from '../../../Components/ConfirmDialog';
+import MapLocationPicker from '../../../Components/MapLocationPicker';
 import { AlertCircle, ArrowLeft, CheckCircle, ExternalLink, File, Folder, MapPin, Plus, RotateCcw, Save, SquarePen, Trash2, User, Users, Wallet, X } from 'lucide-react';
 
 interface Pegawai { id_pegawai: number; nama_pegawai: string; nip?: string; role?: string | null; }
@@ -60,12 +61,17 @@ interface DraftState {
     no_telepon: string;
     judul_kegiatan: string;
     kebutuhan: string;
+    tgl_mulai: string | null;
+    tgl_selesai: string | null;
+    is_tahun_saja: boolean;
     id_jenis_pkm: number;
     provinsi: string;
     kota_kabupaten: string;
     kecamatan: string;
     kelurahan_desa: string;
     alamat_lengkap: string;
+    latitude: number | null;
+    longitude: number | null;
     total_anggaran: string;
     sumber_dana: string;
     dana_perguruan_tinggi: string;
@@ -144,12 +150,17 @@ const buildDraft = (pengajuan: Pengajuan, ketuaId?: number): DraftState => ({
     no_telepon: pengajuan.no_telepon || '',
     judul_kegiatan: pengajuan.judul_kegiatan || '',
     kebutuhan: pengajuan.kebutuhan || '',
+    tgl_mulai: pengajuan.tgl_mulai || null,
+    tgl_selesai: pengajuan.tgl_selesai || null,
+    is_tahun_saja: !!(pengajuan as any).is_tahun_saja,
     id_jenis_pkm: pengajuan.jenis_pkm?.id_jenis_pkm || 1,
     provinsi: pengajuan.provinsi || '',
     kota_kabupaten: pengajuan.kota_kabupaten || '',
     kecamatan: pengajuan.kecamatan || '',
     kelurahan_desa: pengajuan.kelurahan_desa || '',
     alamat_lengkap: pengajuan.alamat_lengkap || '',
+    latitude: pengajuan.latitude ?? null,
+    longitude: pengajuan.longitude ?? null,
     total_anggaran: String(pengajuan.total_anggaran || 0),
     sumber_dana: pengajuan.sumber_dana || '',
     dana_perguruan_tinggi: String(pengajuan.dana_perguruan_tinggi || 0),
@@ -513,7 +524,7 @@ export default function Detail({ pengajuan, listPegawai, listJenisPkm }: Props) 
             message: `Status akan diubah menjadi "${selectedAction}".`,
             action: () => router.put(`/admin/pengajuan/${pengajuan.id_pengajuan}/status`, {
                 status_pengajuan: selectedAction,
-                catatan_admin: selectedAction === 'direvisi' ? catatan : null,
+                catatan_admin: (selectedAction === 'direvisi' || selectedAction === 'diterima') ? catatan : null,
             }),
             variant: 'warning',
             confirmLabel: 'Ya, Simpan',
@@ -697,6 +708,9 @@ export default function Detail({ pengajuan, listPegawai, listJenisPkm }: Props) 
                                     judul_kegiatan: draft.judul_kegiatan,
                                     kebutuhan: draft.kebutuhan,
                                     id_jenis_pkm: draft.id_jenis_pkm,
+                                    tgl_mulai: draft.tgl_mulai,
+                                    tgl_selesai: draft.tgl_selesai,
+                                    is_tahun_saja: draft.is_tahun_saja ? 1 : 0,
                                 })}
                                 icon={<File size={16} className="text-slate-400" />}
                             >
@@ -715,12 +729,40 @@ export default function Detail({ pengajuan, listPegawai, listJenisPkm }: Props) 
                                                     ))}
                                                 </select>
                                             </div>
+                                            <div className="md:col-span-2 space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                                                <div className="flex items-center gap-2">
+                                                    <input type="checkbox" id="is_tahun_saja" checked={draft.is_tahun_saja} onChange={(e) => setDraftField('is_tahun_saja', e.target.checked)} className="rounded border-slate-300 text-poltekpar-primary focus:ring-poltekpar-primary" />
+                                                    <label htmlFor="is_tahun_saja" className="text-xs font-semibold text-slate-700 cursor-pointer">Waktu Kegiatan Hanya Tahun</label>
+                                                </div>
+                                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                                    <div className="space-y-1.5">
+                                                        <div className="text-xs font-semibold text-slate-700">{draft.is_tahun_saja ? 'Tahun Pelaksanaan' : 'Tanggal Mulai'}</div>
+                                                        {draft.is_tahun_saja ? (
+                                                            <input type="number" min="2020" max="2100" value={draft.tgl_mulai ? draft.tgl_mulai.substring(0, 4) : ''} onChange={e => setDraftField('tgl_mulai', e.target.value ? `${e.target.value}-01-01` : null)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-poltekpar-primary" placeholder="YYYY" />
+                                                        ) : (
+                                                            <input type="date" value={draft.tgl_mulai || ''} onChange={e => setDraftField('tgl_mulai', e.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-poltekpar-primary" />
+                                                        )}
+                                                    </div>
+                                                    {!draft.is_tahun_saja && (
+                                                        <div className="space-y-1.5">
+                                                            <div className="text-xs font-semibold text-slate-700">Tanggal Selesai</div>
+                                                            <input type="date" value={draft.tgl_selesai || ''} onChange={e => setDraftField('tgl_selesai', e.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-poltekpar-primary" min={draft.tgl_mulai || undefined} />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
                                             <EditField label="Judul Kegiatan PKM" value={draft.judul_kegiatan} onChange={(v) => setDraftField('judul_kegiatan', v)} wide textarea />
                                             <EditField label="Kebutuhan / Deskripsi Singkat" value={draft.kebutuhan} onChange={(v) => setDraftField('kebutuhan', v)} wide textarea />
                                         </>
                                     ) : (
                                         <>
                                             <Field label="Jenis PKM" value={pengajuan.jenis_pkm?.nama_jenis} wide />
+                                            <div className="md:col-span-2 space-y-1.5">
+                                                <div className="text-xs font-semibold text-slate-700">Waktu Pelaksanaan</div>
+                                                <div className="min-h-[44px] rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800">
+                                                    {(pengajuan as any).is_tahun_saja ? (pengajuan.tgl_mulai ? new Date(pengajuan.tgl_mulai).getFullYear() : '-') : (pengajuan.tgl_mulai ? `${fmtDate(pengajuan.tgl_mulai)} - ${pengajuan.tgl_selesai ? fmtDate(pengajuan.tgl_selesai) : 'Selesai'}` : '-')}
+                                                </div>
+                                            </div>
                                             <Field label="Judul Kegiatan PKM" value={pengajuan.judul_kegiatan} wide />
                                             <Field label="Kebutuhan / Deskripsi Singkat" value={pengajuan.kebutuhan} wide />
                                         </>
@@ -735,26 +777,57 @@ export default function Detail({ pengajuan, listPegawai, listJenisPkm }: Props) 
                                     kecamatan: draft.kecamatan,
                                     kelurahan_desa: draft.kelurahan_desa,
                                     alamat_lengkap: draft.alamat_lengkap,
+                                    latitude: draft.latitude,
+                                    longitude: draft.longitude,
                                 })}
                                 icon={<MapPin size={16} className="text-slate-400" />}
                             >
-                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                <div className="space-y-4">
                                     {editingSection === 'location' ? (
                                         <>
-                                            <EditField label="Provinsi" value={draft.provinsi} onChange={(v) => setDraftField('provinsi', v)} />
-                                            <EditField label="Kota/Kabupaten" value={draft.kota_kabupaten} onChange={(v) => setDraftField('kota_kabupaten', v)} />
-                                            <EditField label="Kecamatan" value={draft.kecamatan} onChange={(v) => setDraftField('kecamatan', v)} />
-                                            <EditField label="Kelurahan/Desa" value={draft.kelurahan_desa} onChange={(v) => setDraftField('kelurahan_desa', v)} />
-                                            <EditField label="Alamat Lengkap" value={draft.alamat_lengkap} onChange={(v) => setDraftField('alamat_lengkap', v)} wide textarea />
+                                            <div className="rounded-xl overflow-hidden border border-zinc-200">
+                                                <MapLocationPicker
+                                                    latitude={draft.latitude ?? null}
+                                                    longitude={draft.longitude ?? null}
+                                                    onChange={(lat, lng, addr) => {
+                                                        setDraft(prev => ({
+                                                            ...prev,
+                                                            latitude: lat,
+                                                            longitude: lng,
+                                                            ...(addr && {
+                                                                provinsi: addr.provinsi || prev.provinsi,
+                                                                kota_kabupaten: addr.kotaKabupaten || prev.kota_kabupaten,
+                                                                kecamatan: addr.kecamatan || prev.kecamatan,
+                                                                kelurahan_desa: addr.kelurahanDesa || prev.kelurahan_desa,
+                                                                alamat_lengkap: addr.address || prev.alamat_lengkap
+                                                            })
+                                                        }));
+                                                    }}
+                                                />
+                                            </div>
+                                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 mt-4">
+                                                <EditField label="Provinsi" value={draft.provinsi} onChange={(v) => setDraftField('provinsi', v)} />
+                                                <EditField label="Kota/Kabupaten" value={draft.kota_kabupaten} onChange={(v) => setDraftField('kota_kabupaten', v)} />
+                                                <EditField label="Kecamatan" value={draft.kecamatan} onChange={(v) => setDraftField('kecamatan', v)} />
+                                                <EditField label="Kelurahan/Desa" value={draft.kelurahan_desa} onChange={(v) => setDraftField('kelurahan_desa', v)} />
+                                                <EditField label="Alamat Lengkap" value={draft.alamat_lengkap} onChange={(v) => setDraftField('alamat_lengkap', v)} wide textarea />
+                                            </div>
                                         </>
                                     ) : (
-                                        <>
+                                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                             <Field label="Provinsi" value={pengajuan.provinsi} />
                                             <Field label="Kota/Kabupaten" value={pengajuan.kota_kabupaten} />
                                             <Field label="Kecamatan" value={pengajuan.kecamatan} />
                                             <Field label="Kelurahan/Desa" value={pengajuan.kelurahan_desa} />
                                             <Field label="Alamat Lengkap" value={pengajuan.alamat_lengkap} wide />
-                                        </>
+                                            {(pengajuan.latitude && pengajuan.longitude) && (
+                                                <div className="col-span-full pt-3">
+                                                    <a href={`https://www.google.com/maps/dir/?api=1&destination=${pengajuan.latitude},${pengajuan.longitude}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl text-sm font-bold hover:bg-blue-100 transition-colors w-fit border border-blue-100">
+                                                        <MapPin size={16} /> Buka di Google Maps
+                                                    </a>
+                                                </div>
+                                            )}
+                                        </div>
                                     )}
                                 </div>
                             </Card>
@@ -790,7 +863,7 @@ export default function Detail({ pengajuan, listPegawai, listJenisPkm }: Props) 
                                             onChange={(index, value) => setTeamFieldValue('staff_terlibat', index, value)}
                                             onAdd={() => addTeamField('staff_terlibat')}
                                             onRemove={(index) => removeTeamField('staff_terlibat', index)}
-                                            suggestions={listPegawai?.filter(p => !p.role || p.role === 'staff').map(p => p.nama_pegawai) || []}
+                                            suggestions={listPegawai?.map(p => p.nama_pegawai) || []}
                                         />
                                         <EditableTeam
                                             title="Mahasiswa Terlibat"
@@ -944,7 +1017,7 @@ export default function Detail({ pengajuan, listPegawai, listJenisPkm }: Props) 
                 <div className="space-y-6">
                     <Card title="Ringkasan Pengajuan" icon={<File size={16} className="text-slate-400" />}><div className="space-y-4"><Field label="Sumber Pengajuan" value={isDosen ? 'Auth Dosen' : 'Auth Masyarakat'} /><Field label="Email Pengaju" value={submitterEmail} /><Field label="Tanggal Pengajuan" value={fmtDate(pengajuan.created_at)} />{isDosen && <><Field label="Tanggal Mulai" value={fmtDate(pengajuan.tgl_mulai)} /><Field label="Tanggal Selesai" value={fmtDate(pengajuan.tgl_selesai)} /></>}</div></Card>
                     {pengajuan.catatan_admin && <div className="rounded-xl border border-amber-200 bg-white p-5 shadow-sm"><div className="mb-1 text-[12px] font-bold uppercase tracking-wider text-amber-700">Catatan Terakhir</div><p className="whitespace-pre-wrap text-[13px] font-medium leading-relaxed text-slate-700">{pengajuan.catatan_admin}</p></div>}
-                    {pengajuan.status_pengajuan !== 'selesai' && <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm"><div className="border-b border-zinc-100 bg-zinc-50/50 px-6 py-4"><h2 className="text-[14px] font-semibold text-zinc-900">Verifikasi Berkas</h2></div><div className="space-y-6 p-5"><div className="grid grid-cols-1 gap-3"><button onClick={() => setSelectedAction('diterima')} className={`flex items-center justify-between rounded-lg border-2 px-4 py-3 text-[14px] font-medium transition-all ${selectedAction === 'diterima' ? 'border-emerald-500 bg-emerald-50 text-emerald-900 shadow-md ring-2 ring-emerald-200 scale-[1.02] font-bold' : 'border-emerald-200 bg-emerald-50/30 text-emerald-700 hover:border-emerald-300'}`}><div className="flex items-center gap-3"><CheckCircle size={18} />Diterima</div>{selectedAction === 'diterima' && <span className="text-[11px] bg-emerald-500 text-white px-2.5 py-1 rounded-full font-bold">TERPILIH</span>}</button><button onClick={() => setSelectedAction('direvisi')} className={`flex items-center justify-between rounded-lg border-2 px-4 py-3 text-[14px] font-medium transition-all ${selectedAction === 'direvisi' ? 'border-amber-500 bg-amber-50 text-amber-900 shadow-md ring-2 ring-amber-200 scale-[1.02] font-bold' : 'border-amber-200 bg-amber-50/30 text-amber-700 hover:border-amber-300'}`}><div className="flex items-center gap-3"><RotateCcw size={18} />Revisi</div>{selectedAction === 'direvisi' && <span className="text-[11px] bg-amber-500 text-white px-2.5 py-1 rounded-full font-bold">TERPILIH</span>}</button><button onClick={() => setSelectedAction('ditolak')} className={`flex items-center justify-between rounded-lg border-2 px-4 py-3 text-[14px] font-medium transition-all ${selectedAction === 'ditolak' ? 'border-red-500 bg-red-50 text-red-900 shadow-md ring-2 ring-red-200 scale-[1.02] font-bold' : 'border-red-200 bg-red-50/30 text-red-700 hover:border-red-300'}`}><div className="flex items-center gap-3"><X size={18} />Ditolak</div>{selectedAction === 'ditolak' && <span className="text-[11px] bg-red-500 text-white px-2.5 py-1 rounded-full font-bold">TERPILIH</span>}</button></div>{selectedAction === 'direvisi' && <div className="pt-2"><div className="flex items-center gap-2 mb-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-[12px] font-bold text-amber-700"><AlertCircle size={14} className="shrink-0" />Catatan revisi wajib diisi sebelum verifikasi.</div><textarea value={catatan} onChange={(e) => setCatatan(e.target.value)} rows={4} placeholder="Catatan revisi..." className="w-full rounded-md border border-zinc-200 p-3 text-[13px] outline-none focus:border-poltekpar-primary focus:ring-2 focus:ring-poltekpar-primary/20" />{catatanError && <p className="mt-1.5 text-[12px] text-red-500">{catatanError}</p>}</div>}<button onClick={saveDecision} disabled={!selectedAction || (selectedAction === 'direvisi' && !catatan.trim())} className={`w-full rounded-xl py-3 text-[14px] font-bold ${selectedAction && (selectedAction !== 'direvisi' || catatan.trim()) ? 'bg-zinc-900 text-white' : 'cursor-not-allowed bg-zinc-100 text-zinc-400'}`}>Verifikasi</button></div></div>}
+                    {pengajuan.status_pengajuan !== 'selesai' && <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm"><div className="border-b border-zinc-100 bg-zinc-50/50 px-6 py-4"><h2 className="text-[14px] font-semibold text-zinc-900">Verifikasi Berkas</h2></div><div className="space-y-6 p-5"><div className="grid grid-cols-1 gap-3"><button onClick={() => setSelectedAction('diterima')} className={`flex items-center justify-between rounded-lg border-2 px-4 py-3 text-[14px] font-medium transition-all ${selectedAction === 'diterima' ? 'border-emerald-500 bg-emerald-50 text-emerald-900 shadow-md ring-2 ring-emerald-200 scale-[1.02] font-bold' : 'border-emerald-200 bg-emerald-50/30 text-emerald-700 hover:border-emerald-300'}`}><div className="flex items-center gap-3"><CheckCircle size={18} />Diterima</div>{selectedAction === 'diterima' && <span className="text-[11px] bg-emerald-500 text-white px-2.5 py-1 rounded-full font-bold">TERPILIH</span>}</button><button onClick={() => setSelectedAction('direvisi')} className={`flex items-center justify-between rounded-lg border-2 px-4 py-3 text-[14px] font-medium transition-all ${selectedAction === 'direvisi' ? 'border-amber-500 bg-amber-50 text-amber-900 shadow-md ring-2 ring-amber-200 scale-[1.02] font-bold' : 'border-amber-200 bg-amber-50/30 text-amber-700 hover:border-amber-300'}`}><div className="flex items-center gap-3"><RotateCcw size={18} />Revisi</div>{selectedAction === 'direvisi' && <span className="text-[11px] bg-amber-500 text-white px-2.5 py-1 rounded-full font-bold">TERPILIH</span>}</button><button onClick={() => setSelectedAction('ditolak')} className={`flex items-center justify-between rounded-lg border-2 px-4 py-3 text-[14px] font-medium transition-all ${selectedAction === 'ditolak' ? 'border-red-500 bg-red-50 text-red-900 shadow-md ring-2 ring-red-200 scale-[1.02] font-bold' : 'border-red-200 bg-red-50/30 text-red-700 hover:border-red-300'}`}><div className="flex items-center gap-3"><X size={18} />Ditolak</div>{selectedAction === 'ditolak' && <span className="text-[11px] bg-red-500 text-white px-2.5 py-1 rounded-full font-bold">TERPILIH</span>}</button></div>{(selectedAction === 'direvisi' || selectedAction === 'diterima') && <div className="pt-2">{selectedAction === 'direvisi' ? (<div className="flex items-center gap-2 mb-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-[12px] font-bold text-amber-700"><AlertCircle size={14} className="shrink-0" />Catatan revisi wajib diisi sebelum verifikasi.</div>) : (<div className="flex items-center gap-2 mb-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-[12px] font-bold text-blue-700"><AlertCircle size={14} className="shrink-0" />Catatan persetujuan (opsional).</div>)}<textarea value={catatan} onChange={(e) => setCatatan(e.target.value)} rows={4} placeholder={selectedAction === 'direvisi' ? "Catatan revisi..." : "Tulis catatan tambahan untuk pengaju (opsional)..."} className="w-full rounded-md border border-zinc-200 p-3 text-[13px] outline-none focus:border-poltekpar-primary focus:ring-2 focus:ring-poltekpar-primary/20" />{catatanError && <p className="mt-1.5 text-[12px] text-red-500">{catatanError}</p>}</div>}<button onClick={saveDecision} disabled={!selectedAction || (selectedAction === 'direvisi' && !catatan.trim())} className={`w-full rounded-xl py-3 text-[14px] font-bold ${selectedAction && (selectedAction !== 'direvisi' || catatan.trim()) ? 'bg-zinc-900 text-white' : 'cursor-not-allowed bg-zinc-100 text-zinc-400'}`}>Verifikasi</button></div></div>}
                 </div>
             </div>
 

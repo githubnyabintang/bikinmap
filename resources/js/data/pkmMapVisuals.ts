@@ -25,13 +25,23 @@ export const PKM_STATUS_META: Record<string, PkmStatusMeta> = {
     },
     ada_pengajuan: {
         key: 'ada_pengajuan',
-        label: 'Pengajuan Baru',
+        label: 'Tahap Pengajuan',
         markerIcon: 'fa-file-import',
     },
     belum_mulai: {
         key: 'belum_mulai',
         label: 'Belum Mulai',
         markerIcon: 'fa-clock',
+    },
+    diproses: {
+        key: 'diproses',
+        label: 'Dalam Proses',
+        markerIcon: 'fa-spinner',
+    },
+    direvisi: {
+        key: 'direvisi',
+        label: 'Perlu Revisi',
+        markerIcon: 'fa-pen-to-square',
     },
 };
 
@@ -58,10 +68,12 @@ export const extractDynamicPkmTypes = (pkmData: any[]): PkmTypeMeta[] => {
 
     const jenisMap = new Map<string, { rawLabel: string, color: string }>();
     pkmData.forEach((item) => {
-        const rawLabel = String(item?.jenis_pkm ?? '').trim() || 'Lainnya';
+        const rawJenis = item?.jenis_pkm;
+        const rawLabel = (typeof rawJenis === 'string' ? rawJenis : (rawJenis?.nama_jenis || String(rawJenis ?? ''))) .trim() || 'Lainnya';
+        
         if (!jenisMap.has(rawLabel)) {
-            const rawColor = (item as any)?.warna_icon;
-            const hasValidColor = rawColor && typeof rawColor === 'string' && rawColor.startsWith('#');
+            const rawColor = (item as any)?.warna_icon || (typeof rawJenis === 'object' ? rawJenis?.warna : null);
+            const hasValidColor = rawColor && typeof rawColor === 'string' && (rawColor.startsWith('#') || rawColor.startsWith('rgb'));
             jenisMap.set(rawLabel, { rawLabel, color: hasValidColor ? rawColor : '' });
         }
     });
@@ -92,23 +104,24 @@ export const getPkmStatusMeta = (status: any): PkmStatusMeta => {
 };
 
 // Menggunakan tipe meta statis bila hanya 1 elemen (fallback), tapi lebih baik kirim color statis override dari caller
-export const createPkmMarkerIcon = (status: string, color: string) => {
+export const createPkmMarkerIcon = (status: string, color: string, isReview: boolean = false) => {
     const statusMeta = getPkmStatusMeta(status);
-    const isNew = status === 'ada_pengajuan' || status === 'belum_mulai';
+    const isNew = status === 'ada_pengajuan' || status === 'diproses' || status === 'direvisi';
+    const shouldJump = isNew && !isReview;
 
     return L.divIcon({
-        className: `custom-leaflet-marker${isNew ? ' pkm-marker--new' : ''}`,
+        className: `custom-leaflet-marker${shouldJump ? ' pkm-marker--new' : ''}`,
         html: `
             <div class="pkm-map-marker-wrap" style="--pkm-marker-color: ${color}">
-                <div class="pkm-map-marker${isNew ? ' pkm-map-marker--large' : ''}">
+                <div class="pkm-map-marker${shouldJump ? ' pkm-map-marker--large' : ''}">
                     <span class="pkm-map-marker__inner">
                         <i class="fa-solid ${statusMeta.markerIcon}"></i>
                     </span>
                 </div>
             </div>
         `,
-        iconSize: isNew ? [38, 52] : [30, 40],
-        iconAnchor: isNew ? [19, 44] : [15, 34],
+        iconSize: shouldJump ? [38, 52] : [30, 40],
+        iconAnchor: shouldJump ? [19, 44] : [15, 34],
         popupAnchor: [0, -32],
     });
 };

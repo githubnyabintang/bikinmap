@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import AdminLayout from '../../../Layouts/AdminLayout';
 import ConfirmDialog from '../../../Components/ConfirmDialog';
-import { Users, Plus, Edit, Trash2, Search, Activity, X, Eye, EyeOff } from 'lucide-react';
+import { Users, Plus, Edit, Trash2, Search, Activity, X, Eye, EyeOff, Check } from 'lucide-react';
+import BulkActionBar, { CheckboxCell, CheckboxHeader } from '../../../Components/BulkActionBar';
 
 interface User {
     id_user: number;
@@ -110,6 +111,29 @@ const ManajemenUser: React.FC<Props> = ({ users, filters, errors }) => {
 
     const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
 
+    // ── Bulk Delete ──
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
+    const allIdsOnPage = data.map(u => u.id_user);
+    const allChecked = allIdsOnPage.length > 0 && allIdsOnPage.every(id => selectedIds.includes(id));
+
+    const toggleAll = () => {
+        if (allChecked) setSelectedIds(prev => prev.filter(id => !allIdsOnPage.includes(id)));
+        else setSelectedIds(prev => [...new Set([...prev, ...allIdsOnPage])]);
+    };
+
+    const toggleOne = (id: number) =>
+        setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+
+    const handleBulkDelete = () => {
+        if (confirm(`Hapus ${selectedIds.length} user terpilih?`)) {
+            router.delete('/admin/users/bulk', {
+                data: { ids: selectedIds },
+                onSuccess: () => setSelectedIds([]),
+                preserveState: true,
+            });
+        }
+    };
+
     return (
         <AdminLayout title="">
             <div className="flex justify-between items-start mb-8">
@@ -122,6 +146,8 @@ const ManajemenUser: React.FC<Props> = ({ users, filters, errors }) => {
                     <Plus size={16} /> Tambah User
                 </button>
             </div>
+
+            <BulkActionBar selectedCount={selectedIds.length} onDelete={handleBulkDelete} onClear={() => setSelectedIds([])} entityLabel="user" />
 
             <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
                 <div className="p-4 border-b border-zinc-200/80 bg-zinc-50/50 flex gap-4">
@@ -138,6 +164,7 @@ const ManajemenUser: React.FC<Props> = ({ users, filters, errors }) => {
                     <table className="w-full text-left min-w-[700px]">
                         <thead>
                             <tr className="border-b border-zinc-200">
+                                <CheckboxHeader allChecked={allChecked} onToggleAll={toggleAll} />
                                 <th className="py-3 px-6 text-zinc-500 text-[11px] font-semibold uppercase tracking-wider">User</th>
                                 <th className="py-3 px-6 text-zinc-500 text-[11px] font-semibold uppercase tracking-wider">Role</th>
                                 <th className="py-3 px-6 text-zinc-500 text-[11px] font-semibold uppercase tracking-wider">Tanggal Dibuat</th>
@@ -147,12 +174,15 @@ const ManajemenUser: React.FC<Props> = ({ users, filters, errors }) => {
                         <tbody className="divide-y divide-zinc-100">
                             {data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={4} className="py-12 text-center text-zinc-400 text-[13px]">
+                                    <td colSpan={5} className="py-12 text-center text-zinc-400 text-[13px]">
                                         Tidak ada data yang cocok.
                                     </td>
                                 </tr>
-                            ) : data.map((user) => (
-                                <tr key={user.id_user} className="hover:bg-zinc-50/50 transition-colors group">
+                            ) : data.map((user) => {
+                                const checked = selectedIds.includes(user.id_user);
+                                return (
+                                <tr key={user.id_user} className={`hover:bg-zinc-50/50 transition-colors group ${checked ? 'bg-red-50/40' : ''}`}>
+                                    <CheckboxCell checked={checked} onChange={() => toggleOne(user.id_user)} />
                                     <td className="py-3 px-6">
                                         <div className="flex items-center gap-3">
                                             <div className="w-8 h-8 rounded-full bg-poltekpar-navy text-white flex items-center justify-center text-[12px] font-bold">
@@ -183,7 +213,8 @@ const ManajemenUser: React.FC<Props> = ({ users, filters, errors }) => {
                                         </div>
                                     </td>
                                 </tr>
-                            ))}
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>

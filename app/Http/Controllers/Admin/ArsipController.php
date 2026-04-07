@@ -101,4 +101,16 @@ class ArsipController extends Controller
 
         return redirect()->back()->with('success', 'Arsip berhasil dihapus.');
     }
+
+    public function bulkDestroy(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'integer|exists:arsip,id_arsip',
+        ]);
+
+        Arsip::whereIn('id_arsip', $request->ids)->delete();
+
+        return redirect()->back()->with('success', count($request->ids) . ' arsip berhasil dihapus massal.');
+    }
 }

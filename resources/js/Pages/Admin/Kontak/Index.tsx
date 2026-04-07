@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { PageProps } from '@/types';
-import { Edit, Plus, Trash2, X } from 'lucide-react';
+import { Edit, Plus, Trash2, X, Check } from 'lucide-react';
+import BulkActionBar, { CheckboxCell, CheckboxHeader } from '@/Components/BulkActionBar';
 
 interface Kontak {
     id_kontak: number;
@@ -17,6 +18,26 @@ export default function KontakIndex({ auth, kontaks }: any) {
     const [editingId, setEditingId] = useState<number | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [deleteId, setDeleteId] = useState<number | null>(null);
+
+    // ── Bulk Delete ──
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
+    const allIdsOnPage = (kontaks as Kontak[]).map(k => k.id_kontak);
+    const allChecked = allIdsOnPage.length > 0 && allIdsOnPage.every(id => selectedIds.includes(id));
+    const toggleAll = () => {
+        if (allChecked) setSelectedIds(prev => prev.filter(id => !allIdsOnPage.includes(id)));
+        else setSelectedIds(prev => [...new Set([...prev, ...allIdsOnPage])]);
+    };
+    const toggleOne = (id: number) =>
+        setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    const handleBulkDelete = () => {
+        if (confirm(`Hapus ${selectedIds.length} kontak terpilih?`)) {
+            router.delete('/admin/kontak/bulk', {
+                data: { ids: selectedIds },
+                onSuccess: () => setSelectedIds([]),
+                preserveState: true,
+            });
+        }
+    };
     const [form, setForm] = useState({
         platform: '',
         nilai_kontak: '',
@@ -104,11 +125,15 @@ export default function KontakIndex({ auth, kontaks }: any) {
                 </button>
             </div>
 
+
+            <BulkActionBar selectedCount={selectedIds.length} onDelete={handleBulkDelete} onClear={() => setSelectedIds([])} entityLabel="kontak" />
+
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm text-slate-600">
                         <thead className="bg-slate-50 text-slate-700 border-b border-slate-200">
                             <tr>
+                                <CheckboxHeader allChecked={allChecked} onToggleAll={toggleAll} />
                                 <th className="px-6 py-4 font-semibold w-16">No</th>
                                 <th className="px-6 py-4 font-semibold">Ikon</th>
                                 <th className="px-6 py-4 font-semibold">Platform & Label</th>
@@ -118,8 +143,11 @@ export default function KontakIndex({ auth, kontaks }: any) {
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {kontaks.length > 0 ? (
-                                kontaks.map((item: Kontak, index: number) => (
-                                    <tr key={item.id_kontak} className="hover:bg-slate-50 transition-colors">
+                                kontaks.map((item: Kontak, index: number) => {
+                                    const checked = selectedIds.includes(item.id_kontak);
+                                    return (
+                                    <tr key={item.id_kontak} className={`hover:bg-slate-50 transition-colors ${checked ? 'bg-red-50/40' : ''}`}>
+                                        <CheckboxCell checked={checked} onChange={() => toggleOne(item.id_kontak)} />
                                         <td className="px-6 py-4 text-center">{index + 1}</td>
                                         <td className="px-6 py-4">
                                             <div className="w-10 h-10 rounded-lg bg-blue-50 text-poltekpar-primary flex items-center justify-center">
@@ -140,10 +168,11 @@ export default function KontakIndex({ auth, kontaks }: any) {
                                             </button>
                                         </td>
                                     </tr>
-                                ))
+                                    );
+                                })
                             ) : (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
+                                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
                                         Belum ada data kontak.
                                     </td>
                                 </tr>

@@ -71,6 +71,18 @@ class PegawaiController extends Controller
         return redirect()->back()->with('success', 'Pegawai berhasil dihapus.');
     }
 
+    public function bulkDestroy(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'integer|exists:pegawai,id_pegawai',
+        ]);
+
+        Pegawai::whereIn('id_pegawai', $request->ids)->delete();
+
+        return redirect()->back()->with('success', count($request->ids) . ' pegawai berhasil dihapus massal.');
+    }
+
     public function import(Request $request)
     {
         $request->validate([

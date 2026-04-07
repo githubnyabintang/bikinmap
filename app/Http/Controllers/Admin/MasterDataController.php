@@ -64,4 +64,28 @@ class MasterDataController extends Controller
 
         return redirect()->back()->with('success', 'Jenis PKM berhasil dihapus.');
     }
+
+    public function bulkDestroyJenis(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'integer|exists:jenis_pkm,id_jenis_pkm',
+        ]);
+
+        $blocked = [];
+        foreach ($request->ids as $id) {
+            $jenis = JenisPkm::find($id);
+            if ($jenis && $jenis->pengajuan()->count() > 0) {
+                $blocked[] = $jenis->nama_jenis;
+            }
+        }
+
+        if (!empty($blocked)) {
+            return redirect()->back()->with('error', 'Beberapa jenis PKM masih digunakan oleh pengajuan: ' . implode(', ', $blocked));
+        }
+
+        JenisPkm::whereIn('id_jenis_pkm', $request->ids)->delete();
+
+        return redirect()->back()->with('success', count($request->ids) . ' jenis PKM berhasil dihapus massal.');
+    }
 }

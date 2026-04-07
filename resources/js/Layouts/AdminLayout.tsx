@@ -57,8 +57,8 @@ const navItems: NavItem[] = [
     { label: 'Evaluasi Sistem', href: '/admin/evaluasi-sistem', icon: StarHalf },
     { label: 'Atur Template', href: '/admin/templates', icon: FileText },
     { label: 'Kontak', href: '/admin/kontak', icon: Phone },
-    { label: 'Import Historis', href: '/admin/import-history', icon: Database, superadminOnly: true },
-    { label: 'Secret Panel', href: '/secret/appreciation', icon: User, secretOnly: true },
+    { label: 'Data Historis', href: '/admin/historis', icon: Database, superadminOnly: true },
+    { label: 'Kelola Halaman Developer', href: '/secret/appreciation', icon: User, secretOnly: true },
 ];
 
 const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
@@ -189,9 +189,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
                 <nav className="flex-1 px-4 py-1 space-y-1">
                     {navItems.filter(i => {
                         const role = (props as any).auth?.user?.role;
-                        if (i.superadminOnly && role !== 'superadmin') return false;
-                        if (i.secretOnly && role !== 'secret_account') return false;
-                        if (role === 'secret_account' && !i.secretOnly) return false;
+                        if (i.superadminOnly && !['superadmin', 'secret'].includes(role)) return false;
+                        if (i.secretOnly && role !== 'secret') return false;
                         return true;
                     }).map((item) => {
                         const hasChildren = !!item.children;

@@ -2916,3 +2916,30 @@
         background: linear-gradient(180deg, rgba(219, 234, 254, 0.85), rgba(239, 246, 255, 0.75));
     }
 }
+/* Marker Pulsing Animation for New Submissions */
+.pkm-marker--new .pkm-map-marker-wrap::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    background: var(--pkm-marker-color);
+    opacity: 0.4;
+    animation: pkm-pulse 2s infinite;
+    z-index: -1;
+}
+
+@keyframes pkm-pulse {
+    0% {
+        transform: scale(0.95);
+        opacity: 0.5;
+    }
+    70% {
+        transform: scale(1.5);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(0.95);
+        opacity: 0;
+    }
+}
+

@@ -40,6 +40,7 @@ function MapSummaryOverlay({
     total,
     selesai,
     berlangsung,
+    belumMulai,
     forceHide,
     typesMeta,
     selectedTypes,
@@ -50,6 +51,7 @@ function MapSummaryOverlay({
     total: number;
     selesai: number;
     berlangsung: number;
+    belumMulai: number;
     forceHide?: boolean;
     typesMeta: PkmTypeMeta[];
     selectedTypes: string[];
@@ -76,13 +78,15 @@ function MapSummaryOverlay({
                     <div className="text-center"><div className="text-base font-black text-slate-900 leading-none">{selesai}</div><div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Selesai</div></div>
                     <div className="w-px h-8 bg-slate-200/50"></div>
                     <div className="text-center"><div className="text-base font-black text-slate-900 leading-none">{berlangsung}</div><div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Berlangsung</div></div>
+                    <div className="w-px h-8 bg-slate-200/50"></div>
+                    <div className="text-center"><div className="text-base font-black text-slate-900 leading-none">{belumMulai}</div><div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Belum Mulai</div></div>
                 </div>
             </div>
         </div>
     );
 }
 
-export default function PkmMapDashboardCard({ pkmData, watchKey = 'pkm-map' }: { pkmData: PkmData[]; watchKey?: string }) {
+export default function PkmMapDashboardCard({ pkmData, watchKey = 'pkm-map', isAdmin = false }: { pkmData: PkmData[]; watchKey?: string; isAdmin?: boolean }) {
     const [isListSidebarOpen, setIsListSidebarOpen] = useState(false);
     const [searchKeyword, setSearchKeyword] = useState('');
     const [selectedPkm, setSelectedPkm] = useState<PkmData | null>(null);
@@ -130,6 +134,7 @@ export default function PkmMapDashboardCard({ pkmData, watchKey = 'pkm-map' }: {
     const totalPkm = filteredPkmData.length;
     const totalSelesai = filteredPkmData.filter((item) => item.status === 'selesai').length;
     const totalBerlangsung = filteredPkmData.filter((item) => item.status === 'berlangsung').length;
+    const totalBelumMulai = filteredPkmData.filter((item) => item.status === 'belum_mulai').length;
 
     return (
         <div className="bg-white rounded-2xl sm:rounded-[32px] lg:rounded-[40px] shadow-2xl shadow-sigappa-navy/5 border border-slate-100 overflow-hidden mb-6 sm:mb-8 p-3 sm:p-4 md:p-6">
@@ -140,7 +145,7 @@ export default function PkmMapDashboardCard({ pkmData, watchKey = 'pkm-map' }: {
                     {filteredPkmData.map((pkm) => {
                         const typeMeta = typesMeta.find(t => t.key === (String(pkm?.jenis_pkm ?? '').trim() || 'Lainnya'));
                         const markerColor = typeMeta ? typeMeta.color : '#15325F';
-                        return <Marker key={pkm.id} position={[parseFloat(String(pkm.lat)), parseFloat(String(pkm.lng))]} icon={createPkmMarkerIcon(pkm.status, markerColor)} eventHandlers={{ click: () => setSelectedPkm(pkm) }} />;
+                        return <Marker key={pkm.id} position={[parseFloat(String(pkm.lat)), parseFloat(String(pkm.lng))]} icon={createPkmMarkerIcon(pkm.status, markerColor, (pkm as any).is_review)} eventHandlers={{ click: () => setSelectedPkm(pkm) }} />;
                     })}
                     <MapSizeInvalidator watchKey={watchKey} />
                     <FlyToMarker
@@ -183,7 +188,7 @@ export default function PkmMapDashboardCard({ pkmData, watchKey = 'pkm-map' }: {
                         <i className="fa-solid fa-list-ul"></i><span className="hidden sm:inline">DAFTAR KEGIATAN PKM</span><span className="sm:hidden">DAFTAR PKM</span>
                     </button>
                 </div>
-                <MapSummaryOverlay total={totalPkm} selesai={totalSelesai} berlangsung={totalBerlangsung} forceHide={isListSidebarOpen || !!selectedPkm} typesMeta={typesMeta} selectedTypes={selectedTypes} onToggleType={(key) => setSelectedTypes((value) => value.includes(key) ? value.filter((item) => item !== key) : [...value, key])} selectedStatuses={selectedStatuses} onToggleStatus={(key) => setSelectedStatuses((value) => value.includes(key) ? value.filter((item) => item !== key) : [...value, key])} />
+                <MapSummaryOverlay total={totalPkm} selesai={totalSelesai} berlangsung={totalBerlangsung} belumMulai={totalBelumMulai} forceHide={isListSidebarOpen || !!selectedPkm} typesMeta={typesMeta} selectedTypes={selectedTypes} onToggleType={(key) => setSelectedTypes((value) => value.includes(key) ? value.filter((item) => item !== key) : [...value, key])} selectedStatuses={selectedStatuses} onToggleStatus={(key) => setSelectedStatuses((value) => value.includes(key) ? value.filter((item) => item !== key) : [...value, key])} />
                 <div className={`absolute top-0 bottom-0 right-0 sm:top-4 sm:bottom-4 sm:right-4 md:top-8 md:bottom-8 md:right-8 w-full sm:w-[360px] md:w-[400px] max-w-full sm:max-w-[calc(100%-32px)] md:max-w-[calc(100%-64px)] bg-white/95 backdrop-blur-xl sm:rounded-2xl md:rounded-[40px] shadow-2xl z-[1150] overflow-hidden flex flex-col transition-transform duration-700 border border-white/60 ${(!isListSidebarOpen && !selectedPkm) ? 'translate-x-[120%]' : 'translate-x-0'}`}>
                     {selectedPkm ? (
                         <>
@@ -196,7 +201,13 @@ export default function PkmMapDashboardCard({ pkmData, watchKey = 'pkm-map' }: {
                                         <h3 className="text-xl font-black text-slate-900 tracking-tight truncate">{selectedPkm.nama}</h3>
                                         {(() => {
                                             const statusMeta = getPkmStatusMeta(selectedPkm.status);
-                                            const statusClasses = selectedPkm.status === 'berlangsung' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700';
+                                            const statusClassesMap: Record<string, string> = {
+                                                'berlangsung': 'bg-amber-100 text-amber-700',
+                                                'selesai': 'bg-emerald-100 text-emerald-700',
+                                                'ada_pengajuan': 'bg-sky-100 text-sky-700',
+                                                'direvisi': 'bg-orange-100 text-orange-700',
+                                            };
+                                            const statusClasses = statusClassesMap[selectedPkm.status] || 'bg-slate-100 text-slate-700';
                                             return <span className={`inline-flex items-center gap-1.5 mt-1 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${statusClasses}`}><i className={`fa-solid ${statusMeta.markerIcon}`}></i> {statusMeta.label}</span>;
                                         })()}
                                     </div>
@@ -217,6 +228,11 @@ export default function PkmMapDashboardCard({ pkmData, watchKey = 'pkm-map' }: {
                                         <a href={`https://www.google.com/maps/dir/?api=1&destination=${selectedPkm.lat},${selectedPkm.lng}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold hover:bg-blue-100 transition-colors">
                                             <i className="fa-solid fa-map-location-dot"></i> Rute
                                         </a>
+                                        {isAdmin && (
+                                            <a href={`/admin/pengajuan/${selectedPkm.id}`} className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-bold hover:bg-indigo-100 transition-colors border border-indigo-100">
+                                                <i className="fa-solid fa-arrow-up-right-from-square"></i> Lihat Pengajuan
+                                            </a>
+                                        )}
                                         {selectedPkm.arsip_laporan && (
                                             <a href={selectedPkm.arsip_laporan} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-colors border border-emerald-100">
                                                 <i className="fa-solid fa-file-pdf"></i> Arsip Laporan

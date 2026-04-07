@@ -108,4 +108,28 @@ class UserController extends Controller
 
         return redirect()->back()->with('success', 'User berhasil dihapus.');
     }
+
+    public function bulkDestroy(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'integer|exists:users,id_user',
+        ]);
+
+        // Do not allow bulk deleting all superadmin/admin accounts
+        $users = User::whereIn('id_user', $request->ids)->get();
+        foreach ($users as $user) {
+            if (in_array($user->role, ['admin', 'superadmin', 'secret_account'])) {
+                $count = User::where('role', $user->role)->count();
+                $selectedCount = $users->where('role', $user->role)->count();
+                if ($count <= $selectedCount) {
+                    return redirect()->back()->with('error', 'Tidak bisa menghapus semua akun ' . $user->role . ' terakhir.');
+                }
+            }
+        }
+
+        User::whereIn('id_user', $request->ids)->delete();
+
+        return redirect()->back()->with('success', count($request->ids) . ' user berhasil dihapus massal.');
+    }
 }

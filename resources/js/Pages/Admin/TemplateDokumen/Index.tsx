@@ -29,6 +29,14 @@ export default function Index({ templates }: TemplateProps) {
                     templateData={templates['proposal']}
                     description="Upload template proposal kegiatan PKM sebagai format standar untuk pengajuan."
                 />
+
+                {/* Card Panduan */}
+                <TemplateUploaderCard
+                    title="Panduan Penggunaan"
+                    jenis="panduan"
+                    templateData={templates['panduan']}
+                    description="Upload file PDF Panduan Penggunaan yang akan dilihat oleh user (masyarakat & dosen) di halaman menu Panduan."
+                />
             </div>
         </AdminLayout>
     );

@@ -1,0 +1,37 @@
+﻿resources/js/Components/LandingPageMobile.tsx(13,33): error TS2339: Property '_getIconUrl' does not exist on type 'Default'.
+resources/js/Components/LandingPageMobile.tsx(142,86): error TS2345: Argument of type 'string | number' is not assignable to parameter of type 'string'.
+  Type 'number' is not assignable to type 'string'.
+resources/js/Components/LandingPageMobile.tsx(142,107): error TS2345: Argument of type 'string | number' is not assignable to parameter of type 'string'.
+  Type 'number' is not assignable to type 'string'.
+resources/js/Components/LandingPageMobile.tsx(142,124): error TS2554: Expected 2-3 arguments, but got 1.
+resources/js/Components/LandingPageMobile.tsx(150,22): error TS2741: Property 'typesMeta' is missing in type '{ compact: true; }' but required in type 'MapLegendProps'.
+resources/js/Components/LandingPageMobile.tsx(188,79): error TS2322: Type 'string | null | undefined' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+resources/js/Components/LoginDosenMobile.tsx(14,33): error TS2339: Property '_getIconUrl' does not exist on type 'Default'.
+resources/js/Components/LoginDosenMobile.tsx(197,86): error TS2345: Argument of type 'string | number' is not assignable to parameter of type 'string'.
+  Type 'number' is not assignable to type 'string'.
+resources/js/Components/LoginDosenMobile.tsx(197,107): error TS2345: Argument of type 'string | number' is not assignable to parameter of type 'string'.
+  Type 'number' is not assignable to type 'string'.
+resources/js/Components/LoginDosenMobile.tsx(197,124): error TS2554: Expected 2-3 arguments, but got 1.
+resources/js/Components/LoginDosenMobile.tsx(203,22): error TS2741: Property 'typesMeta' is missing in type '{ compact: true; }' but required in type 'MapLegendProps'.
+resources/js/Components/LoginDosenMobile.tsx(228,79): error TS2322: Type 'string | null | undefined' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+resources/js/Components/TestimonialForm.tsx(54,45): error TS2322: Type '"error"' is not assignable to type '"success"'.
+resources/js/Components/TestimonialForm.tsx(75,49): error TS2322: Type '"error"' is not assignable to type '"success"'.
+resources/js/data/sigapData.ts(292,20): error TS7006: Parameter 'value' implicitly has an 'any' type.
+resources/js/data/sigapData.ts(294,28): error TS7006: Parameter 'serverData' implicitly has an 'any' type.
+resources/js/data/sigapData.ts(294,40): error TS7006: Parameter 'demoData' implicitly has an 'any' type.
+resources/js/data/sigapData.ts(314,38): error TS7006: Parameter 'serverData' implicitly has an 'any' type.
+resources/js/data/sigapData.ts(316,22): error TS7006: Parameter 'item' implicitly has an 'any' type.
+resources/js/data/sigapData.ts(322,36): error TS7006: Parameter 'serverData' implicitly has an 'any' type.
+resources/js/data/sigapData.ts(324,46): error TS7006: Parameter 'serverData' implicitly has an 'any' type.
+resources/js/data/sigapData.ts(325,35): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ dosen: { id: string; judul: string; tanggal: string; status: string; ringkasan: string; catatan: string; }[]; masyarakat: { id: string; judul: string; tanggal: string; status: string; ringkasan: string; catatan: string; }[]; }'.
+  No index signature with a parameter of type 'string' was found on type '{ dosen: { id: string; judul: string; tanggal: string; status: string; ringkasan: string; catatan: string; }[]; masyarakat: { id: string; judul: string; tanggal: string; status: string; ringkasan: string; catatan: string; }[]; }'.
+resources/js/data/sigapData.ts(328,43): error TS7006: Parameter 'serverData' implicitly has an 'any' type.
+resources/js/data/sigapData.ts(328,73): error TS2339: Property 'previewStatus' does not exist on type '{ role?: string | undefined; }'.
+resources/js/data/sigapData.ts(347,20): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ dosen: string; masyarakat: string; }'.
+  No index signature with a parameter of type 'string' was found on type '{ dosen: string; masyarakat: string; }'.
+resources/js/Pages/Auth/LoginDosen.tsx(39,22): error TS2503: Cannot find namespace 'JSX'.
+resources/js/Pages/Auth/LoginMasyarakat.tsx(39,27): error TS2503: Cannot find namespace 'JSX'.
+resources/js/Pages/Auth/SubmitDokumentasiLaporan.tsx(26,53): error TS2503: Cannot find namespace 'JSX'.
+resources/js/Pages/Auth/VerifyEmail.tsx(13,68): error TS2503: Cannot find namespace 'JSX'.

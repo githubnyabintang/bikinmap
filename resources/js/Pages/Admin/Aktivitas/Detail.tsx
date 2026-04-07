@@ -56,6 +56,7 @@ interface Aktivitas {
     catatan_pelaksanaan?: string;
     url_thumbnail?: string;
     arsip?: Arsip[];
+    testimoni?: any[];
     pengajuan: {
         id_pengajuan: number;
         kode_unik?: string;
@@ -80,7 +81,7 @@ interface Props {
 
 const Detail: React.FC<Props> = ({ aktivitas }) => {
     const pengajuan = aktivitas.pengajuan;
-    const [statusAktivitas, setStatusAktivitas] = useState<string>(aktivitas.status_pelaksanaan || 'persiapan');
+    const [statusAktivitas, setStatusAktivitas] = useState<string>(aktivitas.status_pelaksanaan === 'persiapan' ? 'belum_mulai' : (aktivitas.status_pelaksanaan || 'belum_mulai'));
     const [thumbnailAktivitas, setThumbnailAktivitas] = useState<File | null>(null);
 
     // Map picker state
@@ -280,7 +281,6 @@ const Detail: React.FC<Props> = ({ aktivitas }) => {
                                 <select value={statusAktivitas} onChange={e => setStatusAktivitas(e.target.value)}
                                     className="w-full rounded-lg border border-zinc-200 bg-white px-4 py-3 text-[14px] font-medium text-zinc-900 outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 transition-all cursor-pointer shadow-sm">
                                     <option value="belum_mulai"> Belum Mulai</option>
-                                    <option value="persiapan">🟡 Persiapan</option>
                                     <option value="berjalan">🔵 Berjalan</option>
                                     <option value="selesai">🟢 Selesai</option>
                                 </select>
@@ -477,6 +477,38 @@ const Detail: React.FC<Props> = ({ aktivitas }) => {
                             </div>
                         )}
                     </div>
+
+                    {/* Testimoni Link / Ulasan */}
+                    {aktivitas.testimoni && aktivitas.testimoni.length > 0 && (
+                        <div className="bg-white rounded-xl border border-blue-200 shadow-sm overflow-hidden">
+                            <div className="px-6 py-4 border-b border-blue-100 bg-blue-50/50 flex justify-between items-center">
+                                <h2 className="text-[14px] font-semibold text-blue-900">Ulasan & Testimoni</h2>
+                                <span className="bg-blue-200/50 text-blue-700 text-[11px] px-2 py-0.5 rounded-full font-bold">{aktivitas.testimoni.length} Rekam</span>
+                            </div>
+                            <div className="divide-y divide-zinc-100">
+                                {aktivitas.testimoni.map((t: any) => (
+                                    <div key={t.id_testimoni} className="p-5">
+                                        <div className="flex items-start justify-between mb-2">
+                                            <div>
+                                                <div className="text-[13px] font-bold text-zinc-900">{t.external_name || t.nama_pemberi || 'Testimoni & Feedback Publik'}</div>
+                                                <div className="flex items-center gap-1 mt-1">
+                                                    {[1,2,3,4,5].map(s => (
+                                                        <svg key={s} xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill={s <= t.rating ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={s <= t.rating ? "text-amber-400" : "text-zinc-300"}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            {t.external_link && (
+                                                <a href={t.external_link} target="_blank" rel="noopener noreferrer" className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-[12px] font-bold transition-all flex items-center gap-1.5 shadow-sm">
+                                                    Lihat Testimoni
+                                                </a>
+                                            )}
+                                        </div>
+                                        {t.ulasan && <p className="text-[13px] text-zinc-600 italic mt-2 bg-zinc-50 p-3 rounded-lg border border-zinc-100">"{t.ulasan}"</p>}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Danger Zone */}
                     <div className="bg-white rounded-xl border border-red-200 shadow-sm overflow-hidden">

@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect, useMemo, ChangeEvent, FormEvent } f
 import { useForm, router } from '@inertiajs/react';
 import axios from 'axios';
 import ActionFeedbackDialog from './ActionFeedbackDialog';
+import MapLocationPicker from './MapLocationPicker';
 import DocumentationGallery from './DocumentationGallery';
 import TestimonialSidebarDisplay from './TestimonialSidebarDisplay';
 import type { PkmData } from '@/types';
@@ -21,6 +22,8 @@ interface Submission {
     kecamatan?: string;
     kelurahan_desa?: string;
     alamat_lengkap?: string;
+    latitude?: number | string;
+    longitude?: number | string;
     proposal?: string;
     surat_permohonan?: string;
     rab?: string;
@@ -33,6 +36,7 @@ interface Submission {
     total_anggaran?: number;
     tgl_mulai?: string;
     tgl_selesai?: string;
+    is_tahun_saja?: boolean;
     jenis_pkm?: string;
     nama_pengusul?: string;
     email_pengusul?: string;
@@ -73,6 +77,11 @@ interface FormData {
     kecamatan: string;
     kelurahan_desa: string;
     alamat_lengkap: string;
+    latitude: number | null;
+    longitude: number | null;
+    tgl_mulai: string | null;
+    tgl_selesai: string | null;
+    is_tahun_saja: boolean;
 
     tim_dosen: string[];
     tim_staff: string[];
@@ -182,6 +191,11 @@ export default function DosenSubmissionCard({
         kecamatan: '',
         kelurahan_desa: '',
         alamat_lengkap: '',
+        latitude: null,
+        longitude: null,
+        tgl_mulai: null,
+        tgl_selesai: null,
+        is_tahun_saja: false,
         tim_dosen: [''],
         tim_staff: [''],
         tim_mahasiswa: [''],
@@ -245,6 +259,12 @@ export default function DosenSubmissionCard({
             kecamatan: data.kecamatan,
             kelurahan_desa: data.kelurahan_desa,
             alamat_lengkap: data.alamat_lengkap,
+            latitude: data.latitude,
+            longitude: data.longitude,
+            tgl_mulai: data.tgl_mulai,
+            tgl_selesai: data.tgl_selesai,
+            is_tahun_saja: data.is_tahun_saja ? '1' : '0',
+
             dosen_terlibat: data.tim_dosen.filter(v => v.trim() !== ''),
             staff_terlibat: data.tim_staff.filter(v => v.trim() !== ''),
             mahasiswa_terlibat: data.tim_mahasiswa.filter(v => v.trim() !== ''),
@@ -319,6 +339,11 @@ export default function DosenSubmissionCard({
             kecamatan: selectedDetail.kecamatan || '',
             kelurahan_desa: selectedDetail.kelurahan_desa || '',
             alamat_lengkap: selectedDetail.alamat_lengkap || '',
+            latitude: selectedDetail.latitude ? Number(selectedDetail.latitude) : null,
+            longitude: selectedDetail.longitude ? Number(selectedDetail.longitude) : null,
+            tgl_mulai: selectedDetail.tgl_mulai || null,
+            tgl_selesai: selectedDetail.tgl_selesai || null,
+            is_tahun_saja: !!selectedDetail.is_tahun_saja,
             tim_dosen: [''],
             tim_staff: [''],
             tim_mahasiswa: [''],
@@ -630,6 +655,32 @@ export default function DosenSubmissionCard({
                     <label className="text-[13px] font-bold text-slate-600 mb-1 block">Alamat Lengkap</label>
                     <textarea value={data.alamat_lengkap} onChange={e => setData('alamat_lengkap', e.target.value)} className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-poltekpar-primary/20 focus:border-poltekpar-primary min-h-[60px]" placeholder="Alamat lengkap lokasi kegiatan..." />
                 </div>
+                <div className="space-y-1.5 mt-4">
+                    <label className="text-[13px] font-bold text-slate-600 mb-1 block">Tandai Lokasi di Peta (Koordinat)</label>
+                    <p className="text-[10px] text-slate-500 mb-2">Geser peta atau klik untuk menandai lokasi spesifik agar mempermudah tim survei.</p>
+                    <MapLocationPicker
+                        latitude={data.latitude}
+                        longitude={data.longitude}
+                        onChange={(lat, lng, address) => {
+                            const newData: any = { latitude: lat, longitude: lng };
+                            if (address) {
+                                if (address.state || address.province) newData.provinsi = address.state || address.province;
+                                if (address.city || address.town || address.county) newData.kota_kabupaten = address.city || address.town || address.county;
+                                if (address.suburb || address.village) newData.kecamatan = address.suburb || address.village;
+                                if (address.neighbourhood || address.residential || address.hamlet) newData.kelurahan_desa = address.neighbourhood || address.residential || address.hamlet;
+                            }
+                            Object.entries(newData).forEach(([key, val]) => setData(key as any, val as any));
+                        }}
+                    />
+                    {data.latitude && data.longitude ? (
+                        <p className="text-[10px] text-slate-500 mt-1 font-mono">Lat: {data.latitude.toFixed(6)}, Lng: {data.longitude.toFixed(6)}</p>
+                    ) : data.kelurahan_desa ? (
+                        <p className="text-[10px] text-red-500 mt-1 font-bold animate-pulse flex items-center gap-1">
+                            <i className="fa-solid fa-triangle-exclamation"></i>
+                            Nama desa terisi namun titik peta belum ditandai. Mohon tandai di peta!
+                        </p>
+                    ) : null}
+                </div>
             </div>
 
             {/* Tim */}
@@ -743,7 +794,15 @@ export default function DosenSubmissionCard({
                                 <i className="fa-solid fa-file-pdf"></i> File Saat Ini (Biarkan kosong jika tidak diubah)
                             </a>
                         )}
-                        <input type="file" accept=".pdf,.doc,.docx" onChange={e => setData('surat_permohonan', e.target.files?.[0] || null)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-poltekpar-primary/10 file:text-poltekpar-primary" required={!data.id_pengajuan} />
+                        <input type="file" accept=".pdf" onChange={e => setData('surat_permohonan', e.target.files?.[0] || null)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-poltekpar-primary/10 file:text-poltekpar-primary" required={!data.id_pengajuan} />
+                        {data.surat_permohonan && data.surat_permohonan instanceof File && data.surat_permohonan.type === 'application/pdf' && (
+                            <div className="mt-2 border border-slate-200 rounded-lg overflow-hidden h-64 bg-slate-50 relative shadow-inner">
+                                <span className="absolute top-2 right-2 text-[10px] font-bold bg-slate-800 text-white px-2 py-1 rounded-md opacity-50 z-10">Preview</span>
+                                <object data={URL.createObjectURL(data.surat_permohonan)} type="application/pdf" className="w-full h-full relative z-20">
+                                    <div className="flex items-center justify-center h-full text-xs text-slate-400">Browser tidak mendukung preview PDF secara instan.</div>
+                                </object>
+                            </div>
+                        )}
                     </div>
                     <div className="space-y-1.5">
                         <div className="flex items-center justify-between">
@@ -755,7 +814,15 @@ export default function DosenSubmissionCard({
                                 <i className="fa-solid fa-file-pdf"></i> File Saat Ini (Biarkan kosong jika tidak diubah)
                             </a>
                         )}
-                        <input type="file" accept=".pdf,.doc,.docx" onChange={e => setData('surat_proposal', e.target.files?.[0] || null)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-poltekpar-primary/10 file:text-poltekpar-primary" required={!data.id_pengajuan} />
+                        <input type="file" accept=".pdf" onChange={e => setData('surat_proposal', e.target.files?.[0] || null)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-poltekpar-primary/10 file:text-poltekpar-primary" required={!data.id_pengajuan} />
+                        {data.surat_proposal && data.surat_proposal instanceof File && data.surat_proposal.type === 'application/pdf' && (
+                            <div className="mt-2 border border-slate-200 rounded-lg overflow-hidden h-64 bg-slate-50 relative shadow-inner">
+                                <span className="absolute top-2 right-2 text-[10px] font-bold bg-slate-800 text-white px-2 py-1 rounded-md opacity-50 z-10">Preview</span>
+                                <object data={URL.createObjectURL(data.surat_proposal)} type="application/pdf" className="w-full h-full relative z-20">
+                                    <div className="flex items-center justify-center h-full text-xs text-slate-400">Browser tidak mendukung preview PDF.</div>
+                                </object>
+                            </div>
+                        )}
                     </div>
                     <div className="space-y-3 pt-2">
                         <div className="flex items-center justify-between mb-1">

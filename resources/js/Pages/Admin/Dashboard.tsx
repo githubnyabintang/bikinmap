@@ -8,11 +8,13 @@ import {
     XCircle,
     RotateCcw,
     Layers,
-    CalendarClock,
     ClipboardList,
     LoaderCircle,
     CircleCheck,
     TrendingUp,
+    Play,
+    Zap,
+    Trophy,
 } from 'lucide-react';
 import PkmMapDashboardCard from '../../Components/PkmMapDashboardCard';
 import { PkmData } from '../../types';
@@ -22,12 +24,12 @@ interface DashboardProps {
     stats: {
         totalPengajuan: number;
         pengajuanDiproses: number;
+        pengajuanBaru: number;
+        pengajuanReviu: number;
         pengajuanDiterima: number;
         pengajuanDitolak: number;
         pengajuanDirevisi: number;
-        totalAktivitas: number;
         aktivitasBelumMulai: number;
-        aktivitasPersiapan: number;
         aktivitasBerjalan: number;
         aktivitasSelesai: number;
     };
@@ -41,12 +43,12 @@ export default function Dashboard({
     stats = {
         totalPengajuan: 0,
         pengajuanDiproses: 0,
+        pengajuanBaru: 0,
+        pengajuanReviu: 0,
         pengajuanDiterima: 0,
         pengajuanDitolak: 0,
         pengajuanDirevisi: 0,
-        totalAktivitas: 0,
         aktivitasBelumMulai: 0,
-        aktivitasPersiapan: 0,
         aktivitasBerjalan: 0,
         aktivitasSelesai: 0,
     },
@@ -63,24 +65,28 @@ export default function Dashboard({
     }
 
     const pengajuanCards = [
-        { label: 'Pengajuan', value: stats.totalPengajuan, icon: FileText, color: 'text-poltekpar-primary', bg: 'bg-poltekpar-primary/10', iconBg: 'bg-poltekpar-primary', trend: 'Total semua pengajuan', filter: undefined },
-        { label: 'Reviu', value: stats.pengajuanDiproses, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50', iconBg: 'bg-amber-500', trend: 'Perlu tindakan segera', filter: 'diproses' },
-        { label: 'Diterima', value: stats.pengajuanDiterima, icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50', iconBg: 'bg-emerald-500', trend: 'Sudah diverifikasi', filter: 'diterima' },
+        { label: 'Pengajuan', value: stats.pengajuanBaru, icon: FileText, color: 'text-poltekpar-primary', bg: 'bg-poltekpar-primary/10', iconBg: 'bg-poltekpar-primary', trend: 'Membutuhkan tindakan', filter: 'pengajuan' },
+        { label: 'Reviu', value: stats.pengajuanReviu, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50', iconBg: 'bg-amber-500', trend: 'Sedang direviu', filter: 'reviu' },
+        { label: 'Diterima', value: stats.pengajuanDiterima, icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50', iconBg: 'bg-emerald-500', trend: 'Sudah disetujui', filter: 'diterima' },
         { label: 'Ditolak', value: stats.pengajuanDitolak, icon: XCircle, color: 'text-rose-600', bg: 'bg-rose-50', iconBg: 'bg-rose-500', trend: 'Tidak memenuhi syarat', filter: 'ditolak' },
-        { label: 'Direvisi', value: stats.pengajuanDirevisi, icon: RotateCcw, color: 'text-orange-600', bg: 'bg-orange-50', iconBg: 'bg-orange-500', trend: 'Menunggu perbaikan', filter: 'direvisi' },
+        { label: 'Revisi', value: stats.pengajuanDirevisi, icon: RotateCcw, color: 'text-orange-600', bg: 'bg-orange-50', iconBg: 'bg-orange-500', trend: 'Menunggu perbaikan', filter: 'direvisi' },
     ];
 
     const aktivitasCards = [
-        { label: 'Total Aktivitas', value: stats.totalAktivitas, icon: Layers, color: 'text-poltekpar-navy', bg: 'bg-poltekpar-navy/10', iconBg: 'bg-poltekpar-navy', trend: 'Seluruh kegiatan tercatat', filter: undefined },
-        { label: 'PKM Belum Mulai', value: stats.aktivitasBelumMulai, icon: CalendarClock, color: 'text-slate-500', bg: 'bg-slate-100', iconBg: 'bg-slate-400', trend: 'Diterima, belum ada kegiatan', filter: 'belum_mulai' },
-        { label: 'PKM Persiapan', value: stats.aktivitasPersiapan, icon: ClipboardList, color: 'text-sky-600', bg: 'bg-sky-50', iconBg: 'bg-sky-500', trend: 'Tahap persiapan kegiatan', filter: 'persiapan' },
-        { label: 'PKM Berjalan', value: stats.aktivitasBerjalan, icon: LoaderCircle, color: 'text-blue-600', bg: 'bg-blue-50', iconBg: 'bg-blue-500', trend: 'Sedang berlangsung', filter: 'berjalan' },
-        { label: 'PKM Selesai', value: stats.aktivitasSelesai, icon: CircleCheck, color: 'text-violet-600', bg: 'bg-violet-50', iconBg: 'bg-violet-500', trend: 'Telah diselesaikan', filter: 'selesai' },
+        { label: 'Belum Mulai', value: stats.aktivitasBelumMulai, icon: Play, color: 'text-zinc-600', bg: 'bg-zinc-100', iconBg: 'bg-zinc-500', trend: 'Menunggu waktu pelaksanaan', filter: 'belum_mulai' },
+        { label: 'Berjalan', value: stats.aktivitasBerjalan, icon: Zap, color: 'text-indigo-600', bg: 'bg-indigo-50', iconBg: 'bg-indigo-500', trend: 'Sedang dalam pengerjaan', filter: 'berjalan' },
+        { label: 'Selesai', value: stats.aktivitasSelesai, icon: Trophy, color: 'text-amber-600', bg: 'bg-amber-50', iconBg: 'bg-amber-500', trend: 'Proyek telah dirampungkan', filter: 'selesai' },
     ];
 
-    const handleCardClick = (type: 'pengajuan' | 'aktivitas', status?: string) => {
+    const handleCardClick = (type: 'pengajuan' | 'aktivitas', filterParam?: string) => {
         const params: Record<string, string | undefined> = {};
-        if (status) params.status = status;
+        if (filterParam) {
+            if (type === 'pengajuan') {
+                params.tab = filterParam;
+            } else {
+                params.status = filterParam;
+            }
+        }
         const url = type === 'pengajuan' ? '/admin/pengajuan' : '/admin/aktivitas';
         router.get(url, params, { preserveState: true });
     };
@@ -90,6 +96,7 @@ export default function Dashboard({
         nama: pkm.nama,
         tahun: pkm.tahun,
         status: pkm.status,
+        is_review: Boolean(pkm.is_review),
         deskripsi: pkm.deskripsi || '',
         thumbnail: pkm.thumbnail || null,
         jenis_pkm: pkm.jenis_pkm || pkm.jenis_nama || '',
@@ -143,7 +150,7 @@ export default function Dashboard({
             {/* Aktivitas Stats */}
             <div className="mb-6">
                 <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Status Aktivitas PKM</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                     {aktivitasCards.map((card, index) => (
                         <button
                             key={index}
@@ -172,7 +179,7 @@ export default function Dashboard({
             </div>
 
             {/* Map + Chart */}
-            <PkmMapDashboardCard pkmData={pkmData} watchKey="admin-map" />
+            <PkmMapDashboardCard pkmData={pkmData} watchKey="admin-map" isAdmin={true} />
         </AdminLayout>
     );
 }

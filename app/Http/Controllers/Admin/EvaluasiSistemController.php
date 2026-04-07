@@ -24,4 +24,16 @@ class EvaluasiSistemController extends Controller
 
         return redirect()->back()->with('success', 'Data evaluasi sistem berhasil dihapus.');
     }
+
+    public function bulkDestroy(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'integer|exists:evaluasi_sistem,id_evaluasi',
+        ]);
+
+        EvaluasiSistem::whereIn('id_evaluasi', $request->ids)->delete();
+
+        return redirect()->back()->with('success', count($request->ids) . ' evaluasi berhasil dihapus massal.');
+    }
 }

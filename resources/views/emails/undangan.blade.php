@@ -163,24 +163,8 @@
                                         <!-- Grid: Tanggal & Lokasi -->
                                         <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top: 16px;">
                                             <tr>
-                                                <!-- Kolom Kiri -->
-                                                <td width="50%" valign="top" style="padding-right: 12px;">
-                                                    <p class="font-jakarta" style="font-size: 10px; font-weight: 600; color: #94A3B8; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 4px;">
-                                                        Tanggal Mulai
-                                                    </p>
-                                                    <p class="font-jakarta" style="font-size: 14px; font-weight: 700; color: #0D1F3C; margin: 0 0 14px;">
-                                                        {{ $tglMulai }}
-                                                    </p>
-
-                                                    <p class="font-jakarta" style="font-size: 10px; font-weight: 600; color: #94A3B8; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 4px;">
-                                                        Tanggal Selesai
-                                                    </p>
-                                                    <p class="font-jakarta" style="font-size: 14px; font-weight: 700; color: #0D1F3C; margin: 0;">
-                                                        {{ $tglSelesai }}
-                                                    </p>
-                                                </td>
                                                 <!-- Kolom Kanan -->
-                                                <td width="50%" valign="top" style="padding-left: 12px;">
+                                                <td width="100%" valign="top" style="padding-left: 12px;">
                                                     <p class="font-jakarta" style="font-size: 10px; font-weight: 600; color: #94A3B8; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 4px;">
                                                         Lokasi Kegiatan
                                                     </p>

@@ -27,8 +27,17 @@ class PengajuanController extends Controller
                         ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$escaped}%"));
                 });
             })
-            ->when($request->status, function ($query, $status) {
-                $query->where('status_pengajuan', $status);
+            ->when($request->tab, function ($query, $tab) {
+                if ($tab === 'pengajuan') {
+                    $query->where('status_pengajuan', 'diproses')->whereNull('admin_read_at');
+                } elseif ($tab === 'reviu') {
+                    $query->where('status_pengajuan', 'diproses')->whereNotNull('admin_read_at');
+                } else {
+                    $query->where('status_pengajuan', $tab);
+                }
+            })
+            ->when($request->tahun, function ($query, $tahun) {
+                $query->whereYear('tgl_mulai', $tahun);
             })
             ->when($sortField === 'status_pengajuan', function ($query) use ($sortDir) {
                 $query->orderByRaw("FIELD(status_pengajuan, 'diproses', 'diterima', 'direvisi', 'ditolak') ".$sortDir);
@@ -42,10 +51,16 @@ class PengajuanController extends Controller
             'listPengajuan' => $listPengajuan,
             'filters' => [
                 'search' => $request->search ?? '',
-                'status' => $request->status ?? '',
+                'tab' => $request->tab ?? '',
                 'sort' => $sortField,
                 'direction' => $sortDir,
+                'tahun' => $request->tahun ?? '',
             ],
+            'availableYears' => Pengajuan::selectRaw('YEAR(tgl_mulai) as year')
+                                ->whereNotNull('tgl_mulai')
+                                ->groupBy('year')
+                                ->orderBy('year', 'desc')
+                                ->pluck('year'),
         ]);
     }
 
@@ -58,6 +73,10 @@ class PengajuanController extends Controller
             'aktivitas',
             'arsip',
         ])->findOrFail($id);
+
+        if ($pengajuan->admin_read_at === null) {
+            $pengajuan->update(['admin_read_at' => now()]);
+        }
 
         $listPegawai = Pegawai::with('user:id_user,role')->orderBy('nama_pegawai')
             ->get(['id_pegawai', 'id_user', 'nama_pegawai', 'nip'])
@@ -100,6 +119,7 @@ class PengajuanController extends Controller
             'dana_lembaga_luar' => 'sometimes|nullable|numeric|min:0',
             'tgl_mulai' => 'sometimes|nullable|date',
             'tgl_selesai' => 'sometimes|nullable|date|after_or_equal:tgl_mulai',
+            'is_tahun_saja' => 'sometimes|nullable|boolean',
             'provinsi' => 'sometimes|nullable|string|max:100',
             'kota_kabupaten' => 'sometimes|nullable|string|max:100',
             'kecamatan' => 'sometimes|nullable|string|max:100',
@@ -160,6 +180,32 @@ class PengajuanController extends Controller
         $pengajuan->delete();
 
         return redirect()->back()->with('success', 'Pengajuan berhasil dihapus.');
+    }
+
+    public function bulkDestroy(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'integer|exists:pengajuan,id_pengajuan',
+        ]);
+
+        $ids = $request->input('ids');
+        $pengajuans = Pengajuan::with(['aktivitas', 'timKegiatan', 'arsip'])->whereIn('id_pengajuan', $ids)->get();
+
+        foreach ($pengajuans as $pengajuan) {
+            foreach ($pengajuan->aktivitas as $aktivitas) {
+                $aktivitas->delete();
+            }
+            foreach ($pengajuan->timKegiatan as $tim) {
+                $tim->delete();
+            }
+            foreach ($pengajuan->arsip as $arsip) {
+                $arsip->delete();
+            }
+            $pengajuan->delete();
+        }
+
+        return redirect()->back()->with('success', count($ids) . ' data pengajuan berhasil dihapus massal.');
     }
 
     public function updateStatus(Request $request, int $id)

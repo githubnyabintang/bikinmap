@@ -53,4 +53,16 @@ class KontakController extends Controller
 
         return redirect()->back()->with('success', 'Data kontak berhasil dihapus.');
     }
+
+    public function bulkDestroy(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'integer|exists:kontak,id_kontak',
+        ]);
+
+        Kontak::whereIn('id_kontak', $request->ids)->delete();
+
+        return redirect()->back()->with('success', count($request->ids) . ' kontak berhasil dihapus massal.');
+    }
 }

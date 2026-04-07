@@ -3,8 +3,8 @@
 use App\Http\Controllers\Admin\AktivitasController;
 use App\Http\Controllers\Admin\ArsipController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\HistorisController;
 use App\Http\Controllers\Admin\EvaluasiSistemController;
-use App\Http\Controllers\Admin\ImportController;
 use App\Http\Controllers\Admin\KontakController;
 use App\Http\Controllers\Admin\MasterDataController;
 use App\Http\Controllers\Admin\PegawaiController;
@@ -37,7 +37,12 @@ Route::get('/', [LandingController::class, 'index'])->name('landing');
 
 // Panduan page
 Route::get('/panduan', function () {
-    return Inertia::render('Panduan');
+    $panduan = App\Models\TemplateDokumen::where('jenis', 'panduan')->first();
+    $pdfUrl = $panduan && Illuminate\Support\Facades\Storage::disk('public')->exists($panduan->file_path)
+        ? '/storage/' . $panduan->file_path
+        : '/panduan_penggunaan.pdf';
+
+    return Inertia::render('Panduan', ['pdfUrl' => $pdfUrl]);
 })->name('panduan');
 
 // Testimoni publik (Umum)
@@ -227,13 +232,18 @@ Route::middleware('auth')->group(function () {
         // Global search API (admin only)
         Route::get('/api/search', SearchController::class)->name('api.search');
 
-        // Pengajuan CRUD
+        Route::get('/historis', [HistorisController::class, 'index'])->name('historis.index');
+        Route::post('/historis/manual', [HistorisController::class, 'storeManual'])->name('historis.store_manual');
+        Route::post('/historis/preview', [HistorisController::class, 'previewExcel'])->name('historis.preview_excel');
+        Route::post('/historis/excel', [HistorisController::class, 'storeExcel'])->name('historis.store_excel');
+
         Route::get('/pengajuan/export', [PengajuanController::class, 'export'])->name('pengajuan.export');
         Route::get('/pengajuan', [PengajuanController::class, 'index'])->name('pengajuan.index');
         Route::post('/pengajuan/{id}/tim', [PengajuanController::class, 'storeTim'])->name('pengajuan.store_tim');
         Route::put('/pengajuan/{id}/tim', [PengajuanController::class, 'syncTim'])->name('pengajuan.sync_tim');
         Route::get('/pengajuan/{id}', [PengajuanController::class, 'show'])->name('pengajuan.show');
         Route::put('/pengajuan/{id}', [PengajuanController::class, 'update'])->name('pengajuan.update');
+        Route::delete('/pengajuan/bulk', [PengajuanController::class, 'bulkDestroy'])->name('pengajuan.bulk_destroy');
         Route::delete('/pengajuan/{id}', [PengajuanController::class, 'destroy'])->name('pengajuan.destroy');
         Route::put('/pengajuan/{id}/status', [PengajuanController::class, 'updateStatus'])->name('pengajuan.update_status');
         Route::put('/pengajuan/{id}/lokasi', [PengajuanController::class, 'updateLokasi'])->name('pengajuan.update_lokasi');
@@ -244,12 +254,14 @@ Route::middleware('auth')->group(function () {
         Route::post('/pegawai/import', [PegawaiController::class, 'import'])->name('pegawai.import');
         Route::post('/pegawai', [PegawaiController::class, 'store'])->name('pegawai.store');
         Route::put('/pegawai/{id}', [PegawaiController::class, 'update'])->name('pegawai.update');
+        Route::delete('/pegawai/bulk', [PegawaiController::class, 'bulkDestroy'])->name('pegawai.bulk_destroy');
         Route::delete('/pegawai/{id}', [PegawaiController::class, 'destroy'])->name('pegawai.destroy');
 
         // Users CRUD
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
         Route::post('/users', [UserController::class, 'store'])->name('users.store');
         Route::put('/users/{id}', [UserController::class, 'update'])->name('users.update');
+        Route::delete('/users/bulk', [UserController::class, 'bulkDestroy'])->name('users.bulk_destroy');
         Route::delete('/users/{id}', [UserController::class, 'destroy'])->name('users.destroy');
 
         // Aktivitas CRUD
@@ -258,18 +270,21 @@ Route::middleware('auth')->group(function () {
         Route::get('/aktivitas', [AktivitasController::class, 'index'])->name('aktivitas.index');
         Route::get('/aktivitas/{id}', [AktivitasController::class, 'show'])->name('aktivitas.show');
         Route::put('/aktivitas/{id}', [AktivitasController::class, 'update'])->name('aktivitas.update');
+        Route::delete('/aktivitas/bulk', [AktivitasController::class, 'bulkDestroy'])->name('aktivitas.bulk_destroy');
         Route::delete('/aktivitas/{id}', [AktivitasController::class, 'destroy'])->name('aktivitas.destroy');
 
         // Testimoni CRUD
         Route::get('/testimoni', [TestimoniController::class, 'index'])->name('testimoni.index');
         Route::post('/testimoni', [TestimoniController::class, 'store'])->name('testimoni.store');
         Route::put('/testimoni/{id}', [TestimoniController::class, 'update'])->name('testimoni.update');
+        Route::delete('/testimoni/bulk', [TestimoniController::class, 'bulkDestroy'])->name('testimoni.bulk_destroy');
         Route::delete('/testimoni/{id}', [TestimoniController::class, 'destroy'])->name('testimoni.destroy');
 
         // Master Data (Jenis PKM)
         Route::get('/master/jenis-pkm', [MasterDataController::class, 'indexJenis'])->name('master.jenis.index');
         Route::post('/master/jenis-pkm', [MasterDataController::class, 'storeJenis'])->name('master.jenis.store');
         Route::put('/master/jenis-pkm/{id}', [MasterDataController::class, 'updateJenis'])->name('master.jenis.update');
+        Route::delete('/master/jenis-pkm/bulk', [MasterDataController::class, 'bulkDestroyJenis'])->name('master.jenis.bulk_destroy');
         Route::delete('/master/jenis-pkm/{id}', [MasterDataController::class, 'destroyJenis'])->name('master.jenis.destroy');
 
         // Template Dokumen
@@ -281,16 +296,19 @@ Route::middleware('auth')->group(function () {
         Route::get('/arsip', [ArsipController::class, 'index'])->name('arsip.index');
         Route::post('/arsip', [ArsipController::class, 'store'])->name('arsip.store');
         Route::put('/arsip/{id}', [ArsipController::class, 'update'])->name('arsip.update');
+        Route::delete('/arsip/bulk', [ArsipController::class, 'bulkDestroy'])->name('arsip.bulk_destroy');
         Route::delete('/arsip/{id}', [ArsipController::class, 'destroy'])->name('arsip.destroy');
 
         // Kontak CRUD
         Route::get('/kontak', [KontakController::class, 'index'])->name('kontak.index');
         Route::post('/kontak', [KontakController::class, 'store'])->name('kontak.store');
         Route::put('/kontak/{id}', [KontakController::class, 'update'])->name('kontak.update');
+        Route::delete('/kontak/bulk', [KontakController::class, 'bulkDestroy'])->name('kontak.bulk_destroy');
         Route::delete('/kontak/{id}', [KontakController::class, 'destroy'])->name('kontak.destroy');
 
         // Evaluasi Sistem
         Route::get('/evaluasi-sistem', [EvaluasiSistemController::class, 'index'])->name('evaluasi-sistem.index');
+        Route::delete('/evaluasi-sistem/bulk', [EvaluasiSistemController::class, 'bulkDestroy'])->name('evaluasi-sistem.bulk_destroy');
         Route::delete('/evaluasi-sistem/{id}', [EvaluasiSistemController::class, 'destroy'])->name('evaluasi-sistem.destroy');
 
         // Notifications API
@@ -339,11 +357,7 @@ Route::middleware('auth')->group(function () {
             return response()->json(['success' => true]);
         })->name('api.notifications.mark-all-read');
 
-        // Import History (Superadmin only inside controller)
-        Route::get('/import-history', [ImportController::class, 'index'])->name('import.index');
-        Route::post('/import-history/preview', [ImportController::class, 'preview'])->name('import.preview');
-        Route::post('/import-history', [ImportController::class, 'store'])->name('import.store');
-
+        // (Import History routes merged into /historis)
         // Test email route (development only)
         Route::get('/test-email/{email}', function (string $email) {
             $mail = new UndanganMail(

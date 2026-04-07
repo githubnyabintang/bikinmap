@@ -82,4 +82,16 @@ class TestimoniController extends Controller
 
         return redirect()->back()->with('success', 'Testimoni berhasil dihapus.');
     }
+
+    public function bulkDestroy(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'integer|exists:testimoni,id_testimoni',
+        ]);
+
+        Testimoni::whereIn('id_testimoni', $request->ids)->delete();
+
+        return redirect()->back()->with('success', count($request->ids) . ' testimoni berhasil dihapus massal.');
+    }
 }

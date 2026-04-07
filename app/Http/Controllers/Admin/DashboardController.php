@@ -15,6 +15,8 @@ class DashboardController extends Controller
         $statusCounts = Pengajuan::selectRaw("
             COUNT(*)                                    as total,
             SUM(status_pengajuan = 'diproses')          as diproses,
+            SUM(status_pengajuan = 'diproses' AND admin_read_at IS NULL) as diproses_baru,
+            SUM(status_pengajuan = 'diproses' AND admin_read_at IS NOT NULL) as diproses_reviu,
             SUM(status_pengajuan = 'diterima')          as diterima,
             SUM(status_pengajuan = 'ditolak')           as ditolak,
             SUM(status_pengajuan = 'direvisi')          as direvisi,
@@ -22,11 +24,9 @@ class DashboardController extends Controller
         ")->first();
 
         $aktivitasCounts = Aktivitas::selectRaw("
-            COUNT(*)                                        as total,
-            SUM(status_pelaksanaan = 'belum_mulai')         as belum_mulai,
-            SUM(status_pelaksanaan = 'persiapan')           as persiapan,
-            SUM(status_pelaksanaan = 'berjalan')            as berjalan,
-            SUM(status_pelaksanaan = 'selesai')             as selesai
+            SUM(CASE WHEN status_pelaksanaan IN ('belum_mulai', 'persiapan') THEN 1 ELSE 0 END) as belum_mulai,
+            SUM(CASE WHEN status_pelaksanaan = 'berjalan' THEN 1 ELSE 0 END) as berjalan,
+            SUM(CASE WHEN status_pelaksanaan = 'selesai' THEN 1 ELSE 0 END) as selesai
         ")->first();
 
         $recentPengajuan = Pengajuan::with(['user', 'jenisPkm'])
@@ -47,8 +47,9 @@ class DashboardController extends Controller
                 'tahun' => $p->created_at?->year ?? date('Y'),
                 'status' => $p->aktivitas
                     ? ($p->aktivitas->status_pelaksanaan === 'selesai' ? 'selesai'
-                        : (in_array($p->aktivitas->status_pelaksanaan, ['berjalan', 'persiapan']) ? 'berlangsung' : 'belum_mulai'))
-                    : ($p->status_pengajuan === 'diterima' ? 'belum_mulai' : $p->status_pengajuan),
+                        : ($p->aktivitas->status_pelaksanaan === 'berjalan' ? 'berlangsung' : 'belum_mulai'))
+                    : ($p->status_pengajuan === 'diproses' ? 'ada_pengajuan' : ($p->status_pengajuan === 'diterima' ? 'belum_mulai' : 'belum_mulai')),
+                'is_review' => $p->status_pengajuan === 'diproses' && $p->admin_read_at !== null,
                 'status_pengajuan' => $p->status_pengajuan,
                 'deskripsi' => $p->kebutuhan ?? '',
                 'thumbnail' => $p->aktivitas?->url_thumbnail,
@@ -127,6 +128,7 @@ class DashboardController extends Controller
 
         $barChartDatasets = $uniqueJenis->map(function ($jenis) use ($allYears, $lookup) {
             return [
+                'name' => $jenis['nama_jenis'], // Change label to name to match frontend expectations if needed, but 'label' is usually standard for Chart.js
                 'label' => $jenis['nama_jenis'],
                 'data' => array_map(
                     fn ($y) => (int) ($lookup->get("{$y}_{$jenis['id_jenis_pkm']}")?->total ?? 0),
@@ -139,6 +141,24 @@ class DashboardController extends Controller
             ];
         })->values()->toArray();
 
+        // Tambahkan dataset "Belum Mulai" (Status)
+        $barChartDatasets[] = [
+            'label' => 'Belum Mulai',
+            'data' => array_map(function($y) {
+                return (int) Pengajuan::leftJoin('aktivitas', 'pengajuan.id_pengajuan', '=', 'aktivitas.id_pengajuan')
+                    ->whereYear('pengajuan.created_at', $y)
+                    ->where('status_pengajuan', 'diterima')
+                    ->where(function($q) {
+                        $q->whereNull('aktivitas.status_pelaksanaan')
+                          ->orWhereIn('aktivitas.status_pelaksanaan', ['belum_mulai', 'persiapan']);
+                    })->count();
+            }, $allYears),
+            'backgroundColor' => '#94a3b8', // slate-400
+            'borderRadius' => 6,
+            'barPercentage' => 0.55,
+            'categoryPercentage' => 0.7,
+        ];
+
         $barChartData = [
             'labels' => $allYears,
             'datasets' => $barChartDatasets,
@@ -148,12 +168,12 @@ class DashboardController extends Controller
             'stats' => [
                 'totalPengajuan' => (int) ($statusCounts->total ?? 0),
                 'pengajuanDiproses' => (int) ($statusCounts->diproses ?? 0),
+                'pengajuanBaru' => (int) ($statusCounts->diproses_baru ?? 0),
+                'pengajuanReviu' => (int) ($statusCounts->diproses_reviu ?? 0),
                 'pengajuanDiterima' => (int) ($statusCounts->diterima ?? 0),
                 'pengajuanDitolak' => (int) ($statusCounts->ditolak ?? 0),
                 'pengajuanDirevisi' => (int) ($statusCounts->direvisi ?? 0),
-                'totalAktivitas' => (int) ($aktivitasCounts->total ?? 0),
                 'aktivitasBelumMulai' => (int) ($aktivitasCounts->belum_mulai ?? 0),
-                'aktivitasPersiapan' => (int) ($aktivitasCounts->persiapan ?? 0),
                 'aktivitasBerjalan' => (int) ($aktivitasCounts->berjalan ?? 0),
                 'aktivitasSelesai' => (int) ($aktivitasCounts->selesai ?? 0),
             ],

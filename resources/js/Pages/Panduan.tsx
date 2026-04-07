@@ -2,9 +2,11 @@ import React from 'react';
 import { Head } from '@inertiajs/react';
 import Layout from '@/Layouts/DefaultLayout';
 
-export default function Panduan() {
-    const pdfUrl = '/panduan_penggunaan.pdf';
+interface PanduanProps {
+    pdfUrl: string;
+}
 
+export default function Panduan({ pdfUrl }: PanduanProps) {
     return (
         <Layout>
             <Head title="Panduan | SIGAPPA" />

@@ -3,6 +3,7 @@ import { router } from '@inertiajs/react';
 import AdminLayout from '../../../Layouts/AdminLayout';
 import ConfirmDialog from '../../../Components/ConfirmDialog';
 import { Edit, Trash2, X, Plus, Search, Upload, Check, Grid, Type } from 'lucide-react';
+import BulkActionBar, { CheckboxCell, CheckboxHeader } from '../../../Components/BulkActionBar';
 
 interface JenisPkm {
     id_jenis_pkm: number;
@@ -82,6 +83,26 @@ const JenisPkmPage: React.FC<Props> = ({ listJenisPkm, filters }) => {
 
     const filtered = listJenisPkm.filter(j => j.nama_jenis.toLowerCase().includes(search.toLowerCase()));
 
+    // ── Bulk Delete ──
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
+    const allIdsOnPage = filtered.map(j => j.id_jenis_pkm);
+    const allChecked = allIdsOnPage.length > 0 && allIdsOnPage.every(id => selectedIds.includes(id));
+    const toggleAll = () => {
+        if (allChecked) setSelectedIds(prev => prev.filter(id => !allIdsOnPage.includes(id)));
+        else setSelectedIds(prev => [...new Set([...prev, ...allIdsOnPage])]);
+    };
+    const toggleOne = (id: number) =>
+        setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    const handleBulkDelete = () => {
+        if (confirm(`Hapus ${selectedIds.length} jenis PKM terpilih?`)) {
+            router.delete('/admin/master/jenis-pkm/bulk', {
+                data: { ids: selectedIds },
+                onSuccess: () => setSelectedIds([]),
+                preserveState: true,
+            });
+        }
+    };
+
     return (
         <AdminLayout title="">
             <div className="flex justify-between items-start mb-8">
@@ -93,6 +114,9 @@ const JenisPkmPage: React.FC<Props> = ({ listJenisPkm, filters }) => {
                     <Plus size={16} /> Kategori Baru
                 </button>
             </div>
+
+
+            <BulkActionBar selectedCount={selectedIds.length} onDelete={handleBulkDelete} onClear={() => setSelectedIds([])} entityLabel="jenis PKM" />
 
             <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-zinc-200">
                 {/* Search */}
@@ -111,6 +135,7 @@ const JenisPkmPage: React.FC<Props> = ({ listJenisPkm, filters }) => {
                     <table className="w-full text-left min-w-[600px]">
                         <thead>
                             <tr className="border-b border-zinc-200">
+                                <CheckboxHeader allChecked={allChecked} onToggleAll={toggleAll} />
                                 <th className="py-3 px-6 text-zinc-500 text-[11px] font-semibold uppercase tracking-wider w-12 text-center">ID</th>
                                 <th className="py-3 px-6 text-zinc-500 text-[11px] font-semibold uppercase tracking-wider cursor-pointer hover:bg-zinc-100" onClick={() => handleSort('nama_jenis')}>
                                     Nama Kategori {sortField === 'nama_jenis' && (sortDir === 'asc' ? '↑' : '↓')}
@@ -123,9 +148,12 @@ const JenisPkmPage: React.FC<Props> = ({ listJenisPkm, filters }) => {
                         </thead>
                         <tbody className="divide-y divide-zinc-100">
                             {filtered.length === 0 ? (
-                                <tr><td colSpan={4} className="py-12 text-center text-zinc-400 text-[13px]">Tidak ada data.</td></tr>
-                            ) : filtered.map((item, i) => (
-                                <tr key={item.id_jenis_pkm} className="hover:bg-zinc-50/50 transition-colors group">
+                                <tr><td colSpan={5} className="py-12 text-center text-zinc-400 text-[13px]">Tidak ada data.</td></tr>
+                            ) : filtered.map((item, i) => {
+                                const checked = selectedIds.includes(item.id_jenis_pkm);
+                                return (
+                                <tr key={item.id_jenis_pkm} className={`hover:bg-zinc-50/50 transition-colors group ${checked ? 'bg-red-50/40' : ''}`}>
+                                    <CheckboxCell checked={checked} onChange={() => toggleOne(item.id_jenis_pkm)} />
                                     <td className="py-4 px-6 text-zinc-400 text-[13px] text-center font-mono">{i + 1}</td>
                                     <td className="py-4 px-6">
                                         <div className="flex items-center gap-3">
@@ -148,7 +176,8 @@ const JenisPkmPage: React.FC<Props> = ({ listJenisPkm, filters }) => {
                                         </div>
                                     </td>
                                 </tr>
-                            ))}
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>

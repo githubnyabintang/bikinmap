@@ -21,7 +21,7 @@ class TemplateDokumenController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'jenis' => 'required|string|in:surat_permohonan,proposal',
+            'jenis' => 'required|string|in:surat_permohonan,proposal,panduan',
             'file' => 'required|file|mimes:pdf,doc,docx|max:10240', // max 10MB
         ]);
 

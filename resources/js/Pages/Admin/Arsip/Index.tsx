@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { router } from '@inertiajs/react';
 import AdminLayout from '../../../Layouts/AdminLayout';
 import ConfirmDialog from '../../../Components/ConfirmDialog';
-import { ExternalLink, Search, Folder, X, FileText, Eye, Plus, Trash2, Edit } from 'lucide-react';
+import { ExternalLink, Search, Folder, X, FileText, Eye, Plus, Trash2, Edit, Check } from 'lucide-react';
+import BulkActionBar, { CheckboxCell } from '../../../Components/BulkActionBar';
 
 interface ArsipItem {
     id_arsip: number;
@@ -157,6 +158,20 @@ const ArsipPage: React.FC<Props> = ({ listGroupedArsip, listAvailableAktivitas, 
 
     const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
 
+    // ── Bulk Delete for Arsip ──
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
+    const toggleOneArsip = (id: number) =>
+        setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    const handleBulkDelete = () => {
+        if (confirm(`Hapus ${selectedIds.length} arsip terpilih?`)) {
+            router.delete('/admin/arsip/bulk', {
+                data: { ids: selectedIds },
+                onSuccess: () => setSelectedIds([]),
+                preserveState: true,
+            });
+        }
+    };
+
     return (
         <AdminLayout title="">
             <div className="flex justify-between items-start mb-8">
@@ -171,6 +186,8 @@ const ArsipPage: React.FC<Props> = ({ listGroupedArsip, listAvailableAktivitas, 
                     <Plus size={16} /> Arsip Baru
                 </button>
             </div>
+
+            <BulkActionBar selectedCount={selectedIds.length} onDelete={handleBulkDelete} onClear={() => setSelectedIds([])} entityLabel="arsip" />
 
             <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden flex flex-col">
                 <div className="p-4 border-b border-zinc-200/80 bg-zinc-50/50 flex gap-4">
@@ -235,9 +252,18 @@ const ArsipPage: React.FC<Props> = ({ listGroupedArsip, listAvailableAktivitas, 
                                                     <div className="px-12 py-4 bg-zinc-50/30 shadow-inner">
                                                         <h4 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-3">Daftar Arsip</h4>
                                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                            {a.arsip.map(arsip => (
-                                                                <div key={arsip.id_arsip} className="flex items-center justify-between bg-white border border-zinc-200 rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow">
-                                                                    <div className="flex items-center gap-3 overflow-hidden">
+                                                            {a.arsip.map(arsip => {
+                                                                const checked = selectedIds.includes(arsip.id_arsip);
+                                                                return (
+                                                                <div key={arsip.id_arsip} className={`flex items-center justify-between bg-white border rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow ${checked ? 'border-red-300 bg-red-50/30' : 'border-zinc-200'}`}>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <button
+                                                                            onClick={e => { e.stopPropagation(); toggleOneArsip(arsip.id_arsip); }}
+                                                                            className="w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all"
+                                                                            style={{ borderColor: checked ? '#ef4444' : '#d4d4d8', backgroundColor: checked ? '#ef4444' : 'transparent' }}
+                                                                        >
+                                                                            {checked && <Check size={12} className="text-white" />}
+                                                                        </button>
                                                                         <div className="w-8 h-8 rounded-lg bg-zinc-100 border border-zinc-200 flex items-center justify-center text-zinc-500 flex-shrink-0">
                                                                             <FileText size={14} />
                                                                         </div>
@@ -256,7 +282,8 @@ const ArsipPage: React.FC<Props> = ({ listGroupedArsip, listAvailableAktivitas, 
                                                                         <button onClick={(e) => { e.stopPropagation(); handleDelete(arsip.id_arsip); }} className="p-1.5 rounded-md text-zinc-400 hover:text-red-600 hover:bg-red-50" title="Hapus"><Trash2 size={14} /></button>
                                                                     </div>
                                                                 </div>
-                                                            ))}
+                                                                );
+                                                            })}
                                                         </div>
                                                     </div>
                                                 </td>

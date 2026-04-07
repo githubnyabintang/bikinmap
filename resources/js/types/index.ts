@@ -36,6 +36,7 @@ export interface PkmData {
     nama: string;
     tahun: number;
     status: 'selesai' | 'berlangsung' | string;
+    is_review?: boolean;
     deskripsi: string;
     thumbnail: string | null;
     laporan?: string | null;

@@ -4,7 +4,7 @@ import AdminLayout from '@/Layouts/AdminLayout';
 import ConfirmDialog from '@/Components/ConfirmDialog';
 import {
     Filter, Search, ChevronRight, Clock, X,
-    Trash2, AlertCircle
+    Trash2, AlertCircle, Check
 } from 'lucide-react';
 
 interface Pengajuan {
@@ -45,7 +45,8 @@ interface PaginatedData {
 
 interface IndexProps {
     listPengajuan: PaginatedData;
-    filters: { search: string; status: string; sort?: string; direction?: string };
+    filters: { search: string; tab: string; sort?: string; direction?: string; tahun?: string };
+    availableYears: number[];
 }
 
 const STATUS_BADGE: Record<string, { label: string; text: string; bg: string; dot: string }> = {
@@ -55,12 +56,14 @@ const STATUS_BADGE: Record<string, { label: string; text: string; bg: string; do
     ditolak: { label: 'Ditolak', text: 'text-red-700', bg: 'bg-red-50', dot: 'bg-red-400' },
 };
 
-const STATUS_OPTIONS = [
-    { value: '', label: 'Semua Status' },
-    { value: 'diproses', label: 'Diproses' },
-    { value: 'direvisi', label: 'Direvisi' },
-    { value: 'diterima', label: 'Diterima' },
-    { value: 'ditolak', label: 'Ditolak' },
+const TABS = [
+    { id: '', label: 'Semua' },
+    { id: 'pengajuan', label: 'Pengajuan' },
+    { id: 'reviu', label: 'Reviu' },
+    { id: 'direvisi', label: 'Revisi' },
+    { id: 'diterima', label: 'Diterima' },
+    { id: 'ditolak', label: 'Ditolak' },
+    { id: 'selesai', label: 'Selesai' },
 ];
 
 const getSubmitterType = (item: Pengajuan): 'dosen' | 'masyarakat' => {
@@ -110,21 +113,23 @@ const getIncompleteReasons = (item: Pengajuan): string[] => {
     return reasons;
 };
 
-const Index: React.FC<IndexProps> = ({ listPengajuan, filters }) => {
+const Index: React.FC<IndexProps> = ({ listPengajuan, filters, availableYears }) => {
     const [search, setSearch] = useState(filters.search || '');
-    const [status, setStatus] = useState(filters.status || '');
+    const [tab, setTab] = useState(filters.tab || '');
+    const [tahun, setTahun] = useState(filters.tahun || '');
     const [sortField, setSortField] = useState(filters.sort || 'created_at');
     const [sortDir, setSortDir] = useState(filters.direction || 'desc');
 
     // ── Filter helpers ─────────────────────────────────
-    const applyFilters = useCallback((newSortField?: string, newSortDir?: string) => {
+    const applyFilters = useCallback((newSortField?: string, newSortDir?: string, newTahun?: string) => {
         router.get('/admin/pengajuan', {
             search: search || undefined,
-            status: status || undefined,
+            tab: tab || undefined,
+            tahun: newTahun !== undefined ? newTahun : (tahun || undefined),
             sort: newSortField !== undefined ? newSortField : sortField,
             direction: newSortDir !== undefined ? newSortDir : sortDir,
         }, { preserveState: true, replace: true });
-    }, [search, status, sortField, sortDir]);
+    }, [search, tab, sortField, sortDir, tahun]);
 
     const handleSort = (field: string) => {
         const isAsc = sortField === field && sortDir === 'asc';
@@ -134,19 +139,50 @@ const Index: React.FC<IndexProps> = ({ listPengajuan, filters }) => {
         applyFilters(field, newDir);
     };
 
-    const handleStatusChange = (newStatus: string) => {
-        setStatus(newStatus);
+    const handleTabChange = (newTab: string) => {
+        setTab(newTab);
         router.get('/admin/pengajuan', {
             search: search || undefined,
-            status: newStatus || undefined,
+            tab: newTab || undefined,
+            tahun: tahun || undefined,
             sort: sortField,
             direction: sortDir,
         }, { preserveState: true, replace: true });
     };
 
     const clearFilters = () => {
-        setSearch(''); setStatus(''); setSortField('created_at'); setSortDir('desc');
+        setSearch(''); setTab(''); setTahun(''); setSortField('created_at'); setSortDir('desc');
         router.get('/admin/pengajuan', {}, { preserveState: true, replace: true });
+    };
+
+    // ── Bulk Delete ──────────────────────────────────────────
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
+    
+    const allIdsOnPage = listPengajuan.data.map(p => p.id_pengajuan);
+    const allChecked = allIdsOnPage.length > 0 && allIdsOnPage.every(id => selectedIds.includes(id));
+
+    const toggleAll = () => {
+        if (allChecked) {
+            setSelectedIds(prev => prev.filter(id => !allIdsOnPage.includes(id)));
+        } else {
+            setSelectedIds(prev => [...new Set([...prev, ...allIdsOnPage])]);
+        }
+    };
+
+    const toggleOne = (id: number) => {
+        setSelectedIds(prev =>
+            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+        );
+    };
+
+    const handleBulkDelete = () => {
+        if (confirm(`Apakah Anda yakin ingin menghapus ${selectedIds.length} pengajuan terpilih?`)) {
+            router.delete('/admin/pengajuan/bulk', {
+                data: { ids: selectedIds },
+                onSuccess: () => setSelectedIds([]),
+                preserveState: true,
+            });
+        }
     };
 
     // ── Delete ──────────────────────────────────────────
@@ -165,7 +201,7 @@ const Index: React.FC<IndexProps> = ({ listPengajuan, filters }) => {
         }
     };
 
-    const hasFilters = search || status;
+    const hasFilters = search || tab || tahun;
 
     return (
         <AdminLayout title="">
@@ -175,8 +211,27 @@ const Index: React.FC<IndexProps> = ({ listPengajuan, filters }) => {
                     <h1 className="text-[24px] font-bold text-zinc-900 tracking-tight">Kelola Pengajuan</h1>
                     <p className="text-[14px] text-zinc-500 mt-1">Review dan kelola semua pengajuan proposal kegiatan PKM.</p>
                 </div>
+            </div>
 
-                {/* Toolbar */}
+            {/* Toolbar */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+                {/* Tabs */}
+                <div className="flex items-center gap-1 bg-zinc-100 p-1 rounded-lg">
+                    {TABS.map(t => (
+                        <button
+                            key={t.id}
+                            onClick={() => handleTabChange(t.id)}
+                            className={`px-4 py-1.5 rounded-md text-[13px] font-medium transition-all ${
+                                tab === t.id
+                                    ? 'bg-white text-zinc-900 shadow-sm'
+                                    : 'text-zinc-500 hover:text-zinc-700 hover:bg-zinc-200/50'
+                            }`}
+                        >
+                            {t.label}
+                        </button>
+                    ))}
+                </div>
+
                 <div className="flex items-center gap-2 flex-wrap">
                     {/* Search */}
                     <div className="relative">
@@ -190,19 +245,19 @@ const Index: React.FC<IndexProps> = ({ listPengajuan, filters }) => {
                             className="bg-white border border-zinc-200 rounded-md py-2 pl-9 pr-4 text-[13px] text-zinc-700 placeholder-zinc-400 focus:ring-2 focus:ring-zinc-200 focus:border-zinc-400 outline-none w-56 shadow-sm transition-all"
                         />
                     </div>
-
-                    {/* Status filter */}
                     <select
-                        value={status}
-                        onChange={e => handleStatusChange(e.target.value)}
-                        className="px-3 py-2 bg-white border border-zinc-200 shadow-sm rounded-md text-[13px] font-medium text-zinc-600 focus:ring-2 focus:ring-zinc-200 outline-none cursor-pointer"
+                        value={tahun}
+                        onChange={e => {
+                            setTahun(e.target.value);
+                            applyFilters(sortField, sortDir, e.target.value);
+                        }}
+                        className="bg-white border border-zinc-200 rounded-md py-2 px-3 text-[13px] text-zinc-700 outline-none shadow-sm cursor-pointer min-w-[120px]"
                     >
-                        {STATUS_OPTIONS.map(opt => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        <option value="">Semua Tahun</option>
+                        {availableYears.map(y => (
+                            <option key={y} value={y}>{y}</option>
                         ))}
                     </select>
-
-                    {/* Clear filter */}
                     {hasFilters && (
                         <button onClick={clearFilters} className="p-2 text-zinc-400 hover:text-zinc-600 transition-colors" title="Hapus filter">
                             <X size={14} />
@@ -211,12 +266,51 @@ const Index: React.FC<IndexProps> = ({ listPengajuan, filters }) => {
                 </div>
             </div>
 
+            {/* Bulk action bar */}
+            {selectedIds.length > 0 && (
+                <div className="flex flex-wrap items-center gap-3 mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-[13px] animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center">
+                        <Check size={12} className="text-white" />
+                    </div>
+                    <span className="font-bold text-red-800">{selectedIds.length} item dipilih</span>
+                    <span className="text-red-300">|</span>
+                    
+                    <button
+                        onClick={handleBulkDelete}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white border border-red-700 rounded-md text-[12px] font-bold hover:bg-red-700 transition-colors"
+                    >
+                        <Trash2 size={13} /> Hapus Terpilih
+                    </button>
+
+                    <button
+                        onClick={() => setSelectedIds([])}
+                        className="ml-auto px-2 py-1 text-red-400 hover:text-red-700 hover:bg-red-100 rounded-md transition-colors"
+                        title="Hapus semua pilihan"
+                    >
+                        <X size={16} />
+                    </button>
+                </div>
+            )}
+
             {/* ── Table ── */}
             <div className="bg-white rounded-xl border border-zinc-200 shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left min-w-[700px]">
                         <thead>
                             <tr className="border-b border-zinc-200 bg-zinc-50/50">
+                                <th className="py-3 px-4 w-12 text-center">
+                                    <button
+                                        onClick={toggleAll}
+                                        className="w-5 h-5 rounded border-2 flex items-center justify-center transition-all cursor-pointer hover:scale-110 mx-auto"
+                                        style={{
+                                            borderColor: allChecked ? '#ef4444' : '#d4d4d8',
+                                            backgroundColor: allChecked ? '#ef4444' : 'transparent',
+                                        }}
+                                        title="Pilih semua"
+                                    >
+                                        {allChecked && <Check size={12} className="text-white" />}
+                                    </button>
+                                </th>
                                 <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-zinc-500 cursor-pointer hover:bg-zinc-100" onClick={() => handleSort('judul_kegiatan')}>
                                     Nama Kegiatan {sortField === 'judul_kegiatan' && (sortDir === 'asc' ? '↑' : '↓')}
                                 </th>
@@ -232,7 +326,7 @@ const Index: React.FC<IndexProps> = ({ listPengajuan, filters }) => {
                         <tbody className="divide-y divide-zinc-100">
                             {listPengajuan.data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="py-12 text-center text-zinc-400 text-[14px]">
+                                    <td colSpan={7} className="py-12 text-center text-zinc-400 text-[14px]">
                                         {hasFilters ? 'Tidak ada hasil untuk filter yang dipilih.' : 'Belum ada data pengajuan.'}
                                     </td>
                                 </tr>
@@ -243,8 +337,21 @@ const Index: React.FC<IndexProps> = ({ listPengajuan, filters }) => {
                                     const submitterName = getSubmitterName(item);
                                     const incompleteReasons = getIncompleteReasons(item);
                                     const isIncomplete = incompleteReasons.length > 0;
+                                    const checked = selectedIds.includes(item.id_pengajuan);
                                     return (
-                                        <tr key={item.id_pengajuan} className="hover:bg-zinc-50/50 transition-colors group">
+                                        <tr key={item.id_pengajuan} className={`hover:bg-zinc-50/50 transition-colors group ${checked ? 'bg-red-50/40' : ''}`}>
+                                            <td className="py-3 px-4 text-center border-r border-zinc-100">
+                                                <button
+                                                    onClick={() => toggleOne(item.id_pengajuan)}
+                                                    className="w-5 h-5 rounded border-2 flex items-center justify-center transition-all cursor-pointer hover:scale-110 mx-auto"
+                                                    style={{
+                                                        borderColor: checked ? '#ef4444' : '#d4d4d8',
+                                                        backgroundColor: checked ? '#ef4444' : 'transparent',
+                                                    }}
+                                                >
+                                                    {checked && <Check size={12} className="text-white" />}
+                                                </button>
+                                            </td>
                                             {/* Nama Kegiatan */}
                                             <td className="py-3 px-4">
                                                 <Link href={`/admin/pengajuan/${item.id_pengajuan}`} className="text-[14px] font-semibold text-zinc-900 group-hover:text-indigo-600 transition-colors leading-snug truncate max-w-[260px] block">

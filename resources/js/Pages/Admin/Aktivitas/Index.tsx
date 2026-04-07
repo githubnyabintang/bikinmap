@@ -3,7 +3,7 @@ import { router } from '@inertiajs/react';
 import AdminLayout from '../../../Layouts/AdminLayout';
 import {
     Search, Calendar, MapPin,
-    Download, Mail, X, Check, Loader2, Send, Eye
+    Download, Mail, X, Check, Loader2, Send, Eye, Trash2
 } from 'lucide-react';
 
 interface AktivitasItem {
@@ -34,7 +34,8 @@ interface PaginatedData {
 
 interface Props {
     listAktivitas: PaginatedData;
-    filters?: { sort?: string; direction?: string; status?: string };
+    filters?: { sort?: string; direction?: string; status?: string; tahun?: string };
+    availableYears?: number[];
 }
 
 const getRecipientName = (act: AktivitasItem): string =>
@@ -51,14 +52,17 @@ const formatDate = (dateStr?: string): string => {
 const STATUS_OPTIONS = [
     { value: '', label: 'Semua Status' },
     { value: 'belum_mulai', label: 'Belum Mulai' },
-    { value: 'persiapan', label: 'Persiapan' },
     { value: 'berjalan', label: 'Berjalan' },
     { value: 'selesai', label: 'Selesai' },
 ];
 
-const AktivitasPage: React.FC<Props> = ({ listAktivitas, filters }) => {
+const normalizeStatusPelaksanaan = (status: string): string =>
+    status === 'persiapan' ? 'belum_mulai' : status;
+
+const AktivitasPage: React.FC<Props> = ({ listAktivitas, filters, availableYears = [] }) => {
     const [search, setSearch] = useState('');
     const [filterStatus, setFilterStatus] = useState(filters?.status || '');
+    const [tahun, setTahun] = useState(filters?.tahun || '');
     const [sortField, setSortField] = useState(filters?.sort || 'created_at');
     const [sortDir, setSortDir] = useState(filters?.direction || 'desc');
 
@@ -104,14 +108,15 @@ Politeknik Pariwisata Makassar`;
         setShowUndangan(true);
     }, [buildDefaultSubject, buildDefaultBody]);
 
-    const applyFilters = useCallback((newSortField?: string, newSortDir?: string) => {
+    const applyFilters = useCallback((newSortField?: string, newSortDir?: string, newTahun?: string) => {
         const params: Record<string, string> = {
             sort: newSortField !== undefined ? newSortField : sortField,
             direction: newSortDir !== undefined ? newSortDir : sortDir,
         };
         if (filterStatus) params.status = filterStatus;
+        if (newTahun !== undefined ? newTahun : tahun) params.tahun = newTahun !== undefined ? newTahun : tahun;
         router.get('/admin/aktivitas', params, { preserveState: true, replace: true });
-    }, [filterStatus, sortField, sortDir]);
+    }, [filterStatus, sortField, sortDir, tahun]);
 
     const handleSort = (field: string) => {
         const isAsc = sortField === field && sortDir === 'asc';
@@ -125,16 +130,18 @@ Politeknik Pariwisata Makassar`;
         setFilterStatus(newStatus);
         const params: Record<string, string> = { sort: sortField, direction: sortDir };
         if (newStatus) params.status = newStatus;
+        if (tahun) params.tahun = tahun;
         router.get('/admin/aktivitas', params, { preserveState: true, replace: true });
     };
 
     const clearFilters = () => {
         setSearch('');
         setFilterStatus('');
+        setTahun('');
         router.get('/admin/aktivitas', { sort: sortField, direction: sortDir }, { preserveState: true, replace: true });
     };
 
-    const hasFilters = filterStatus;
+    const hasFilters = filterStatus || tahun;
 
     const handleExport = () => {
         const params = new URLSearchParams();
@@ -143,15 +150,14 @@ Politeknik Pariwisata Makassar`;
         window.location.href = `/admin/aktivitas/export?${params.toString()}`;
     };
 
-    const belumMulaiVisible = data.filter(a => a.status_pelaksanaan === 'belum_mulai');
-    const belumMulaiVisibleIds = belumMulaiVisible.map(a => a.id_aktivitas);
-    const allBelumMulaiChecked = belumMulaiVisibleIds.length > 0 && belumMulaiVisibleIds.every(id => selectedIds.includes(id));
+    const allIdsOnPage = data.map(a => a.id_aktivitas);
+    const allChecked = allIdsOnPage.length > 0 && allIdsOnPage.every(id => selectedIds.includes(id));
 
     const toggleAll = () => {
-        if (allBelumMulaiChecked) {
-            setSelectedIds(prev => prev.filter(id => !belumMulaiVisibleIds.includes(id)));
+        if (allChecked) {
+            setSelectedIds(prev => prev.filter(id => !allIdsOnPage.includes(id)));
         } else {
-            setSelectedIds(prev => [...new Set([...prev, ...belumMulaiVisibleIds])]);
+            setSelectedIds(prev => [...new Set([...prev, ...allIdsOnPage])]);
         }
     };
 
@@ -162,7 +168,7 @@ Politeknik Pariwisata Makassar`;
     };
 
     const undanganRecipients = data.filter(
-        a => selectedIds.includes(a.id_aktivitas) && a.status_pelaksanaan === 'belum_mulai'
+        a => selectedIds.includes(a.id_aktivitas)
     );
 
     const recipientsWithEmail = undanganRecipients.filter(a => getRecipientEmail(a).includes('@'));
@@ -186,6 +192,16 @@ Politeknik Pariwisata Makassar`;
         });
     };
 
+    const handleBulkDelete = () => {
+        if (confirm(`Apakah Anda yakin ingin menghapus ${selectedIds.length} aktivitas terpilih?`)) {
+            router.delete('/admin/aktivitas/bulk', {
+                data: { ids: selectedIds },
+                onSuccess: () => setSelectedIds([]),
+                preserveState: true,
+            });
+        }
+    };
+
     return (
         <AdminLayout title="">
             {/* Page Header */}
@@ -196,41 +212,64 @@ Politeknik Pariwisata Makassar`;
                 </div>
 
                 {/* Toolbar */}
-                <div className="flex items-center gap-2 flex-wrap">
-                    <div className="relative">
-                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                        <input
-                            type="text"
-                            placeholder="Cari kegiatan..."
-                            value={search}
-                            onChange={e => setSearch(e.target.value)}
-                            onKeyDown={e => e.key === 'Enter' && applyFilters()}
-                            className="bg-white border border-zinc-200 rounded-md py-2 pl-9 pr-4 text-[13px] text-zinc-700 placeholder-zinc-400 focus:ring-2 focus:ring-zinc-200 focus:border-zinc-400 outline-none w-56 shadow-sm transition-all"
-                        />
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 w-full">
+                    {/* Tabs */}
+                    <div className="flex items-center gap-1 bg-zinc-100 p-1 rounded-lg overflow-x-auto max-w-full">
+                        {STATUS_OPTIONS.map(opt => (
+                            <button
+                                key={opt.value}
+                                onClick={() => handleStatusChange(opt.value)}
+                                className={`px-4 py-1.5 rounded-md text-[13px] font-medium transition-all whitespace-nowrap overflow-hidden ${
+                                    filterStatus === opt.value
+                                        ? 'bg-white text-zinc-900 shadow-sm'
+                                        : 'text-zinc-500 hover:text-zinc-700 hover:bg-zinc-200/50'
+                                }`}
+                            >
+                                {opt.label}
+                            </button>
+                        ))}
                     </div>
 
-                    <select
-                        value={filterStatus}
-                        onChange={e => handleStatusChange(e.target.value)}
-                        className="px-3 py-2 bg-white border border-zinc-200 shadow-sm rounded-md text-[13px] font-medium text-zinc-600 focus:ring-2 focus:ring-zinc-200 outline-none cursor-pointer"
-                    >
-                        {STATUS_OPTIONS.map(opt => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                        ))}
-                    </select>
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <div className="relative">
+                            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                            <input
+                                type="text"
+                                placeholder="Cari kegiatan..."
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && applyFilters()}
+                                className="bg-white border border-zinc-200 rounded-md py-2 pl-9 pr-4 text-[13px] text-zinc-700 placeholder-zinc-400 focus:ring-2 focus:ring-zinc-200 focus:border-zinc-400 outline-none w-56 shadow-sm transition-all"
+                            />
+                        </div>
 
-                    {hasFilters && (
-                        <button onClick={clearFilters} className="p-2 text-zinc-400 hover:text-zinc-600 transition-colors" title="Hapus filter">
-                            <X size={14} />
+                        <select
+                            value={tahun}
+                            onChange={e => {
+                                setTahun(e.target.value);
+                                applyFilters(sortField, sortDir, e.target.value);
+                            }}
+                            className="bg-white border border-zinc-200 rounded-md py-2 px-3 text-[13px] text-zinc-700 outline-none shadow-sm cursor-pointer min-w-[120px]"
+                        >
+                            <option value="">Semua Tahun</option>
+                            {(availableYears || []).map(y => (
+                                <option key={y} value={y}>{y}</option>
+                            ))}
+                        </select>
+
+                        {hasFilters && (
+                            <button onClick={clearFilters} className="p-2 text-zinc-400 hover:text-zinc-600 transition-colors" title="Hapus filter">
+                                <X size={14} />
+                            </button>
+                        )}
+
+                        <button
+                            onClick={handleExport}
+                            className="flex items-center gap-2 px-3 py-2 bg-white border border-zinc-200 shadow-sm rounded-md text-[13px] font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
+                        >
+                            <Download size={14} /> Export
                         </button>
-                    )}
-
-                    <button
-                        onClick={handleExport}
-                        className="flex items-center gap-2 px-3 py-2 bg-white border border-zinc-200 shadow-sm rounded-md text-[13px] font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
-                    >
-                        <Download size={14} /> Export
-                    </button>
+                    </div>
                 </div>
             </div>
 
@@ -240,17 +279,23 @@ Politeknik Pariwisata Makassar`;
                     <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center">
                         <Check size={12} className="text-white" />
                     </div>
-                    <span className="font-bold">{selectedIds.length} aktivitas dipilih</span>
+                    <span className="font-bold">{selectedIds.length} item dipilih</span>
                     <span className="text-indigo-300">|</span>
-                    {recipientsWithEmail.length > 0 ? (
+                    
+                    <button
+                        onClick={handleBulkDelete}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 border border-red-200 rounded-md text-[12px] font-bold hover:bg-red-100 transition-colors"
+                    >
+                        <Trash2 size={13} /> Hapus Terpilih
+                    </button>
+
+                    {recipientsWithEmail.length > 0 && (
                         <button
                             onClick={openUndanganModal}
                             className="flex items-center gap-1.5 px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-[12px] font-bold hover:bg-indigo-700 transition-all hover:shadow-md active:scale-95"
                         >
                             <Mail size={13} /> Kirim Undangan ({recipientsWithEmail.length})
                         </button>
-                    ) : (
-                        <span className="text-[12px] text-indigo-400 italic">Pilih aktivitas berstatus &quot;Belum Mulai&quot; dengan email valid</span>
                     )}
                     <button
                         onClick={() => setSelectedIds([])}
@@ -273,12 +318,12 @@ Politeknik Pariwisata Makassar`;
                                         onClick={toggleAll}
                                         className="w-5 h-5 rounded border-2 flex items-center justify-center transition-all cursor-pointer hover:scale-110"
                                         style={{
-                                            borderColor: allBelumMulaiChecked ? '#4f46e5' : '#d4d4d8',
-                                            backgroundColor: allBelumMulaiChecked ? '#4f46e5' : 'transparent',
+                                            borderColor: allChecked ? '#4f46e5' : '#d4d4d8',
+                                            backgroundColor: allChecked ? '#4f46e5' : 'transparent',
                                         }}
-                                        title="Pilih semua belum mulai"
+                                        title="Pilih semua"
                                     >
-                                        {allBelumMulaiChecked && <Check size={12} className="text-white" />}
+                                        {allChecked && <Check size={12} className="text-white" />}
                                     </button>
                                 </th>
                                 <th className="py-3 px-6 text-[11px] font-semibold uppercase tracking-wider text-zinc-500 w-12 border-r border-zinc-100 bg-zinc-50 cursor-pointer hover:bg-zinc-100" onClick={() => handleSort('id_aktivitas')}>
@@ -301,7 +346,7 @@ Politeknik Pariwisata Makassar`;
                                     </td>
                                 </tr>
                             ) : data.map((act) => {
-                                const isBelumMulai = act.status_pelaksanaan === 'belum_mulai';
+                                const normalizedStatus = normalizeStatusPelaksanaan(act.status_pelaksanaan);
                                 const checked = selectedIds.includes(act.id_aktivitas);
                                 return (
                                     <tr
@@ -310,23 +355,19 @@ Politeknik Pariwisata Makassar`;
                                         onClick={() => window.location.href = `/admin/aktivitas/${act.id_aktivitas}`}
                                     >
                                         <td className="py-4 px-4" onClick={e => e.stopPropagation()}>
-                                            {isBelumMulai ? (
-                                                <button
-                                                    onClick={() => toggleOne(act.id_aktivitas)}
-                                                    className="w-5 h-5 rounded border-2 flex items-center justify-center transition-all cursor-pointer hover:scale-110"
-                                                    style={{
-                                                        borderColor: checked ? '#4f46e5' : '#d4d4d8',
-                                                        backgroundColor: checked ? '#4f46e5' : 'transparent',
-                                                    }}
-                                                >
-                                                    {checked && <Check size={12} className="text-white" />}
-                                                </button>
-                                            ) : (
-                                                <div className="w-5 h-5" />
-                                            )}
+                                            <button
+                                                onClick={() => toggleOne(act.id_aktivitas)}
+                                                className="w-5 h-5 rounded border-2 flex items-center justify-center transition-all cursor-pointer hover:scale-110"
+                                                style={{
+                                                    borderColor: checked ? '#4f46e5' : '#d4d4d8',
+                                                    backgroundColor: checked ? '#4f46e5' : 'transparent',
+                                                }}
+                                            >
+                                                {checked && <Check size={12} className="text-white" />}
+                                            </button>
                                         </td>
                                         <td className="py-4 px-6 text-zinc-500 text-[13px] font-mono border-r border-zinc-100 bg-zinc-50/30">
-                                            {act.id_aktivitas.toString().padStart(2, '0')}
+                                            {((listAktivitas.current_page - 1) * listAktivitas.per_page + data.indexOf(act) + 1).toString().padStart(2, '0')}
                                         </td>
                                         <td className="py-4 px-6">
                                             <a href={`/admin/aktivitas/${act.id_aktivitas}`} className="font-semibold text-zinc-900 text-[14px] group-hover:text-indigo-600 transition-colors block">
@@ -350,21 +391,18 @@ Politeknik Pariwisata Makassar`;
                                         </td>
                                         <td className="py-4 px-6 text-right">
                                             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold uppercase tracking-wider border ${
-                                                act.status_pelaksanaan === 'selesai'
+                                                normalizedStatus === 'selesai'
                                                     ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-                                                    : act.status_pelaksanaan === 'belum_mulai'
+                                                    : normalizedStatus === 'belum_mulai'
                                                     ? 'bg-slate-100 text-slate-600 border-slate-200'
-                                                    : act.status_pelaksanaan === 'persiapan'
-                                                    ? 'bg-blue-50 text-blue-700 border-blue-100'
                                                     : 'bg-amber-50 text-amber-700 border-amber-100'
                                             }`}>
                                                 <span className={`w-1.5 h-1.5 rounded-full ${
-                                                    act.status_pelaksanaan === 'selesai' ? 'bg-emerald-500'
-                                                    : act.status_pelaksanaan === 'belum_mulai' ? 'bg-slate-400'
-                                                    : act.status_pelaksanaan === 'persiapan' ? 'bg-blue-500'
+                                                    normalizedStatus === 'selesai' ? 'bg-emerald-500'
+                                                    : normalizedStatus === 'belum_mulai' ? 'bg-slate-400'
                                                     : 'bg-amber-500'
                                                 }`}></span>
-                                                {act.status_pelaksanaan.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                                                {normalizedStatus.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())}
                                             </span>
                                         </td>
                                     </tr>
@@ -562,19 +600,11 @@ Politeknik Pariwisata Makassar`;
                                                 {firstSelected.pengajuan.jenis_pkm.nama_jenis}
                                             </span>
                                         )}
-                                        <div className="border-t border-[#E2E8F0] mt-4 pt-4 grid grid-cols-2 gap-4">
-                                            <div>
-                                                <p className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider mb-1">Tanggal Mulai</p>
-                                                <p className="text-[14px] font-bold text-[#0D1F3C]">{formatDate(firstSelected?.pengajuan?.tgl_mulai)}</p>
-                                                <p className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider mt-3 mb-1">Tanggal Selesai</p>
-                                                <p className="text-[14px] font-bold text-[#0D1F3C]">{formatDate(firstSelected?.pengajuan?.tgl_selesai)}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider mb-1">Lokasi Kegiatan</p>
-                                                <p className="text-[14px] font-bold text-[#0D1F3C]">
-                                                    {[firstSelected?.pengajuan?.kota_kabupaten, firstSelected?.pengajuan?.provinsi].filter(Boolean).join(', ') || 'Akan ditentukan'}
-                                                </p>
-                                            </div>
+                                        <div className="border-t border-[#E2E8F0] mt-4 pt-4">
+                                            <p className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider mb-1">Lokasi Kegiatan</p>
+                                            <p className="text-[14px] font-bold text-[#0D1F3C]">
+                                                {[firstSelected?.pengajuan?.kota_kabupaten, firstSelected?.pengajuan?.provinsi].filter(Boolean).join(', ') || 'Akan ditentukan'}
+                                            </p>
                                         </div>
                                     </div>
 
@@ -606,7 +636,16 @@ Politeknik Pariwisata Makassar`;
                                     <p className="text-[12px] font-bold text-[#15325F] mb-1.5">
                                         SIGAPPA <span className="inline-block w-1 h-1 bg-[#DCAF67] rounded-full mx-2 align-middle"></span> Politeknik Pariwisata Makassar
                                     </p>
-                                    <p className="text-[11px] text-[#94A3B8]">Email ini dikirim otomatis oleh sistem SIGAPPA. Mohon tidak membalas email ini.</p>
+                                    <p className="text-[11px] text-[#94A3B8] mb-1">
+                                        Dikirim pada {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                    </p>
+                                    {recipientsWithEmail.length > 0 && (
+                                        <p className="text-[11px] text-[#94A3B8] mb-3">
+                                            Email ini dikirim ke <span className="text-[#64748B] font-medium">{recipientsWithEmail.map(getRecipientEmail).join(', ')}</span>
+                                        </p>
+                                    )}
+                                    <p className="text-[11px] text-[#CBD5E1] mb-2">© {new Date().getFullYear()} Semua hak dilindungi undang-undang.</p>
+                                    <p className="text-[10px] text-[#CBD5E1] leading-[1.6]">Email ini dikirim otomatis oleh sistem SIGAPPA. Mohon tidak membalas email ini.</p>
                                 </div>
                             </div>
                         </div>

@@ -4,6 +4,7 @@ import AdminLayout from '@/Layouts/AdminLayout';
 import ConfirmDialog from '@/Components/ConfirmDialog';
 import { PageProps } from '@/types';
 import { Trash2, Star, Eye, X } from 'lucide-react';
+import BulkActionBar, { CheckboxCell, CheckboxHeader } from '@/Components/BulkActionBar';
 
 interface EvaluasiSistem {
     id_evaluasi: number;
@@ -22,6 +23,26 @@ interface EvaluasiSistem {
 export default function EvaluasiSistemIndex({ auth, evaluasi }: any) {
     const [selectedDetail, setSelectedDetail] = useState<EvaluasiSistem | null>(null);
     const [deleteId, setDeleteId] = useState<number | null>(null);
+
+    // ── Bulk Delete ──
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
+    const allIdsOnPage = (evaluasi as EvaluasiSistem[]).map(e => e.id_evaluasi);
+    const allChecked = allIdsOnPage.length > 0 && allIdsOnPage.every(id => selectedIds.includes(id));
+    const toggleAll = () => {
+        if (allChecked) setSelectedIds(prev => prev.filter(id => !allIdsOnPage.includes(id)));
+        else setSelectedIds(prev => [...new Set([...prev, ...allIdsOnPage])]);
+    };
+    const toggleOne = (id: number) =>
+        setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    const handleBulkDelete = () => {
+        if (confirm(`Hapus ${selectedIds.length} data evaluasi terpilih?`)) {
+            router.delete('/admin/evaluasi-sistem/bulk', {
+                data: { ids: selectedIds },
+                onSuccess: () => setSelectedIds([]),
+                preserveState: true,
+            });
+        }
+    };
 
     const handleDelete = (id: number) => {
         setDeleteId(id);
@@ -49,6 +70,9 @@ export default function EvaluasiSistemIndex({ auth, evaluasi }: any) {
                     <p className="text-sm text-slate-500 mt-1">Umpan balik dan penilaian dari masyarakat dan stakeholder</p>
                 </div>
             </div>
+
+
+            <BulkActionBar selectedCount={selectedIds.length} onDelete={handleBulkDelete} onClear={() => setSelectedIds([])} entityLabel="evaluasi" />
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex items-center justify-between">
@@ -79,6 +103,7 @@ export default function EvaluasiSistemIndex({ auth, evaluasi }: any) {
                     <table className="w-full text-left text-sm text-slate-600">
                         <thead className="bg-slate-50 text-slate-700 border-b border-slate-200">
                             <tr>
+                                <CheckboxHeader allChecked={allChecked} onToggleAll={toggleAll} />
                                 <th className="px-6 py-4 font-semibold w-16">No</th>
                                 <th className="px-6 py-4 font-semibold">Responden</th>
                                 <th className="px-6 py-4 font-semibold">Rata-Rata Bintang</th>
@@ -88,8 +113,11 @@ export default function EvaluasiSistemIndex({ auth, evaluasi }: any) {
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {evaluasi.length > 0 ? (
-                                evaluasi.map((item: EvaluasiSistem, index: number) => (
-                                    <tr key={item.id_evaluasi} className="hover:bg-slate-50 transition-colors">
+                                evaluasi.map((item: EvaluasiSistem, index: number) => {
+                                    const checked = selectedIds.includes(item.id_evaluasi);
+                                    return (
+                                    <tr key={item.id_evaluasi} className={`hover:bg-slate-50 transition-colors ${checked ? 'bg-red-50/40' : ''}`}>
+                                        <CheckboxCell checked={checked} onChange={() => toggleOne(item.id_evaluasi)} />
                                         <td className="px-6 py-4 text-center">{index + 1}</td>
                                         <td className="px-6 py-4">
                                             <p className="font-bold text-slate-800 mb-1">{item.nama}</p>
@@ -113,10 +141,11 @@ export default function EvaluasiSistemIndex({ auth, evaluasi }: any) {
                                             </button>
                                         </td>
                                     </tr>
-                                ))
+                                    );
+                                })
                             ) : (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
+                                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
                                         Belum ada data evaluasi yang masuk.
                                     </td>
                                 </tr>
