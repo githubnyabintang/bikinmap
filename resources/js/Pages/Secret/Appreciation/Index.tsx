@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { PageProps } from '@/types';
-import { User, Image as ImageIcon, Plus, Edit, Trash2, X } from 'lucide-react';
+import { User, Image as ImageIcon, Plus, Edit, Trash2, X, Upload } from 'lucide-react';
 
 interface Dev {
     id_developer: number;
@@ -27,31 +27,54 @@ export default function AppreciationAdmin({ auth, developers, docs }: any) {
     // Dev Modal
     const [devModal, setDevModal] = useState(false);
     const [devEditingId, setDevEditingId] = useState<number | null>(null);
-    const [devForm, setDevForm] = useState({ nama: '', peran: '', asal_instansi: '', foto: '', urutan: 0 });
+    const [devForm, setDevForm] = useState({ nama: '', peran: '', asal_instansi: '', urutan: 0 });
+    const [devFoto, setDevFoto] = useState<File | null>(null);
+    const [devFotoPreview, setDevFotoPreview] = useState<string | null>(null);
+    const devFileRef = useRef<HTMLInputElement>(null);
 
     const openDevModal = (dev?: Dev) => {
         if (dev) {
-            setDevForm({ nama: dev.nama, peran: dev.peran || '', asal_instansi: dev.asal_instansi || '', foto: dev.foto || '', urutan: dev.urutan });
+            setDevForm({ nama: dev.nama, peran: dev.peran || '', asal_instansi: dev.asal_instansi || '', urutan: dev.urutan });
+            setDevFotoPreview(dev.foto || null);
             setDevEditingId(dev.id_developer);
         } else {
-            setDevForm({ nama: '', peran: '', asal_instansi: '', foto: '', urutan: 0 });
+            setDevForm({ nama: '', peran: '', asal_instansi: '', urutan: 0 });
+            setDevFotoPreview(null);
             setDevEditingId(null);
         }
+        setDevFoto(null);
         setDevModal(true);
+    };
+
+    const handleDevFotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0] || null;
+        setDevFoto(file);
+        if (file) {
+            setDevFotoPreview(URL.createObjectURL(file));
+        }
     };
 
     const submitDev = (e: React.FormEvent) => {
         e.preventDefault();
         setSubmitting(true);
+
+        const formData = new FormData();
+        formData.append('nama', devForm.nama);
+        formData.append('peran', devForm.peran);
+        formData.append('asal_instansi', devForm.asal_instansi);
+        formData.append('urutan', String(devForm.urutan));
+        if (devFoto) formData.append('foto', devFoto);
+
         if (devEditingId) {
-            router.put(`/secret/appreciation/dev/${devEditingId}`, devForm, {
+            formData.append('_method', 'PUT');
+            router.post(`/secret/appreciation/dev/${devEditingId}`, formData, {
                 onSuccess: () => { setDevModal(false); },
-                onFinish: () => setSubmitting(false)
+                onFinish: () => setSubmitting(false),
             });
         } else {
-            router.post('/secret/appreciation/dev', devForm, {
+            router.post('/secret/appreciation/dev', formData, {
                 onSuccess: () => { setDevModal(false); },
-                onFinish: () => setSubmitting(false)
+                onFinish: () => setSubmitting(false),
             });
         }
     };
@@ -65,31 +88,53 @@ export default function AppreciationAdmin({ auth, developers, docs }: any) {
     // Doc Modal
     const [docModal, setDocModal] = useState(false);
     const [docEditingId, setDocEditingId] = useState<number | null>(null);
-    const [docForm, setDocForm] = useState({ judul: '', deskripsi: '', foto: '', urutan: 0 });
+    const [docForm, setDocForm] = useState({ judul: '', deskripsi: '', urutan: 0 });
+    const [docFoto, setDocFoto] = useState<File | null>(null);
+    const [docFotoPreview, setDocFotoPreview] = useState<string | null>(null);
+    const docFileRef = useRef<HTMLInputElement>(null);
 
     const openDocModal = (doc?: Doc) => {
         if (doc) {
-            setDocForm({ judul: doc.judul, deskripsi: doc.deskripsi || '', foto: doc.foto, urutan: doc.urutan });
+            setDocForm({ judul: doc.judul, deskripsi: doc.deskripsi || '', urutan: doc.urutan });
+            setDocFotoPreview(doc.foto || null);
             setDocEditingId(doc.id_dokumentasi);
         } else {
-            setDocForm({ judul: '', deskripsi: '', foto: '', urutan: 0 });
+            setDocForm({ judul: '', deskripsi: '', urutan: 0 });
+            setDocFotoPreview(null);
             setDocEditingId(null);
         }
+        setDocFoto(null);
         setDocModal(true);
+    };
+
+    const handleDocFotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0] || null;
+        setDocFoto(file);
+        if (file) {
+            setDocFotoPreview(URL.createObjectURL(file));
+        }
     };
 
     const submitDoc = (e: React.FormEvent) => {
         e.preventDefault();
         setSubmitting(true);
+
+        const formData = new FormData();
+        formData.append('judul', docForm.judul);
+        formData.append('deskripsi', docForm.deskripsi);
+        formData.append('urutan', String(docForm.urutan));
+        if (docFoto) formData.append('foto', docFoto);
+
         if (docEditingId) {
-            router.put(`/secret/appreciation/doc/${docEditingId}`, docForm, {
+            formData.append('_method', 'PUT');
+            router.post(`/secret/appreciation/doc/${docEditingId}`, formData, {
                 onSuccess: () => { setDocModal(false); },
-                onFinish: () => setSubmitting(false)
+                onFinish: () => setSubmitting(false),
             });
         } else {
-            router.post('/secret/appreciation/doc', docForm, {
+            router.post('/secret/appreciation/doc', formData, {
                 onSuccess: () => { setDocModal(false); },
-                onFinish: () => setSubmitting(false)
+                onFinish: () => setSubmitting(false),
             });
         }
     };
@@ -196,7 +241,22 @@ export default function AppreciationAdmin({ auth, developers, docs }: any) {
                             <div><label className="text-xs font-bold text-slate-500 uppercase">Nama</label> <input required type="text" value={devForm.nama} onChange={e => setDevForm({...devForm, nama: e.target.value})} className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold outline-none" /></div>
                             <div><label className="text-xs font-bold text-slate-500 uppercase">Peran</label> <input type="text" value={devForm.peran} onChange={e => setDevForm({...devForm, peran: e.target.value})} className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold outline-none" placeholder="Cth: Fullstack Developer" /></div>
                             <div><label className="text-xs font-bold text-slate-500 uppercase">Asal Instansi</label> <input type="text" value={devForm.asal_instansi} onChange={e => setDevForm({...devForm, asal_instansi: e.target.value})} className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold outline-none" placeholder="Cth: Univ XYZ" /></div>
-                            <div><label className="text-xs font-bold text-slate-500 uppercase">Link Foto</label> <input type="text" value={devForm.foto} onChange={e => setDevForm({...devForm, foto: e.target.value})} className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold outline-none" /></div>
+                            <div>
+                                <label className="text-xs font-bold text-slate-500 uppercase">Foto</label>
+                                <div className="mt-1 flex items-center gap-4">
+                                    <div className="w-20 h-20 rounded-xl bg-slate-100 border-2 border-dashed border-slate-200 overflow-hidden shrink-0 flex items-center justify-center">
+                                        {devFotoPreview ? <img src={devFotoPreview} alt="" className="w-full h-full object-cover" /> : <Upload size={20} className="text-slate-300" />}
+                                    </div>
+                                    <div className="flex-1">
+                                        <input ref={devFileRef} type="file" accept="image/*" onChange={handleDevFotoChange} className="hidden" />
+                                        <button type="button" onClick={() => devFileRef.current?.click()} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs rounded-lg transition-colors flex items-center gap-2">
+                                            <Upload size={14} /> {devFoto ? 'Ganti Foto' : devFotoPreview ? 'Ganti Foto' : 'Upload Foto'}
+                                        </button>
+                                        {devFoto && <p className="text-[10px] text-slate-400 mt-1 truncate">{devFoto.name}</p>}
+                                        {!devFoto && devFotoPreview && devEditingId && <p className="text-[10px] text-emerald-500 font-semibold mt-1">Foto tersimpan</p>}
+                                    </div>
+                                </div>
+                            </div>
                             <div><label className="text-xs font-bold text-slate-500 uppercase">Urutan</label> <input required type="number" value={devForm.urutan} onChange={e => setDevForm({...devForm, urutan: parseInt(e.target.value)})} className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold outline-none" /></div>
                             <div className="pt-4"><button disabled={submitting} type="submit" className="w-full py-3 bg-indigo-500 text-white rounded-xl font-black text-sm">{submitting ? 'Menyimpan...' : 'Simpan'}</button></div>
                         </form>
@@ -216,7 +276,22 @@ export default function AppreciationAdmin({ auth, developers, docs }: any) {
                         <form onSubmit={submitDoc} className="space-y-4">
                             <div><label className="text-xs font-bold text-slate-500 uppercase">Judul</label> <input required type="text" value={docForm.judul} onChange={e => setDocForm({...docForm, judul: e.target.value})} className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold outline-none" /></div>
                             <div><label className="text-xs font-bold text-slate-500 uppercase">Deskripsi</label> <textarea value={docForm.deskripsi} onChange={e => setDocForm({...docForm, deskripsi: e.target.value})} className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold outline-none" rows={3}></textarea></div>
-                            <div><label className="text-xs font-bold text-slate-500 uppercase">Link Foto</label> <input required type="text" value={docForm.foto} onChange={e => setDocForm({...docForm, foto: e.target.value})} className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold outline-none" /></div>
+                            <div>
+                                <label className="text-xs font-bold text-slate-500 uppercase">Foto {!docEditingId && <span className="text-red-500">*</span>}</label>
+                                <div className="mt-1">
+                                    {docFotoPreview && (
+                                        <div className="mb-3 rounded-xl overflow-hidden border border-slate-200 aspect-video bg-slate-100">
+                                            <img src={docFotoPreview} alt="" className="w-full h-full object-cover" />
+                                        </div>
+                                    )}
+                                    <input ref={docFileRef} type="file" accept="image/*" onChange={handleDocFotoChange} className="hidden" />
+                                    <button type="button" onClick={() => docFileRef.current?.click()} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs rounded-lg transition-colors flex items-center gap-2">
+                                        <Upload size={14} /> {docFoto ? 'Ganti Foto' : docFotoPreview ? 'Ganti Foto' : 'Upload Foto'}
+                                    </button>
+                                    {docFoto && <p className="text-[10px] text-slate-400 mt-1 truncate">{docFoto.name}</p>}
+                                    {!docFoto && docFotoPreview && docEditingId && <p className="text-[10px] text-emerald-500 font-semibold mt-1">Foto tersimpan</p>}
+                                </div>
+                            </div>
                             <div><label className="text-xs font-bold text-slate-500 uppercase">Urutan</label> <input required type="number" value={docForm.urutan} onChange={e => setDocForm({...docForm, urutan: parseInt(e.target.value)})} className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold outline-none" /></div>
                             <div className="pt-4"><button disabled={submitting} type="submit" className="w-full py-3 bg-pink-500 text-white rounded-xl font-black text-sm">{submitting ? 'Menyimpan...' : 'Simpan'}</button></div>
                         </form>
