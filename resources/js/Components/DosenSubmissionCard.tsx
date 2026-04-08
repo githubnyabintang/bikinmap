@@ -54,6 +54,7 @@ interface DosenSubmissionCardProps {
     hideMainTabNav?: boolean;
     onlyShowStatus?: boolean;
     jenisPkmOptions?: { value: number; label: string }[];
+    editSubmission?: Submission | null;
 }
 
 interface RabItem {
@@ -104,6 +105,10 @@ interface FormData {
 
 const createSubmittedLabel = (): string => new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date());
 const getPkmStatusLabel = (status: string): string => status === 'berlangsung' ? 'Berlangsung' : 'Selesai';
+const formatCoordinate = (value: unknown): string | null => {
+    const parsed = typeof value === 'number' ? value : Number(String(value ?? '').trim());
+    return Number.isFinite(parsed) ? parsed.toFixed(6) : null;
+};
 
 const getSubmissionStatusStyle = (status: string) => {
     const styles: Record<string, { label: string; icon: string; bg: string; color: string }> = {
@@ -129,6 +134,7 @@ export default function DosenSubmissionCard({
     hideMainTabNav = false,
     onlyShowStatus = false,
     jenisPkmOptions = [],
+    editSubmission = null,
 }: DosenSubmissionCardProps) {
     const [mainTab, setMainTab] = useState('pengajuan');
     const [expandedHubSections, setExpandedHubSections] = useState({ kegiatan: false, riwayat: false });
@@ -209,6 +215,70 @@ export default function DosenSubmissionCard({
         link_tambahan: [{ name: '', url: '' }],
         sumber_dana: [],
     });
+
+    // Pre-fill form when editSubmission is provided (from /pengajuan?edit=ID)
+    useEffect(() => {
+        if (!editSubmission) return;
+
+        let parsedLinks = [{ name: '', url: '' }];
+        try {
+            if (editSubmission.rab) {
+                const arr = JSON.parse(editSubmission.rab);
+                if (Array.isArray(arr) && arr.length > 0) {
+                    parsedLinks = arr.map((item: any) => ({ name: item.name || '', url: item.url || '' }));
+                }
+            }
+        } catch {}
+
+        const mappedData: FormData = {
+            id_pengajuan: editSubmission.id,
+            id_jenis_pkm: jenisPkmOptions.find(o => o.label === editSubmission.jenis_pkm)?.value || jenisPkmOptions?.[0]?.value || '',
+            nama_ketua: editSubmission.nama_pengusul || '',
+            instansi: editSubmission.instansi_mitra || 'Politeknik Pariwisata Makassar',
+            email: editSubmission.email_pengusul || '',
+            whatsapp: editSubmission.no_telepon || '',
+            judul_kegiatan: editSubmission.judul || '',
+            kebutuhan: editSubmission.kebutuhan || editSubmission.ringkasan || '',
+            provinsi: editSubmission.provinsi || '',
+            kota_kabupaten: editSubmission.kota_kabupaten || '',
+            kecamatan: editSubmission.kecamatan || '',
+            kelurahan_desa: editSubmission.kelurahan_desa || '',
+            alamat_lengkap: editSubmission.alamat_lengkap || '',
+            latitude: editSubmission.latitude ? Number(editSubmission.latitude) : null,
+            longitude: editSubmission.longitude ? Number(editSubmission.longitude) : null,
+            tgl_mulai: editSubmission.tgl_mulai || null,
+            tgl_selesai: editSubmission.tgl_selesai || null,
+            is_tahun_saja: !!editSubmission.is_tahun_saja,
+            tim_dosen: [''],
+            tim_staff: [''],
+            tim_mahasiswa: [''],
+            rab_items: editSubmission.rab_items && editSubmission.rab_items.length > 0
+                ? (editSubmission.rab_items as RabItem[])
+                : [{ nama_item: '', jumlah: 1, harga: 0, total: 0 }],
+            dana_perguruan_tinggi: Number(editSubmission.dana_perguruan_tinggi) || 0,
+            dana_pemerintah: Number(editSubmission.dana_pemerintah) || 0,
+            dana_lembaga_dalam: Number(editSubmission.dana_lembaga_dalam) || 0,
+            dana_lembaga_luar: Number(editSubmission.dana_lembaga_luar) || 0,
+            surat_permohonan: null,
+            surat_proposal: null,
+            existing_surat_permohonan: editSubmission.surat_permohonan,
+            existing_surat_proposal: editSubmission.proposal,
+            link_tambahan: parsedLinks,
+            sumber_dana: editSubmission.sumber_dana ? editSubmission.sumber_dana.split(',').map(s => s.trim()) : [],
+        };
+
+        if (editSubmission.tim_kegiatan) {
+            const dosen = editSubmission.tim_kegiatan.filter(t => t.peran === 'Dosen').map(t => t.nama);
+            const staff = editSubmission.tim_kegiatan.filter(t => t.peran === 'Staff').map(t => t.nama);
+            const mahasiswa = editSubmission.tim_kegiatan.filter(t => t.peran === 'Mahasiswa').map(t => t.nama);
+            if (dosen.length) mappedData.tim_dosen = dosen;
+            if (staff.length) mappedData.tim_staff = staff;
+            if (mahasiswa.length) mappedData.tim_mahasiswa = mahasiswa;
+        }
+
+        setData(mappedData);
+        setMainTab('pengajuan');
+    }, [editSubmission]);
 
     const handleAddMember = (type: 'tim_dosen' | 'tim_staff' | 'tim_mahasiswa') => setData(type, [...data[type], '']);
     const handleRemoveMember = (type: 'tim_dosen' | 'tim_staff' | 'tim_mahasiswa', idx: number) => setData(type, data[type].filter((_, i) => i !== idx));
@@ -302,7 +372,11 @@ export default function DosenSubmissionCard({
                     status: 'diproses',
                 });
                 onUpdateSubmissionStatus?.('diproses');
-                setFeedbackDialog({ show: true, type: 'success', title: 'Pengajuan Berhasil', message: `Data pengajuan PKM Dosen telah ${data.id_pengajuan ? 'diperbarui' : 'disimpan'}.` });
+                const isEditMode = !!data.id_pengajuan;
+                setFeedbackDialog({ show: true, type: 'success', title: 'Pengajuan Berhasil', message: `Data pengajuan PKM Dosen telah ${isEditMode ? 'diperbarui' : 'disimpan'}.${isEditMode ? ' Mengarahkan ke halaman status...' : ''}` });
+                if (isEditMode) {
+                    setTimeout(() => router.visit('/cek-status'), 1800);
+                }
                 reset();
             },
             onError: () => {
@@ -545,7 +619,13 @@ export default function DosenSubmissionCard({
                     {/* Modal Footer */}
                     <div className="p-4 bg-slate-50 border-t border-slate-100 flex flex-wrap justify-end gap-3">
                         {selectedDetail.status === 'direvisi' && (
-                            <button onClick={handleEditPengajuan} className="px-6 py-2 bg-poltekpar-primary text-white text-sm font-bold rounded-xl hover:bg-poltekpar-primary/90 transition-colors shadow-sm flex items-center gap-2">
+                            <button
+                                onClick={() => {
+                                    setSelectedDetail(null);
+                                    router.visit(`/pengajuan?edit=${selectedDetail.id}`);
+                                }}
+                                className="px-6 py-2 bg-poltekpar-primary text-white text-sm font-bold rounded-xl hover:bg-poltekpar-primary/90 transition-colors shadow-sm flex items-center gap-2"
+                            >
                                 <i className="fa-solid fa-pen-to-square"></i> Edit Pengajuan
                             </button>
                         )}
@@ -672,8 +752,8 @@ export default function DosenSubmissionCard({
                             Object.entries(newData).forEach(([key, val]) => setData(key as any, val as any));
                         }}
                     />
-                    {data.latitude && data.longitude ? (
-                        <p className="text-[10px] text-slate-500 mt-1 font-mono">Lat: {data.latitude.toFixed(6)}, Lng: {data.longitude.toFixed(6)}</p>
+                    {formatCoordinate(data.latitude) && formatCoordinate(data.longitude) ? (
+                        <p className="text-[10px] text-slate-500 mt-1 font-mono">Lat: {formatCoordinate(data.latitude)}, Lng: {formatCoordinate(data.longitude)}</p>
                     ) : data.kelurahan_desa ? (
                         <p className="text-[10px] text-red-500 mt-1 font-bold animate-pulse flex items-center gap-1">
                             <i className="fa-solid fa-triangle-exclamation"></i>
@@ -923,7 +1003,18 @@ export default function DosenSubmissionCard({
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-5 text-center">
-                                                    <button type="button" className="px-4 py-1.5 bg-slate-100 hover:bg-poltekpar-primary hover:text-white text-slate-600 text-[11px] font-bold rounded-lg transition-all" onClick={() => setSelectedDetail(item)}>DETAIL</button>
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        <button type="button" className="px-4 py-1.5 bg-slate-100 hover:bg-poltekpar-primary hover:text-white text-slate-600 text-[11px] font-bold rounded-lg transition-all" onClick={() => setSelectedDetail(item)}>DETAIL</button>
+                                                        {item.status === 'direvisi' && (
+                                                            <button
+                                                                type="button"
+                                                                className="px-4 py-1.5 bg-poltekpar-primary/10 hover:bg-poltekpar-primary hover:text-white text-poltekpar-primary text-[11px] font-bold rounded-lg transition-all flex items-center gap-1.5"
+                                                                onClick={() => router.visit(`/pengajuan?edit=${item.id}`)}
+                                                            >
+                                                                <i className="fa-solid fa-pen-to-square text-[9px]"></i> EDIT
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         );

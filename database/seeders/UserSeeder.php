@@ -18,7 +18,7 @@ class UserSeeder extends Seeder
     {
         // 1. Akun Admin
         User::updateOrCreate(
-            ['email' => 'admin@poltekpar.ac.id'],
+            ['email' => 'admin@poltekparmakassar.ac.id'],
             [
                 'name' => 'Administrator',
                 'password' => Hash::make('password'), // default password: password

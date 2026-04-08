@@ -59,6 +59,11 @@ const STATUS_OPTIONS = [
 const normalizeStatusPelaksanaan = (status: string): string =>
     status === 'persiapan' ? 'belum_mulai' : status;
 
+const canSendUndangan = (act: AktivitasItem): boolean => {
+    const normalizedStatus = normalizeStatusPelaksanaan(act.status_pelaksanaan);
+    return normalizedStatus === 'belum_mulai' && getRecipientEmail(act).includes('@');
+};
+
 const AktivitasPage: React.FC<Props> = ({ listAktivitas, filters, availableYears = [] }) => {
     const [search, setSearch] = useState('');
     const [filterStatus, setFilterStatus] = useState(filters?.status || '');
@@ -171,7 +176,7 @@ Politeknik Pariwisata Makassar`;
         a => selectedIds.includes(a.id_aktivitas)
     );
 
-    const recipientsWithEmail = undanganRecipients.filter(a => getRecipientEmail(a).includes('@'));
+    const recipientsWithEmail = undanganRecipients.filter(canSendUndangan);
 
     const handleSendUndangan = () => {
         if (recipientsWithEmail.length === 0) return;
@@ -478,7 +483,7 @@ Politeknik Pariwisata Makassar`;
                                 ))}
                                 {undanganRecipients.length > recipientsWithEmail.length && (
                                     <span className="text-[11px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100">
-                                        {undanganRecipients.length - recipientsWithEmail.length} tanpa email
+                                        {undanganRecipients.length - recipientsWithEmail.length} tidak eligible
                                     </span>
                                 )}
                             </div>

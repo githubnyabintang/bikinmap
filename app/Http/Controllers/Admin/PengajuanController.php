@@ -4,12 +4,13 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Aktivitas;
-use App\Models\Arsip;
 use App\Models\JenisPkm;
 use App\Models\Pegawai;
 use App\Models\Pengajuan;
 use App\Models\TimKegiatan;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class PengajuanController extends Controller
@@ -157,6 +158,32 @@ class PengajuanController extends Controller
         $pengajuan->update($validated);
 
         return redirect()->back()->with('success', 'Pengajuan berhasil diperbarui.');
+    }
+
+    public function updateTanggalPengajuan(Request $request, int $id)
+    {
+        abort_unless($request->user()?->role === 'superadmin', 403, 'Akses ditolak. Hanya superadmin yang dapat mengubah tanggal pengajuan.');
+
+        $validated = $request->validate([
+            'tanggal_pengajuan' => 'required|date',
+        ]);
+
+        $pengajuan = Pengajuan::findOrFail($id);
+        $currentCreatedAt = $pengajuan->created_at ? Carbon::parse($pengajuan->created_at) : now();
+        $requestedDate = Carbon::parse($validated['tanggal_pengajuan']);
+
+        $newCreatedAt = $requestedDate->setTime(
+            $currentCreatedAt->hour,
+            $currentCreatedAt->minute,
+            $currentCreatedAt->second,
+            $currentCreatedAt->microsecond,
+        );
+
+        DB::table('pengajuan')
+            ->where('id_pengajuan', $pengajuan->id_pengajuan)
+            ->update(['created_at' => $newCreatedAt]);
+
+        return redirect()->back()->with('success', 'Tanggal pengajuan berhasil diperbarui.');
     }
 
     /**

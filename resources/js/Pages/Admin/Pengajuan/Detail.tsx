@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Link, router } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import AdminLayout from '../../../Layouts/AdminLayout';
 import ConfirmDialog from '../../../Components/ConfirmDialog';
 import MapLocationPicker from '../../../Components/MapLocationPicker';
@@ -55,6 +55,7 @@ interface Props {
 }
 
 interface DraftState {
+    tanggal_pengajuan: string;
     nama_pengusul: string;
     email_pengusul: string;
     instansi_mitra: string;
@@ -111,6 +112,18 @@ const statusConfig: Record<string, { label: string; text: string; bg: string; do
 
 const fmtDate = (v?: string) => v ? new Date(v).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-';
 const fmtMoney = (v?: number | null) => `Rp ${Number(v || 0).toLocaleString('id-ID')}`;
+const toDateInputValue = (v?: string) => {
+    if (!v) return '';
+
+    const date = new Date(v);
+    if (Number.isNaN(date.getTime())) return '';
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+};
 const getType = (p: Pengajuan): 'dosen' | 'masyarakat' => String(p.tipe_pengusul || p.user?.role || '').toLowerCase() === 'dosen' ? 'dosen' : 'masyarakat';
 const getKetua = (tim?: TimKegiatan[]) => tim?.find((m) => String(m.peran_tim || '').toLowerCase().includes('ketua'));
 const getName = (m?: TimKegiatan) => m?.pegawai?.nama_pegawai || m?.nama_mahasiswa || '';
@@ -144,6 +157,7 @@ const roleItems = (tim: TimKegiatan[] | undefined, role: string, ketuaId?: numbe
     .map(getName)
     .filter(Boolean);
 const buildDraft = (pengajuan: Pengajuan, ketuaId?: number): DraftState => ({
+    tanggal_pengajuan: toDateInputValue(pengajuan.created_at),
     nama_pengusul: pengajuan.nama_pengusul || getSubmitterName(pengajuan),
     email_pengusul: pengajuan.email_pengusul || getSubmitterEmail(pengajuan),
     instansi_mitra: pengajuan.instansi_mitra || '',
@@ -459,6 +473,8 @@ const EditField = ({
 };
 
 export default function Detail({ pengajuan, listPegawai, listJenisPkm }: Props) {
+    const { props } = usePage();
+
     React.useEffect(() => {
         const handler = (e: ErrorEvent) => {
             alert('JS Error: ' + e.message);
@@ -476,6 +492,7 @@ export default function Detail({ pengajuan, listPegawai, listJenisPkm }: Props) 
     const [draft, setDraft] = useState<DraftState>(() => buildDraft(pengajuan, ketua?.id_tim));
     const st = statusConfig[pengajuan.status_pengajuan] || statusConfig.diproses;
     const isDosen = getType(pengajuan) === 'dosen';
+    const canEditTanggalPengajuan = (props as any).auth?.user?.role === 'superadmin';
     const submitterName = getSubmitterName(pengajuan);
     const submitterEmail = getSubmitterEmail(pengajuan);
     const extraLinks = linksOf(pengajuan.rab);
@@ -1015,7 +1032,33 @@ export default function Detail({ pengajuan, listPegawai, listJenisPkm }: Props) 
                 </div>
 
                 <div className="space-y-6">
-                    <Card title="Ringkasan Pengajuan" icon={<File size={16} className="text-slate-400" />}><div className="space-y-4"><Field label="Sumber Pengajuan" value={isDosen ? 'Auth Dosen' : 'Auth Masyarakat'} /><Field label="Email Pengaju" value={submitterEmail} /><Field label="Tanggal Pengajuan" value={fmtDate(pengajuan.created_at)} />{isDosen && <><Field label="Tanggal Mulai" value={fmtDate(pengajuan.tgl_mulai)} /><Field label="Tanggal Selesai" value={fmtDate(pengajuan.tgl_selesai)} /></>}</div></Card>
+                    <Card
+                        title="Ringkasan Pengajuan"
+                        action={canEditTanggalPengajuan ? sectionActions('submission-date', {
+                            tanggal_pengajuan: draft.tanggal_pengajuan,
+                        }, `/admin/pengajuan/${pengajuan.id_pengajuan}/tanggal-pengajuan`) : undefined}
+                        icon={<File size={16} className="text-slate-400" />}
+                    >
+                        <div className="space-y-4">
+                            <Field label="Sumber Pengajuan" value={isDosen ? 'Auth Dosen' : 'Auth Masyarakat'} />
+                            <Field label="Email Pengaju" value={submitterEmail} />
+                            {editingSection === 'submission-date' ? (
+                                <div className="space-y-1.5">
+                                    <div className="text-xs font-semibold text-slate-700">Tanggal Pengajuan</div>
+                                    <input
+                                        type="date"
+                                        value={draft.tanggal_pengajuan}
+                                        onChange={(e) => setDraftField('tanggal_pengajuan', e.target.value)}
+                                        className="min-h-[44px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-poltekpar-primary"
+                                    />
+                                    <p className="text-[11px] text-slate-500">Perubahan tanggal pengajuan hanya tersedia untuk superadmin.</p>
+                                </div>
+                            ) : (
+                                <Field label="Tanggal Pengajuan" value={fmtDate(pengajuan.created_at)} />
+                            )}
+                            {isDosen && <><Field label="Tanggal Mulai" value={fmtDate(pengajuan.tgl_mulai)} /><Field label="Tanggal Selesai" value={fmtDate(pengajuan.tgl_selesai)} /></>}
+                        </div>
+                    </Card>
                     {pengajuan.catatan_admin && <div className="rounded-xl border border-amber-200 bg-white p-5 shadow-sm"><div className="mb-1 text-[12px] font-bold uppercase tracking-wider text-amber-700">Catatan Terakhir</div><p className="whitespace-pre-wrap text-[13px] font-medium leading-relaxed text-slate-700">{pengajuan.catatan_admin}</p></div>}
                     {pengajuan.status_pengajuan !== 'selesai' && <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm"><div className="border-b border-zinc-100 bg-zinc-50/50 px-6 py-4"><h2 className="text-[14px] font-semibold text-zinc-900">Verifikasi Berkas</h2></div><div className="space-y-6 p-5"><div className="grid grid-cols-1 gap-3"><button onClick={() => setSelectedAction('diterima')} className={`flex items-center justify-between rounded-lg border-2 px-4 py-3 text-[14px] font-medium transition-all ${selectedAction === 'diterima' ? 'border-emerald-500 bg-emerald-50 text-emerald-900 shadow-md ring-2 ring-emerald-200 scale-[1.02] font-bold' : 'border-emerald-200 bg-emerald-50/30 text-emerald-700 hover:border-emerald-300'}`}><div className="flex items-center gap-3"><CheckCircle size={18} />Diterima</div>{selectedAction === 'diterima' && <span className="text-[11px] bg-emerald-500 text-white px-2.5 py-1 rounded-full font-bold">TERPILIH</span>}</button><button onClick={() => setSelectedAction('direvisi')} className={`flex items-center justify-between rounded-lg border-2 px-4 py-3 text-[14px] font-medium transition-all ${selectedAction === 'direvisi' ? 'border-amber-500 bg-amber-50 text-amber-900 shadow-md ring-2 ring-amber-200 scale-[1.02] font-bold' : 'border-amber-200 bg-amber-50/30 text-amber-700 hover:border-amber-300'}`}><div className="flex items-center gap-3"><RotateCcw size={18} />Revisi</div>{selectedAction === 'direvisi' && <span className="text-[11px] bg-amber-500 text-white px-2.5 py-1 rounded-full font-bold">TERPILIH</span>}</button><button onClick={() => setSelectedAction('ditolak')} className={`flex items-center justify-between rounded-lg border-2 px-4 py-3 text-[14px] font-medium transition-all ${selectedAction === 'ditolak' ? 'border-red-500 bg-red-50 text-red-900 shadow-md ring-2 ring-red-200 scale-[1.02] font-bold' : 'border-red-200 bg-red-50/30 text-red-700 hover:border-red-300'}`}><div className="flex items-center gap-3"><X size={18} />Ditolak</div>{selectedAction === 'ditolak' && <span className="text-[11px] bg-red-500 text-white px-2.5 py-1 rounded-full font-bold">TERPILIH</span>}</button></div>{(selectedAction === 'direvisi' || selectedAction === 'diterima') && <div className="pt-2">{selectedAction === 'direvisi' ? (<div className="flex items-center gap-2 mb-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-[12px] font-bold text-amber-700"><AlertCircle size={14} className="shrink-0" />Catatan revisi wajib diisi sebelum verifikasi.</div>) : (<div className="flex items-center gap-2 mb-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-[12px] font-bold text-blue-700"><AlertCircle size={14} className="shrink-0" />Catatan persetujuan (opsional).</div>)}<textarea value={catatan} onChange={(e) => setCatatan(e.target.value)} rows={4} placeholder={selectedAction === 'direvisi' ? "Catatan revisi..." : "Tulis catatan tambahan untuk pengaju (opsional)..."} className="w-full rounded-md border border-zinc-200 p-3 text-[13px] outline-none focus:border-poltekpar-primary focus:ring-2 focus:ring-poltekpar-primary/20" />{catatanError && <p className="mt-1.5 text-[12px] text-red-500">{catatanError}</p>}</div>}<button onClick={saveDecision} disabled={!selectedAction || (selectedAction === 'direvisi' && !catatan.trim())} className={`w-full rounded-xl py-3 text-[14px] font-bold ${selectedAction && (selectedAction !== 'direvisi' || catatan.trim()) ? 'bg-zinc-900 text-white' : 'cursor-not-allowed bg-zinc-100 text-zinc-400'}`}>Verifikasi</button></div></div>}
                 </div>

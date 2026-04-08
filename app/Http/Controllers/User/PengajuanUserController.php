@@ -84,6 +84,7 @@ class PengajuanUserController extends Controller
             'initialView' => $request->routeIs('pengajuan.status') ? 'status' : 'form',
             'userSubmissions' => $userSubmissions,
             'jenisPkmOptions' => $jenisPkmOptions,
+            'editSubmissionId' => $request->integer('edit') ?: null,
         ]);
     }
 
@@ -222,14 +223,15 @@ class PengajuanUserController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->role === 'masyarakat') {
-            return redirect()->back()->with('error', 'Edit masyarakat belum didukung di antarmuka ini.');
-        }
-
         $pengajuan = Pengajuan::where('id_pengajuan', $id)->where('id_user', $user->id_user)->firstOrFail();
 
         if ($pengajuan->status_pengajuan !== 'direvisi') {
             return redirect()->back()->with('error', 'Hanya pengajuan dengan status direvisi yang dapat diubah.');
+        }
+
+        // Dispatch to masyarakat-specific update
+        if ($user->role === 'masyarakat') {
+            return $this->updateMasyarakat($request, $pengajuan);
         }
 
         $request->validate([
@@ -307,6 +309,7 @@ class PengajuanUserController extends Controller
             'rab' => $request->rab ?? '',
             'rab_items' => $rabItems,
             'status_pengajuan' => 'diproses',
+            'admin_read_at' => null,
         ]);
 
         TimKegiatan::where('id_pengajuan', $pengajuan->id_pengajuan)->delete();
@@ -340,6 +343,93 @@ class PengajuanUserController extends Controller
             ]), $teamMembers);
             TimKegiatan::insert($rows);
         }
+
+        return redirect()->back()
+            ->with('success', 'Pengajuan PKM berhasil diperbarui!');
+    }
+
+    /**
+     * Resubmit a revision without editing — just reset status to diproses.
+     */
+    public function resubmit($id)
+    {
+        $user = Auth::user();
+
+        $pengajuan = Pengajuan::where('id_pengajuan', $id)
+            ->where('id_user', $user->id_user)
+            ->firstOrFail();
+
+        if ($pengajuan->status_pengajuan !== 'direvisi') {
+            return redirect()->back()->with('error', 'Hanya pengajuan dengan status direvisi yang dapat dikirim ulang.');
+        }
+
+        $pengajuan->update([
+            'status_pengajuan' => 'diproses',
+            'admin_read_at' => null,
+        ]);
+
+        return redirect()->back()
+            ->with('success', 'Pengajuan berhasil dikirim ulang untuk ditinjau admin.');
+    }
+
+    /**
+     * Update a masyarakat submission (revision resubmit with edits).
+     */
+    private function updateMasyarakat(Request $request, Pengajuan $pengajuan)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'institution' => 'required|string|max:255',
+            'needs' => 'required|string',
+            'email' => 'required|email|max:255',
+            'whatsapp' => 'required|string|max:20',
+            'provinsi' => 'required|string|max:100',
+            'kota_kabupaten' => 'required|string|max:100',
+            'kecamatan' => 'nullable|string|max:100',
+            'kelurahan_desa' => 'nullable|string|max:100',
+            'alamat_lengkap' => 'nullable|string|max:1000',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
+            'tgl_mulai' => 'nullable|date',
+            'tgl_selesai' => 'nullable|date',
+            'is_tahun_saja' => 'nullable|boolean',
+            'surat_permohonan' => 'nullable|file|mimes:pdf,doc,docx|max:10240',
+            'surat_proposal' => 'nullable|file|mimes:pdf,doc,docx|max:10240',
+        ]);
+
+        $suratPermohonanUrl = $pengajuan->surat_permohonan;
+        $suratProposalUrl = $pengajuan->proposal;
+
+        if ($request->hasFile('surat_permohonan')) {
+            $suratPermohonanUrl = '/storage/' . $request->file('surat_permohonan')->store('pengajuan/dokumen', 'public');
+        }
+        if ($request->hasFile('surat_proposal')) {
+            $suratProposalUrl = '/storage/' . $request->file('surat_proposal')->store('pengajuan/dokumen', 'public');
+        }
+
+        $pengajuan->update([
+            'nama_pengusul' => $request->name,
+            'email_pengusul' => $request->email,
+            'instansi_mitra' => $request->institution,
+            'no_telepon' => $request->whatsapp,
+            'kebutuhan' => $request->needs,
+            'judul_kegiatan' => 'Pengajuan PKM dari ' . $request->institution,
+            'provinsi' => $request->provinsi,
+            'kota_kabupaten' => $request->kota_kabupaten,
+            'kecamatan' => $request->kecamatan ?? '',
+            'kelurahan_desa' => $request->kelurahan_desa ?? '',
+            'alamat_lengkap' => $request->alamat_lengkap ?? '',
+            'latitude' => $request->latitude ?? $pengajuan->latitude,
+            'longitude' => $request->longitude ?? $pengajuan->longitude,
+            'is_tahun_saja' => $request->has('is_tahun_saja') ? $request->boolean('is_tahun_saja') : $pengajuan->is_tahun_saja,
+            'tgl_mulai' => $request->tgl_mulai ?? $pengajuan->tgl_mulai,
+            'tgl_selesai' => $request->tgl_selesai ?? $pengajuan->tgl_selesai,
+            'surat_permohonan' => $suratPermohonanUrl,
+            'proposal' => $suratProposalUrl,
+            'rab' => $request->input('link_tambahan') ?: ($pengajuan->rab ?? ''),
+            'status_pengajuan' => 'diproses',
+            'admin_read_at' => null,
+        ]);
 
         return redirect()->back()
             ->with('success', 'Pengajuan PKM berhasil diperbarui!');

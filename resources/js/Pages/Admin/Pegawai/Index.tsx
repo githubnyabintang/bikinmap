@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { router } from '@inertiajs/react';
+import * as XLSX from 'xlsx';
 import AdminLayout from '../../../Layouts/AdminLayout';
 import ConfirmDialog from '../../../Components/ConfirmDialog';
-import { Edit, Trash2, X, Plus, Search, Upload, User, Users } from 'lucide-react';
+import { Download, Edit, Trash2, X, Plus, Search, Upload, User } from 'lucide-react';
 import BulkActionBar, { CheckboxCell, CheckboxHeader } from '../../../Components/BulkActionBar';
 
 interface Pegawai {
@@ -106,6 +107,30 @@ const PegawaiPage: React.FC<Props> = ({ listPegawai, filters }) => {
         input.click();
     };
 
+    const handleDownloadTemplate = () => {
+        const rows = [
+            {
+                NO: 1,
+                NAMA: 'Dr. Contoh Nama, S.ST., M.M.',
+                NIP: '198801012014041001',
+                JABATAN: 'Dosen',
+                POSISI: 'Ketua Program Studi',
+            },
+            {
+                NO: 2,
+                NAMA: 'Contoh Staf Administrasi',
+                NIP: '197912312005021002',
+                JABATAN: 'Staf Administrasi',
+                POSISI: 'Pengelola Data',
+            },
+        ];
+
+        const workbook = XLSX.utils.book_new();
+        const worksheet = XLSX.utils.json_to_sheet(rows);
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Template Pegawai');
+        XLSX.writeFile(workbook, 'Template_Import_Pegawai.xlsx');
+    };
+
 
 
     return (
@@ -114,8 +139,12 @@ const PegawaiPage: React.FC<Props> = ({ listPegawai, filters }) => {
                 <div>
                     <h1 className="text-[24px] font-bold text-zinc-900 tracking-tight">Data Pegawai</h1>
                     <p className="text-zinc-500 text-[14px] mt-1">Manajemen pegawai, dosen & staf.</p>
+                    <p className="text-zinc-400 text-[12px] mt-2">Format import: kolom NAMA, NIP, JABATAN, dan POSISI.</p>
                 </div>
                 <div className="flex items-center gap-3">
+                    <button onClick={handleDownloadTemplate} className="flex items-center gap-2 px-4 py-2 rounded-md text-[13px] font-medium text-zinc-700 bg-white border border-zinc-200 shadow-sm hover:bg-zinc-50 transition-colors">
+                        <Download size={14} /> Unduh Template
+                    </button>
                     <button onClick={handleCsvUpload} className="flex items-center gap-2 px-4 py-2 rounded-md text-[13px] font-medium text-zinc-700 bg-white border border-zinc-200 shadow-sm hover:bg-zinc-50 transition-colors">
                         <Upload size={14} /> Import Excel
                     </button>

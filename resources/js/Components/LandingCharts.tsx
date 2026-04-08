@@ -150,19 +150,6 @@ const buildChartSource = (pkmData: PkmData[] = []): ChartSource => {
         categoryPercentage: 0.8,
     }));
 
-    // Tambahkan dataset "Belum Mulai" (Status)
-    barDatasets.push({
-        label: 'Belum Mulai',
-        data: years.map((year) => 
-            pkmData.filter((item) => Number(item?.tahun) === year && item.status === 'belum_mulai').length
-        ),
-        backgroundColor: '#94a3b8', // slate-400
-        borderRadius: 6,
-        borderSkipped: false as const,
-        barPercentage: 0.8,
-        categoryPercentage: 0.8,
-    } as any);
-
     // Doughnut chart: total per jenis
     const doughnutTotals = typesMeta.map((typeMeta) => ({
         label: typeMeta.label,

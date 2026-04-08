@@ -44,7 +44,7 @@ class DashboardController extends Controller
                 'jenis_nama' => $p->jenisPkm?->nama_jenis ?? 'Jenis Lainnya',
                 'jenis_pkm' => $p->jenisPkm?->nama_jenis ?? '',
                 'warna_icon' => $p->jenisPkm?->warna_icon ?? '#64748b',
-                'tahun' => $p->created_at?->year ?? date('Y'),
+                'tahun' => $p->aktivitas?->tgl_realisasi_mulai?->year ?? $p->tgl_mulai?->year ?? $p->created_at?->year ?? date('Y'),
                 'status' => $p->aktivitas
                     ? ($p->aktivitas->status_pelaksanaan === 'selesai' ? 'selesai'
                         : ($p->aktivitas->status_pelaksanaan === 'berjalan' ? 'berlangsung' : 'belum_mulai'))
@@ -140,24 +140,6 @@ class DashboardController extends Controller
                 'categoryPercentage' => 0.7,
             ];
         })->values()->toArray();
-
-        // Tambahkan dataset "Belum Mulai" (Status)
-        $barChartDatasets[] = [
-            'label' => 'Belum Mulai',
-            'data' => array_map(function($y) {
-                return (int) Pengajuan::leftJoin('aktivitas', 'pengajuan.id_pengajuan', '=', 'aktivitas.id_pengajuan')
-                    ->whereYear('pengajuan.created_at', $y)
-                    ->where('status_pengajuan', 'diterima')
-                    ->where(function($q) {
-                        $q->whereNull('aktivitas.status_pelaksanaan')
-                          ->orWhereIn('aktivitas.status_pelaksanaan', ['belum_mulai', 'persiapan']);
-                    })->count();
-            }, $allYears),
-            'backgroundColor' => '#94a3b8', // slate-400
-            'borderRadius' => 6,
-            'barPercentage' => 0.55,
-            'categoryPercentage' => 0.7,
-        ];
 
         $barChartData = [
             'labels' => $allYears,

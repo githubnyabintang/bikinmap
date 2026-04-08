@@ -22,6 +22,11 @@ class Aktivitas extends Model
         'url_thumbnail',
     ];
 
+    protected $casts = [
+        'tgl_realisasi_mulai' => 'date',
+        'tgl_realisasi_selesai' => 'date',
+    ];
+
     public function pengajuan()
     {
         return $this->belongsTo(Pengajuan::class, 'id_pengajuan', 'id_pengajuan');

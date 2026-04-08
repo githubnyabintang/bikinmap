@@ -1,4 +1,4 @@
-import React, { useRef, useState, useMemo, ChangeEvent, FormEvent } from 'react';
+import React, { useRef, useState, useMemo, useEffect, ChangeEvent, FormEvent } from 'react';
 import { useForm, router } from '@inertiajs/react';
 import ActionFeedbackDialog from './ActionFeedbackDialog';
 import MapLocationPicker from './MapLocationPicker';
@@ -45,6 +45,7 @@ interface MasyarakatSubmissionCardProps {
     hideInlineStatusPanel?: boolean;
     hideMainTabNav?: boolean;
     onlyShowStatus?: boolean;
+    editSubmission?: Submission | null;
 }
 
 const createSubmittedLabel = (): string =>
@@ -53,6 +54,11 @@ const createSubmittedLabel = (): string =>
         month: 'short',
         year: 'numeric',
     }).format(new Date());
+
+const formatCoordinate = (value: unknown): string | null => {
+    const parsed = typeof value === 'number' ? value : Number(String(value ?? '').trim());
+    return Number.isFinite(parsed) ? parsed.toFixed(6) : null;
+};
 
 const getSubmissionStatusStyle = (status: string) => {
     const styles: Record<string, { label: string; icon: string; bg: string; color: string }> = {
@@ -126,6 +132,7 @@ export default function MasyarakatSubmissionCard({
     hideInlineStatusPanel = false,
     hideMainTabNav = false,
     onlyShowStatus = false,
+    editSubmission = null,
 }: MasyarakatSubmissionCardProps) {
     const [mainTab, setMainTab] = useState('pengajuan');
     const [expandedHubSections, setExpandedHubSections] = useState({ kegiatan: false, riwayat: false });
@@ -204,6 +211,47 @@ export default function MasyarakatSubmissionCard({
     const [filePermohonan, setFilePermohonan] = useState<File | null>(null);
     const [fileProposal, setFileProposal] = useState<File | null>(null);
 
+    // Track editing mode
+    const [editingId, setEditingId] = useState<number | null>(null);
+    const isEditing = !!editingId;
+
+    // Pre-fill form when editSubmission is provided
+    useEffect(() => {
+        if (!editSubmission) return;
+        
+        let parsedLinks = [{ name: '', url: '' }];
+        try {
+            if (editSubmission.rab) {
+                const arr = JSON.parse(editSubmission.rab);
+                if (Array.isArray(arr) && arr.length > 0) {
+                    parsedLinks = arr.map((item: any) => ({ name: item.name || '', url: item.url || '' }));
+                }
+            }
+        } catch {}
+
+        setData({
+            name: editSubmission.nama_pengusul || '',
+            institution: editSubmission.instansi_mitra || '',
+            email: editSubmission.email_pengusul || '',
+            whatsapp: editSubmission.no_telepon || '',
+            needs: editSubmission.kebutuhan || editSubmission.ringkasan || '',
+            provinsi: editSubmission.provinsi || '',
+            kota_kabupaten: editSubmission.kota_kabupaten || '',
+            kecamatan: editSubmission.kecamatan || '',
+            kelurahan_desa: editSubmission.kelurahan_desa || '',
+            alamat_lengkap: editSubmission.alamat_lengkap || '',
+            latitude: editSubmission.latitude ? Number(editSubmission.latitude) : null,
+            longitude: editSubmission.longitude ? Number(editSubmission.longitude) : null,
+            tgl_mulai: editSubmission.tgl_mulai || null,
+            tgl_selesai: editSubmission.tgl_selesai || null,
+            is_tahun_saja: false,
+            surat_permohonan: editSubmission.surat_permohonan || '',
+            surat_proposal: editSubmission.proposal || '',
+            link_tambahan: parsedLinks,
+        });
+        setEditingId(editSubmission.id);
+    }, [editSubmission]);
+
     const handleAddLink = () => setData('link_tambahan', [...data.link_tambahan, { name: '', url: '' }]);
     const handleRemoveLink = (index: number) => setData('link_tambahan', data.link_tambahan.filter((_, i) => i !== index));
     const handleLinkChange = (index: number, field: 'name' | 'url', value: string) => {
@@ -214,8 +262,52 @@ export default function MasyarakatSubmissionCard({
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
-        if (!data.name.trim() || !data.institution.trim() || !data.needs.trim() || !filePermohonan) {
+        if (!data.name.trim() || !data.institution.trim() || !data.needs.trim() || (!filePermohonan && !isEditing)) {
             setFeedbackDialog({ show: true, type: 'error', title: 'Form Belum Lengkap', message: 'Mohon lengkapi data identitas, kebutuhan, dan surat permohonan.' });
+            return;
+        }
+
+        // When editing a revision, skip evaluasi modal and submit directly
+        if (isEditing) {
+            setIsMockSubmitting(true);
+
+            const formData = new FormData();
+            formData.append('_method', 'PUT');
+            formData.append('name', data.name);
+            formData.append('institution', data.institution);
+            formData.append('email', data.email);
+            formData.append('whatsapp', data.whatsapp);
+            formData.append('needs', data.needs);
+            formData.append('provinsi', data.provinsi);
+            formData.append('kota_kabupaten', data.kota_kabupaten);
+            formData.append('kecamatan', data.kecamatan);
+            formData.append('kelurahan_desa', data.kelurahan_desa);
+            formData.append('alamat_lengkap', data.alamat_lengkap);
+            if (data.latitude) formData.append('latitude', data.latitude.toString());
+            if (data.longitude) formData.append('longitude', data.longitude.toString());
+            if (data.tgl_mulai) formData.append('tgl_mulai', data.tgl_mulai);
+            if (data.tgl_selesai) formData.append('tgl_selesai', data.tgl_selesai);
+            formData.append('is_tahun_saja', data.is_tahun_saja ? '1' : '0');
+            if (filePermohonan) formData.append('surat_permohonan', filePermohonan);
+            if (fileProposal) formData.append('surat_proposal', fileProposal);
+            formData.append('link_tambahan', JSON.stringify(data.link_tambahan.filter(v => v.url.trim() !== '')));
+
+            router.post(`/pengajuan/${editingId}`, formData as any, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setIsMockSubmitting(false);
+                    setEditingId(null);
+                    onUpdateSubmissionStatus?.('diproses');
+                    setFeedbackDialog({ show: true, type: 'success', title: 'Pengajuan Diperbarui', message: 'Pengajuan berhasil diperbarui. Mengarahkan ke halaman status...' });
+                    setTimeout(() => {
+                        router.visit('/cek-status');
+                    }, 1800);
+                },
+                onError: () => {
+                    setIsMockSubmitting(false);
+                    setFeedbackDialog({ show: true, type: 'error', title: 'Gagal Memperbarui', message: 'Terjadi kesalahan saat memperbarui pengajuan.' });
+                },
+            });
             return;
         }
 
@@ -451,6 +543,17 @@ export default function MasyarakatSubmissionCard({
                     </div>
 
                     <div className="p-4 bg-slate-50 border-t border-slate-100 flex flex-wrap justify-end gap-3">
+                        {selectedDetail.status === 'direvisi' && (
+                            <button
+                                onClick={() => {
+                                    setSelectedDetail(null);
+                                    router.visit(`/pengajuan?edit=${selectedDetail.id}`);
+                                }}
+                                className="px-6 py-2 bg-poltekpar-primary text-white text-sm font-bold rounded-xl hover:bg-poltekpar-primary/90 transition-colors shadow-sm flex items-center gap-2"
+                            >
+                                <i className="fa-solid fa-pen-to-square"></i> Edit Pengajuan
+                            </button>
+                        )}
                         {selectedDetail.status === 'selesai' && (
                             <a target="_blank" rel="noopener noreferrer" href={`/testimoni/${selectedDetail.kode_unik || selectedDetail.id}`} className="px-6 py-2 bg-emerald-500 text-white text-sm font-bold rounded-xl hover:bg-emerald-600 transition-colors shadow-sm flex items-center gap-2">
                                 <i className="fa-solid fa-comment-dots"></i> Isi Testimoni PKM
@@ -529,7 +632,18 @@ export default function MasyarakatSubmissionCard({
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-5 text-center">
-                                                    <button type="button" className="px-4 py-1.5 bg-slate-100 hover:bg-poltekpar-primary hover:text-white text-slate-600 text-[11px] font-bold rounded-lg transition-all" onClick={() => setSelectedDetail(item)}>DETAIL</button>
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        <button type="button" className="px-4 py-1.5 bg-slate-100 hover:bg-poltekpar-primary hover:text-white text-slate-600 text-[11px] font-bold rounded-lg transition-all" onClick={() => setSelectedDetail(item)}>DETAIL</button>
+                                                        {item.status === 'direvisi' && (
+                                                            <button
+                                                                type="button"
+                                                                className="px-4 py-1.5 bg-poltekpar-primary/10 hover:bg-poltekpar-primary hover:text-white text-poltekpar-primary text-[11px] font-bold rounded-lg transition-all flex items-center gap-1.5"
+                                                                onClick={() => router.visit(`/pengajuan?edit=${item.id}`)}
+                                                            >
+                                                                <i className="fa-solid fa-pen-to-square text-[9px]"></i> EDIT
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         );
@@ -598,8 +712,8 @@ export default function MasyarakatSubmissionCard({
                             Object.entries(newData).forEach(([key, val]) => setData(key as any, val as any));
                         }}
                     />
-                    {data.latitude && data.longitude ? (
-                        <p className="text-[10px] text-slate-500 mt-1 font-mono">Lat: {data.latitude.toFixed(6)}, Lng: {data.longitude.toFixed(6)}</p>
+                    {formatCoordinate(data.latitude) && formatCoordinate(data.longitude) ? (
+                        <p className="text-[10px] text-slate-500 mt-1 font-mono">Lat: {formatCoordinate(data.latitude)}, Lng: {formatCoordinate(data.longitude)}</p>
                     ) : data.kelurahan_desa ? (
                         <p className="text-[10px] text-red-500 mt-1 font-bold animate-pulse flex items-center gap-1">
                             <i className="fa-solid fa-triangle-exclamation"></i>
@@ -617,7 +731,10 @@ export default function MasyarakatSubmissionCard({
                             <label className="text-xs font-semibold text-slate-700">Surat Permohonan <span className="text-red-500">*</span></label>
                             <a href="/template/surat_permohonan" target="_blank" rel="noreferrer" className="text-[10px] font-bold text-poltekpar-primary hover:underline flex items-center gap-1.5"><i className="fa-solid fa-download"></i> Download Template Surat Permohonan</a>
                         </div>
-                        <input type="file" accept=".pdf" onChange={e => setFilePermohonan(e.target.files?.[0] || null)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-poltekpar-primary/10 file:text-poltekpar-primary" required />
+                        <input type="file" accept=".pdf" onChange={e => setFilePermohonan(e.target.files?.[0] || null)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-poltekpar-primary/10 file:text-poltekpar-primary" required={!isEditing} />
+                        {isEditing && !filePermohonan && data.surat_permohonan && (
+                            <p className="text-[10px] text-emerald-600 font-semibold mt-1 flex items-center gap-1"><i className="fa-solid fa-check-circle"></i> File sebelumnya sudah tersimpan. Upload baru jika ingin mengganti.</p>
+                        )}
                         {filePermohonan && filePermohonan.type === 'application/pdf' && (
                             <div className="mt-2 border border-slate-200 rounded-lg overflow-hidden h-64 bg-slate-50 relative shadow-inner">
                                 <span className="absolute top-2 right-2 text-[10px] font-bold bg-slate-800 text-white px-2 py-1 rounded-md opacity-50 z-10">Preview</span>
@@ -657,7 +774,7 @@ export default function MasyarakatSubmissionCard({
             </section>
 
             <button type="submit" disabled={isMockSubmitting} className="w-full py-3.5 bg-poltekpar-primary hover:bg-poltekpar-navy text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
-                {isMockSubmitting ? <><i className="fa-solid fa-spinner fa-spin"></i>Mengirim...</> : <><i className="fa-solid fa-paper-plane"></i>Kirim Pengajuan</>}
+                {isMockSubmitting ? <><i className="fa-solid fa-spinner fa-spin"></i>Mengirim...</> : isEditing ? <><i className="fa-solid fa-pen-to-square"></i>Perbarui Pengajuan</> : <><i className="fa-solid fa-paper-plane"></i>Kirim Pengajuan</>}
             </button>
         </form>
     );

@@ -165,7 +165,7 @@ class PegawaiController extends Controller
 
                 // Normalize row to array
                 $rowArr = is_array($row) ? array_values($row) : [];
-                $nama = trim($rowArr[$colMap['nama'] - 1] ?? '');
+                $nama = trim($rowArr[$colMap['nama']] ?? '');
 
                 if (empty($nama) || strtoupper($nama) === 'NAMA' || strtoupper($nama) === 'NAMA_PEGAWAI') {
                     continue;
@@ -173,9 +173,9 @@ class PegawaiController extends Controller
 
                 Pegawai::create([
                     'nama_pegawai' => $nama,
-                    'nip' => trim($rowArr[$colMap['nip'] - 1] ?? ''),
-                    'jabatan' => trim($rowArr[$colMap['jabatan'] - 1] ?? ''),
-                    'posisi' => trim($rowArr[$colMap['posisi'] - 1] ?? ''),
+                    'nip' => trim($rowArr[$colMap['nip']] ?? ''),
+                    'jabatan' => trim($rowArr[$colMap['jabatan']] ?? ''),
+                    'posisi' => trim($rowArr[$colMap['posisi']] ?? ''),
                 ]);
                 $count++;
             }

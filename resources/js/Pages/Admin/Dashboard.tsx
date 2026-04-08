@@ -7,10 +7,6 @@ import {
     CheckCircle,
     XCircle,
     RotateCcw,
-    Layers,
-    ClipboardList,
-    LoaderCircle,
-    CircleCheck,
     TrendingUp,
     Play,
     Zap,
@@ -61,7 +57,16 @@ export default function Dashboard({
     }, []);
 
     if (!isMounted) {
-        return <AdminLayout title="Overview"><div className="h-screen bg-white animate-pulse rounded-xl" /></AdminLayout>;
+        return (
+            <AdminLayout title="Overview">
+                <div className="flex min-h-[240px] items-center justify-center">
+                    <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                        <span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-300 border-t-poltekpar-primary" />
+                        <span className="text-sm font-semibold text-slate-600">Memuat dashboard</span>
+                    </div>
+                </div>
+            </AdminLayout>
+        );
     }
 
     const pengajuanCards = [
@@ -91,7 +96,7 @@ export default function Dashboard({
         router.get(url, params, { preserveState: true });
     };
 
-    const pkmData: PkmData[] = pkmMapData.map((pkm: any) => ({
+    const pkmData = pkmMapData.map((pkm: any) => ({
         id: pkm.id,
         nama: pkm.nama,
         tahun: pkm.tahun,
@@ -100,6 +105,7 @@ export default function Dashboard({
         deskripsi: pkm.deskripsi || '',
         thumbnail: pkm.thumbnail || null,
         jenis_pkm: pkm.jenis_pkm || pkm.jenis_nama || '',
+        warna_icon: pkm.warna_icon || '',
         provinsi: pkm.provinsi || '',
         kabupaten: pkm.kabupaten || '',
         kecamatan: pkm.kecamatan || '',

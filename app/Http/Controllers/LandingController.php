@@ -24,7 +24,7 @@ class LandingController extends Controller
             ->map(fn ($p) => [
                 'id' => $p->id_pengajuan,
                 'nama' => $p->judul_kegiatan,
-                'tahun' => $p->created_at?->year ?? date('Y'),
+                'tahun' => $p->aktivitas?->tgl_realisasi_mulai?->year ?? $p->tgl_mulai?->year ?? $p->created_at?->year ?? date('Y'),
                 'jenis_pkm' => $p->jenisPkm?->nama_jenis ?? '',
                 'warna_icon' => $p->jenisPkm?->warna_icon ?? '',
                 'status' => $p->aktivitas

@@ -42,24 +42,43 @@ const JenisPkmPage: React.FC<Props> = ({ listJenisPkm, filters }) => {
         '#d946ef', '#f43f5e', '#71717a', '#18181b'
     ];
 
-    const generateRandomColor = () => {
-        const hue = Math.floor(Math.random() * 360);
-        const sat = 55 + Math.floor(Math.random() * 30); // 55-85%
-        const lum = 40 + Math.floor(Math.random() * 20); // 40-60%
-        // Convert HSL to hex
-        const h = hue, s = sat / 100, l = lum / 100;
-        const a2 = s * Math.min(l, 1 - l);
-        const f = (n: number) => { const k = (n + h / 30) % 12; const c = l - a2 * Math.max(Math.min(k - 3, 9 - k, 1), -1); return Math.round(255 * c).toString(16).padStart(2, '0'); };
-        return `#${f(0)}${f(8)}${f(4)}`;
+    const usedColors = listJenisPkm
+        .filter((item) => item.id_jenis_pkm !== editId)
+        .map((item) => (item.warna_icon || '').toUpperCase())
+        .filter(Boolean);
+
+    const createDistinctColor = () => {
+        const firstPreset = PRESET_COLORS.find((color) => !usedColors.includes(color.toUpperCase()));
+        if (firstPreset) {
+            return firstPreset.toUpperCase();
+        }
+
+        for (let index = 0; index < 360; index += 29) {
+            const hue = index % 360;
+            const sat = 72;
+            const lum = 48;
+            const a2 = (sat / 100) * Math.min(lum / 100, 1 - (lum / 100));
+            const f = (n: number) => {
+                const k = (n + hue / 30) % 12;
+                const c = (lum / 100) - a2 * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+                return Math.round(255 * c).toString(16).padStart(2, '0');
+            };
+            const color = `#${f(0)}${f(8)}${f(4)}`.toUpperCase();
+            if (!usedColors.includes(color)) {
+                return color;
+            }
+        }
+
+        return '#2563EB';
     };
 
-    const openCreate = () => { setEditId(null); setNama(''); setWarna(generateRandomColor()); setModalOpen(true); };
-    const openEdit = (item: JenisPkm) => { setEditId(item.id_jenis_pkm); setNama(item.nama_jenis); setWarna(item.warna_icon || ''); setModalOpen(true); };
+    const openCreate = () => { setEditId(null); setNama(''); setWarna(createDistinctColor()); setModalOpen(true); };
+    const openEdit = (item: JenisPkm) => { setEditId(item.id_jenis_pkm); setNama(item.nama_jenis); setWarna((item.warna_icon || '').toUpperCase()); setModalOpen(true); };
     const closeModal = () => { setModalOpen(false); setEditId(null); setNama(''); setWarna(''); };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        const finalWarna = warna || generateRandomColor();
+        const finalWarna = (warna || createDistinctColor()).toUpperCase();
         if (editId) {
             router.put(`/admin/master/jenis-pkm/${editId}`, { nama_jenis: nama, warna_icon: finalWarna }, { onSuccess: closeModal });
         } else {
@@ -109,6 +128,7 @@ const JenisPkmPage: React.FC<Props> = ({ listJenisPkm, filters }) => {
                 <div>
                     <h1 className="text-[24px] font-bold text-zinc-900 tracking-tight">Jenis PKM</h1>
                     <p className="text-zinc-500 text-[14px] mt-1">Kelola kategori dan klasifikasi kegiatan.</p>
+                    <p className="text-zinc-400 text-[12px] mt-2">Warna hex di tabel ini menjadi warna marker, legend, dan statistik peta untuk jenis PKM terkait.</p>
                 </div>
                 <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 rounded-md text-[13px] font-medium text-white shadow-sm transition-colors bg-zinc-900 hover:bg-zinc-800">
                     <Plus size={16} /> Kategori Baru
@@ -202,24 +222,29 @@ const JenisPkmPage: React.FC<Props> = ({ listJenisPkm, filters }) => {
                                     className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-zinc-200 focus:border-zinc-400 text-zinc-900 placeholder-zinc-400 transition-all" />
                             </div>
                             <div>
-                                <label className="text-[13px] font-medium text-zinc-700 block mb-1.5">Theme Color (Hex)</label>
+                                <label className="text-[13px] font-medium text-zinc-700 block mb-1.5">Warna Legend (Hex) <span className="text-red-500">*</span></label>
                                 <div className="flex gap-2 items-center mb-3">
-                                    <input value={warna} onChange={e => setWarna(e.target.value)} placeholder="#e4e4e7"
+                                    <input value={warna} onChange={e => setWarna(e.target.value.toUpperCase())} placeholder="#2563EB"
                                         className="flex-1 rounded-md border border-zinc-200 bg-white px-3 py-2 text-[13px] font-mono outline-none focus:ring-2 focus:ring-zinc-200 focus:border-zinc-400 text-zinc-900 placeholder-zinc-400 transition-all uppercase" />
                                     <div className="w-10 h-10 rounded-md shadow-sm border border-zinc-200 flex-shrink-0" style={{ backgroundColor: warna || '#fafafa' }} />
                                 </div>
+                                <p className="text-[11px] text-zinc-500 mb-3">Setiap jenis PKM harus memakai warna yang berbeda agar legend peta mudah dibedakan.</p>
                                 <div className="flex flex-wrap gap-2">
                                     {PRESET_COLORS.map(color => (
                                         <button
                                             key={color}
                                             type="button"
-                                            onClick={() => setWarna(color)}
+                                            onClick={() => setWarna(color.toUpperCase())}
                                             style={{ backgroundColor: color }}
-                                            className={`w-6 h-6 rounded-full border-2 transition-all hover:scale-110 active:scale-95 ${warna.toLowerCase() === color.toLowerCase() ? 'border-zinc-900 shadow-md scale-110' : 'border-transparent'}`}
-                                            title={color}
+                                            className={`w-6 h-6 rounded-full border-2 transition-all hover:scale-110 active:scale-95 ${usedColors.includes(color.toUpperCase()) ? 'opacity-30 cursor-not-allowed' : ''} ${warna.toLowerCase() === color.toLowerCase() ? 'border-zinc-900 shadow-md scale-110' : 'border-transparent'}`}
+                                            title={usedColors.includes(color.toUpperCase()) ? `${color} (sudah dipakai)` : color}
+                                            disabled={usedColors.includes(color.toUpperCase())}
                                         />
                                     ))}
                                 </div>
+                                <button type="button" onClick={() => setWarna(createDistinctColor())} className="mt-3 text-[12px] font-semibold text-poltekpar-primary hover:text-poltekpar-navy">
+                                    Gunakan warna berbeda otomatis
+                                </button>
                             </div>
                             <div className="flex gap-3 pt-4">
                                 <button type="submit" className="flex-1 py-2 rounded-md text-[13px] font-medium text-white shadow-sm bg-zinc-900 hover:bg-zinc-800 transition-all">

@@ -41,6 +41,8 @@ interface PengajuanProps {
     /** Daftar pengajuan milik user yang login, dikirim dari server */
     userSubmissions?: PengajuanRecord[] | null;
     jenisPkmOptions?: { value: number; label: string }[];
+    /** ID pengajuan yang sedang di-edit (dari ?edit=ID query param) */
+    editSubmissionId?: number | null;
 }
 
 export default function Pengajuan({
@@ -48,6 +50,7 @@ export default function Pengajuan({
     initialView = 'form',
     userSubmissions = null,
     jenisPkmOptions = [],
+    editSubmissionId = null,
 }: PengajuanProps) {
     const resolvedRole = role === 'dosen' ? 'dosen' : 'masyarakat';
 
@@ -57,8 +60,14 @@ export default function Pengajuan({
     );
 
     const [activeView, setActiveView] = useState<'form' | 'status'>(
-        initialView as 'form' | 'status'
+        // If editing a specific submission, force form view
+        editSubmissionId ? 'form' : (initialView as 'form' | 'status')
     );
+
+    // Find the submission being edited (if any)
+    const editSubmission = editSubmissionId
+        ? submissions.find(s => s.id === editSubmissionId) ?? null
+        : null;
 
     // Sync activeView apabila server mengirim initialView berbeda (navigasi back/forward)
     useEffect(() => {
@@ -115,6 +124,7 @@ export default function Pengajuan({
                             onUpdateSubmissionStatus={handleUpdateStatus}
                             onlyShowStatus={activeView === 'status'}
                             jenisPkmOptions={jenisPkmOptions}
+                            editSubmission={editSubmission}
                             hideMainTabNav
                         />
                     ) : (
@@ -127,6 +137,7 @@ export default function Pengajuan({
                             onSubmitted={handleSubmitted}
                             onUpdateSubmissionStatus={handleUpdateStatus}
                             onlyShowStatus={activeView === 'status'}
+                            editSubmission={editSubmission}
                             hideInlineStatusPanel
                             hideMainTabNav
                         />

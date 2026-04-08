@@ -9,6 +9,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 class AktivitasController extends Controller
@@ -142,13 +143,18 @@ class AktivitasController extends Controller
             'body' => 'required|string|max:5000',
         ]);
 
+        if (in_array(config('mail.default'), ['log', 'array'], true)) {
+            return back()->with('error', 'Pengiriman email belum aktif. Konfigurasi mailer masih menggunakan mode log/array. Ubah MAIL_MAILER ke SMTP atau mailer produksi yang valid.');
+        }
+
         // Daily rate limiting via cache
         $cacheKey = 'undangan_email_count_'.now()->toDateString();
         $sentToday = (int) Cache::get($cacheKey, 0);
         $dailyLimit = 300;
 
-        $aktivitasList = Aktivitas::with(['pengajuan.user'])
+        $aktivitasList = Aktivitas::with(['pengajuan.user', 'pengajuan.jenisPkm'])
             ->whereIn('id_aktivitas', $request->ids)
+            ->whereIn('status_pelaksanaan', ['belum_mulai', 'persiapan'])
             ->get();
 
         if ($aktivitasList->isEmpty()) {
@@ -162,7 +168,7 @@ class AktivitasController extends Controller
         foreach ($aktivitasList as $aktivitas) {
             // Check daily limit
             if (($sentToday + $successCount) >= $dailyLimit) {
-                $failedEmails[] = 'Batas harian (100 email/hari) telah tercapai.';
+                $failedEmails[] = 'Batas harian (300 email/hari) telah tercapai.';
                 break;
             }
 
@@ -191,8 +197,12 @@ class AktivitasController extends Controller
                     new UndanganMail($recipientName, $judulKegiatan, $request->subject, $request->body, $recipientEmail, $tglMulai, $tglSelesai, $lokasi, $jenisPkm)
                 );
                 $successCount++;
+            } catch (\Symfony\Component\Mailer\Exception\TransportExceptionInterface $e) {
+                $host = config('mail.mailers.smtp.host', '127.0.0.1');
+                $port = config('mail.mailers.smtp.port', '2525');
+                return back()->with('error', "Gagal terhubung ke server email ({$host}:{$port}). Pastikan SMTP server aktif atau konfigurasi MAIL_HOST/MAIL_PORT di .env sudah benar.");
             } catch (\Throwable $e) {
-                $failedEmails[] = "{$recipientEmail}: {$e->getMessage()}";
+                $failedEmails[] = "{$recipientEmail}: ".Str::limit($e->getMessage(), 80);
             }
         }
 
@@ -215,7 +225,7 @@ class AktivitasController extends Controller
     }
 
     /**
-     * Export aktivitas data to CSV with separate columns.
+     * Export aktivitas data to XLSX with styled columns.
      */
     public function export(Request $request)
     {
@@ -229,93 +239,145 @@ class AktivitasController extends Controller
             })
             ->latest();
 
-        $filename = 'aktivitas_'.now()->format('Y-m-d_His').'.csv';
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Aktivitas PKM');
 
         $headers = [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            'No',
+            'Judul Kegiatan',
+            'Pengusul / Ketua Tim',
+            'Email Pengusul',
+            'No. Telepon',
+            'Jenis PKM',
+            'Tahun Pelaksanaan',
+            'Tanggal Mulai',
+            'Tanggal Selesai',
+            'Provinsi',
+            'Kota / Kabupaten',
+            'Kecamatan',
+            'Kelurahan / Desa',
+            'Status Pelaksanaan',
+            'Total Anggaran (Rp)',
+            'Dosen Terlibat',
+            'Staf Terlibat',
+            'Mahasiswa Terlibat',
+            'Jumlah Arsip',
         ];
 
-        $callback = function () use ($query) {
-            $file = fopen('php://output', 'w');
-            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF)); // UTF-8 BOM
+        // Write header row with styling
+        $headerStyle = [
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF'], 'size' => 11],
+            'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => '046BD2']],
+            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER, 'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER],
+            'borders' => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN, 'color' => ['rgb' => 'D1D5DB']]],
+        ];
 
-            fputcsv($file, [
-                'No',
-                'Judul Kegiatan',
-                'Pengusul / Ketua Tim',
-                'Email Pengusul',
-                'No. Telepon',
-                'Jenis PKM',
-                'Tahun Pelaksanaan',
-                'Tanggal Mulai',
-                'Tanggal Selesai',
-                'Provinsi',
-                'Kota / Kabupaten',
-                'Kecamatan',
-                'Kelurahan / Desa',
-                'Status Pelaksanaan',
-                'Total Anggaran (Rp)',
-                'Sumber Dana',
-                'Dosen Terlibat',
-                'Staf Terlibat',
-                'Mahasiswa Terlibat',
-                'Jumlah Arsip',
-            ]);
+        foreach ($headers as $colIndex => $header) {
+            $col = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex + 1);
+            $sheet->setCellValue("{$col}1", $header);
+        }
 
-            $no = 1;
-            $query->chunk(100, function ($items) use ($file, &$no) {
-                foreach ($items as $a) {
-                    $p = $a->pengajuan;
+        $lastCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($headers));
+        $sheet->getStyle("A1:{$lastCol}1")->applyFromArray($headerStyle);
+        $sheet->getRowDimension(1)->setRowHeight(28);
 
-                    // Pisah tim berdasarkan peran
-                    $dosen   = [];
-                    $staf    = [];
-                    $mahasiswa = [];
+        // Write data rows
+        $rowNum = 2;
+        $no = 1;
+        $query->chunk(100, function ($items) use ($sheet, &$rowNum, &$no) {
+            foreach ($items as $a) {
+                $p = $a->pengajuan;
 
-                    if ($p) {
-                        foreach ($p->timKegiatan as $anggota) {
-                            $nama = $anggota->pegawai?->nama_pegawai ?? $anggota->nama_mahasiswa ?? '-';
-                            match ($anggota->peran_tim) {
-                                'anggota_dosen' => $dosen[] = $nama,
-                                'anggota_staff' => $staf[] = $nama,
-                                'anggota_mahasiswa' => $mahasiswa[] = $nama,
-                                default => null,
-                            };
-                        }
+                $dosen = [];
+                $staf = [];
+                $mahasiswa = [];
+
+                if ($p) {
+                    foreach ($p->timKegiatan as $anggota) {
+                        $nama = $anggota->pegawai?->nama_pegawai ?? $anggota->nama_mahasiswa ?? '-';
+                        match ($anggota->peran_tim) {
+                            'anggota_dosen' => $dosen[] = $nama,
+                            'anggota_staff' => $staf[] = $nama,
+                            'anggota_mahasiswa' => $mahasiswa[] = $nama,
+                            default => null,
+                        };
                     }
-
-                    $totalAnggaran = $p?->total_anggaran ? number_format((float) $p->total_anggaran, 0, ',', '.') : '-';
-                    $sumberDana = $p?->sumber_dana ?? '-';
-
-                    fputcsv($file, [
-                        $no++,
-                        $p?->judul_kegiatan ?? '-',
-                        $p?->nama_pengusul ?? $p?->user?->name ?? '-',
-                        $p?->email_pengusul ?? $p?->user?->email ?? '-',
-                        $p?->no_telepon ?? '-',
-                        $p?->jenisPkm?->nama_jenis ?? '-',
-                        $p?->tgl_mulai ? $p->tgl_mulai->format('Y') : '-',
-                        $p?->tgl_mulai ? $p->tgl_mulai->format('d/m/Y') : '-',
-                        $p?->tgl_selesai ? $p->tgl_selesai->format('d/m/Y') : '-',
-                        $p?->provinsi ?? '-',
-                        $p?->kota_kabupaten ?? '-',
-                        $p?->kecamatan ?? '-',
-                        $p?->kelurahan_desa ?? '-',
-                        ucfirst(str_replace('_', ' ', $a->status_pelaksanaan)),
-                        $totalAnggaran,
-                        $sumberDana,
-                        implode('; ', $dosen) ?: '-',
-                        implode('; ', $staf) ?: '-',
-                        implode('; ', $mahasiswa) ?: '-',
-                        $a->arsip?->count() ?? 0,
-                    ]);
                 }
-            });
-            fclose($file);
-        };
 
-        return response()->stream($callback, 200, $headers);
+                $totalAnggaran = (float) ($p?->total_anggaran ?? 0);
+
+                $row = [
+                    $no++,
+                    $p?->judul_kegiatan ?? '-',
+                    $p?->nama_pengusul ?? $p?->user?->name ?? '-',
+                    $p?->email_pengusul ?? $p?->user?->email ?? '-',
+                    $p?->no_telepon ?? '-',
+                    $p?->jenisPkm?->nama_jenis ?? '-',
+                    $p?->tgl_mulai ? $p->tgl_mulai->format('Y') : '-',
+                    $p?->tgl_mulai ? $p->tgl_mulai->format('d/m/Y') : '-',
+                    $p?->tgl_selesai ? $p->tgl_selesai->format('d/m/Y') : '-',
+                    $p?->provinsi ?? '-',
+                    $p?->kota_kabupaten ?? '-',
+                    $p?->kecamatan ?? '-',
+                    $p?->kelurahan_desa ?? '-',
+                    ucfirst(str_replace('_', ' ', $a->status_pelaksanaan)),
+                    $totalAnggaran,
+                    implode('; ', $dosen) ?: '-',
+                    implode('; ', $staf) ?: '-',
+                    implode('; ', $mahasiswa) ?: '-',
+                    $a->arsip?->count() ?? 0,
+                ];
+
+                foreach ($row as $colIndex => $value) {
+                    $col = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex + 1);
+                    $sheet->setCellValue("{$col}{$rowNum}", $value);
+                }
+
+                // Zebra striping
+                if ($rowNum % 2 === 0) {
+                    $lastCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($row));
+                    $sheet->getStyle("A{$rowNum}:{$lastCol}{$rowNum}")->getFill()
+                        ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                        ->getStartColor()->setRGB('F1F5F9');
+                }
+
+                $rowNum++;
+            }
+        });
+
+        // Format total anggaran column as number with thousands separator
+        $anggaranCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(15);
+        $sheet->getStyle("{$anggaranCol}2:{$anggaranCol}" . max($rowNum - 1, 2))
+            ->getNumberFormat()
+            ->setFormatCode('#,##0');
+
+        // Data area border
+        if ($rowNum > 2) {
+            $sheet->getStyle("A2:{$lastCol}" . ($rowNum - 1))->applyFromArray([
+                'borders' => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN, 'color' => ['rgb' => 'E2E8F0']]],
+                'alignment' => ['vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER],
+            ]);
+        }
+
+        // Auto-size columns
+        foreach (range(1, count($headers)) as $colIndex) {
+            $col = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex);
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        // Freeze header row
+        $sheet->freezePane('A2');
+
+        $filename = 'Aktivitas_PKM_' . now()->format('Y-m-d_His') . '.xlsx';
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
     }
 
 

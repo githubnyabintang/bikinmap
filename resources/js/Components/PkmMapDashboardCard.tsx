@@ -8,6 +8,17 @@ import { createPkmMarkerIcon, extractDynamicPkmTypes, getPkmStatusMeta, PkmTypeM
 import type { PkmData } from '@/types';
 import '../../css/landing.css';
 
+const normalizeText = (value: unknown) => String(value ?? '').trim();
+
+const normalizeSearchText = (value: unknown) => normalizeText(value).toLowerCase();
+
+const normalizeTypeKey = (value: unknown) => normalizeText(value) || 'Lainnya';
+
+const parseCoordinate = (value: unknown): number | null => {
+    const parsed = typeof value === 'number' ? value : Number(String(value ?? '').trim());
+    return Number.isFinite(parsed) ? parsed : null;
+};
+
 if (typeof window !== 'undefined' && L?.Icon?.Default) {
     (L.Icon.Default.prototype as any)._getIconUrl = undefined;
     L.Icon.Default.mergeOptions({
@@ -98,16 +109,23 @@ export default function PkmMapDashboardCard({ pkmData, watchKey = 'pkm-map', isA
     const filteredPkmData = useMemo(() => {
         const keyword = searchKeyword.toLowerCase();
         return pkmData.filter((pkm) => {
-            const matchesSearch = keyword.length === 0 || [pkm.nama, pkm.desa, pkm.kabupaten, pkm.provinsi].some((value) => value.toLowerCase().includes(keyword));
-            const typeKey = (String(pkm?.jenis_pkm ?? '').trim().toLowerCase().startsWith('pkm') ? String(pkm?.jenis_pkm ?? '').trim() : String(pkm?.jenis_pkm ?? '').trim() ? `PKM ${String(pkm?.jenis_pkm ?? '').trim()}` : 'Lainnya');
-            // Matching against the extracted key which matches raw label since we assign displayLabel.
-            // Wait, we need to match the type key. Let's use the actual extract logic.
-            const matchesType = selectedTypes.length === 0 || selectedTypes.includes(String(pkm?.jenis_pkm ?? '').trim() || 'Lainnya');
+            const matchesSearch = keyword.length === 0 || [pkm.nama, pkm.desa, pkm.kabupaten, pkm.provinsi].some((value) => normalizeSearchText(value).includes(keyword));
+            const matchesType = selectedTypes.length === 0 || selectedTypes.includes(normalizeTypeKey(pkm?.jenis_pkm));
             const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(getPkmStatusMeta(pkm.status).key);
             const matchesYear = selectedYear === 'Semua Tahun' || String(pkm.tahun) === selectedYear;
             return matchesSearch && matchesType && matchesStatus && matchesYear;
         });
     }, [pkmData, searchKeyword, selectedStatuses, selectedTypes, selectedYear]);
+
+    const mappablePkmData = useMemo(() => (
+        filteredPkmData
+            .map((pkm) => ({
+                pkm,
+                lat: parseCoordinate(pkm.lat),
+                lng: parseCoordinate(pkm.lng),
+            }))
+            .filter((item) => item.lat !== null && item.lng !== null)
+    ), [filteredPkmData]);
 
     const typesMeta = useMemo(() => extractDynamicPkmTypes(pkmData), [pkmData]);
 
@@ -135,6 +153,9 @@ export default function PkmMapDashboardCard({ pkmData, watchKey = 'pkm-map', isA
     const totalSelesai = filteredPkmData.filter((item) => item.status === 'selesai').length;
     const totalBerlangsung = filteredPkmData.filter((item) => item.status === 'berlangsung').length;
     const totalBelumMulai = filteredPkmData.filter((item) => item.status === 'belum_mulai').length;
+    const selectedLat = selectedPkm ? parseCoordinate(selectedPkm.lat) : null;
+    const selectedLng = selectedPkm ? parseCoordinate(selectedPkm.lng) : null;
+    const hasSelectedCoordinates = selectedLat !== null && selectedLng !== null;
 
     return (
         <div className="bg-white rounded-2xl sm:rounded-[32px] lg:rounded-[40px] shadow-2xl shadow-sigappa-navy/5 border border-slate-100 overflow-hidden mb-6 sm:mb-8 p-3 sm:p-4 md:p-6">
@@ -142,16 +163,13 @@ export default function PkmMapDashboardCard({ pkmData, watchKey = 'pkm-map', isA
             <div className="relative w-full h-[400px] sm:h-[500px] md:h-[650px] lg:h-[75vh] min-h-[350px] rounded-2xl sm:rounded-[24px] lg:rounded-[32px] border border-slate-100 overflow-hidden z-10 shadow-inner">
                 <MapContainer center={[-2.5, 118]} zoom={5} className="w-full h-full" zoomControl={false}>
                     <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' />
-                    {filteredPkmData.map((pkm) => {
-                        const typeMeta = typesMeta.find(t => t.key === (String(pkm?.jenis_pkm ?? '').trim() || 'Lainnya'));
+                    {mappablePkmData.map(({ pkm, lat, lng }) => {
+                        const typeMeta = typesMeta.find(t => t.key === normalizeTypeKey(pkm?.jenis_pkm));
                         const markerColor = typeMeta ? typeMeta.color : '#15325F';
-                        return <Marker key={pkm.id} position={[parseFloat(String(pkm.lat)), parseFloat(String(pkm.lng))]} icon={createPkmMarkerIcon(pkm.status, markerColor, (pkm as any).is_review)} eventHandlers={{ click: () => setSelectedPkm(pkm) }} />;
+                        return <Marker key={pkm.id} position={[lat, lng]} icon={createPkmMarkerIcon(pkm.status, markerColor, (pkm as any).is_review)} eventHandlers={{ click: () => setSelectedPkm(pkm) }} />;
                     })}
                     <MapSizeInvalidator watchKey={watchKey} />
-                    <FlyToMarker
-                        lat={selectedPkm ? parseFloat(String(selectedPkm.lat)) : null}
-                        lng={selectedPkm ? parseFloat(String(selectedPkm.lng)) : null}
-                    />
+                    <FlyToMarker lat={selectedLat} lng={selectedLng} />
                 </MapContainer>
                 {/* Year Filter Dropdown */}
                 <div className="absolute top-4 left-4 md:top-6 md:left-6 z-[1000]">
@@ -221,13 +239,15 @@ export default function PkmMapDashboardCard({ pkmData, watchKey = 'pkm-map', isA
                                 <div className="space-y-6">
 
                                     <div className="flex flex-col gap-3 text-[12px] font-bold text-slate-400 uppercase tracking-widest">
-                                        <div className="flex items-center gap-3"><div className="w-8 h-8 rounded-lg bg-sigappa-primary/10 text-sigappa-primary flex items-center justify-center"><i className="fa-solid fa-location-dot"></i></div>{selectedPkm.desa}, {selectedPkm.kecamatan}, {selectedPkm.kabupaten}, {selectedPkm.provinsi}</div>
+                                        <div className="flex items-center gap-3"><div className="w-8 h-8 rounded-lg bg-sigappa-primary/10 text-sigappa-primary flex items-center justify-center"><i className="fa-solid fa-location-dot"></i></div>{[selectedPkm.desa, selectedPkm.kecamatan, selectedPkm.kabupaten, selectedPkm.provinsi].filter(Boolean).join(', ') || '-'}</div>
                                         <div className="flex items-center gap-3"><div className="w-8 h-8 rounded-lg bg-sigappa-primary/10 text-sigappa-primary flex items-center justify-center"><i className="fa-solid fa-calendar"></i></div>Tahun {selectedPkm.tahun}</div>
                                     </div>
                                     <div className="flex flex-wrap gap-2 pt-2">
-                                        <a href={`https://www.google.com/maps/dir/?api=1&destination=${selectedPkm.lat},${selectedPkm.lng}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold hover:bg-blue-100 transition-colors">
-                                            <i className="fa-solid fa-map-location-dot"></i> Rute
-                                        </a>
+                                        {hasSelectedCoordinates && (
+                                            <a href={`https://www.google.com/maps/dir/?api=1&destination=${selectedLat},${selectedLng}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold hover:bg-blue-100 transition-colors">
+                                                <i className="fa-solid fa-map-location-dot"></i> Rute
+                                            </a>
+                                        )}
                                         {isAdmin && (
                                             <a href={`/admin/pengajuan/${selectedPkm.id}`} className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-bold hover:bg-indigo-100 transition-colors border border-indigo-100">
                                                 <i className="fa-solid fa-arrow-up-right-from-square"></i> Lihat Pengajuan
@@ -282,15 +302,15 @@ export default function PkmMapDashboardCard({ pkmData, watchKey = 'pkm-map', isA
                             </div>
                             <div className="p-8 pt-4 overflow-y-auto flex-1 space-y-4 custom-scrollbar overscroll-contain">
                                 {filteredPkmData.map((pkm) => {
-                                    const typeMeta = typesMeta.find(t => t.key === (String(pkm?.jenis_pkm ?? '').trim() || 'Lainnya'));
+                                    const typeMeta = typesMeta.find(t => t.key === normalizeTypeKey(pkm?.jenis_pkm));
                                     const typeColor = typeMeta ? typeMeta.color : '#15325F';
                                     return (
                                         <button key={pkm.id} onClick={() => setSelectedPkm(pkm)} className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 flex flex-col gap-3 text-left hover:bg-poltekpar-primary hover:text-white hover:border-poltekpar-primary transition-all group shadow-sm cursor-pointer">
                                             <div className="flex items-center justify-between w-full">
-                                                <div className="flex items-center gap-3 w-[90%]"><div className="w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-sm group-hover:ring-2 group-hover:ring-white/50" style={{ backgroundColor: typeColor }}></div><div className="font-black text-sm text-slate-800 group-hover:text-white transition-colors truncate">{pkm.nama}</div></div>
+                                                <div className="flex items-center gap-3 w-[90%]"><div className="w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-sm group-hover:ring-2 group-hover:ring-white/50" style={{ backgroundColor: typeColor }}></div><div className="font-black text-sm text-slate-800 group-hover:text-white transition-colors truncate">{normalizeText(pkm.nama) || 'Tanpa Judul'}</div></div>
                                             </div>
                                             <div className="flex items-center gap-4 text-[10px] font-bold text-slate-500 group-hover:text-white/80">
-                                                <span className="flex items-center gap-1.5"><i className="fa-solid fa-location-dot"></i> {pkm.desa}</span>
+                                                <span className="flex items-center gap-1.5"><i className="fa-solid fa-location-dot"></i> {normalizeText(pkm.desa) || '-'}</span>
                                                 <span className="flex items-center gap-1.5"><i className="fa-solid fa-calendar"></i> {pkm.tahun}</span>
                                             </div>
                                         </button>

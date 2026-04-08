@@ -204,9 +204,9 @@
                                                     <center style="color:#ffffff;font-family:sans-serif;font-size:14px;font-weight:bold;">Lihat Detail Kegiatan &rarr;</center>
                                                     </v:roundrect>
                                                     <![endif]-->
-                                                    <a href="{{ config('app.url') }}/login" target="_blank" class="font-jakarta" style="display: inline-block; padding: 14px 40px; font-size: 14px; font-weight: 700; color: #ffffff; text-decoration: none; letter-spacing: 0.3px;">
+                                                    {{-- <a href="{{ config('app.url') }}/login" target="_blank" class="font-jakarta" style="display: inline-block; padding: 14px 40px; font-size: 14px; font-weight: 700; color: #ffffff; text-decoration: none; letter-spacing: 0.3px;">
                                                         Lihat Detail Kegiatan &rarr;
-                                                    </a>
+                                                    </a> --}}
                                                 </td>
                                             </tr>
                                         </table>

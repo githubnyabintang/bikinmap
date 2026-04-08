@@ -5,7 +5,7 @@ import * as XLSX from 'xlsx';
 import AdminLayout from '../../../Layouts/AdminLayout';
 import FormHistoris from '../../../Components/FormHistoris';
 import Toast from '../../../Components/Toast';
-import { Upload, Download, FileSpreadsheet, Eye, Save, Loader2, ArrowLeft, History, Edit, CheckSquare, Square, X } from 'lucide-react';
+import { Upload, Download, FileSpreadsheet, Eye, Save, Loader2, ArrowLeft, History, Edit, CheckSquare, Square, X, MapPin, MapPinOff } from 'lucide-react';
 
 export default function HistorisIndex({ listPegawai, listJenisPkm }: any) {
     const [activeTab, setActiveTab] = useState<'manual' | 'excel'>('manual');
@@ -149,6 +149,16 @@ export default function HistorisIndex({ listPegawai, listJenisPkm }: any) {
 
     const curEditingData = editingRowIndex !== null ? previewData[editingRowIndex] : null;
 
+    const hasCoordinates = (row: any) => {
+        const latitude = row?.latitude;
+        const longitude = row?.longitude;
+
+        return latitude !== null && latitude !== undefined && latitude !== '' && longitude !== null && longitude !== undefined && longitude !== '';
+    };
+
+    const rowsWithCoordinates = previewData.filter(hasCoordinates).length;
+    const rowsWithoutCoordinates = previewData.length - rowsWithCoordinates;
+
     return (
         <AdminLayout title="Kelola Data Historis">
             <Toast show={toastInfo.show} type={toastInfo.type} title={toastInfo.type === 'success' ? 'Berhasil' : 'Gagal'} message={toastInfo.msg} onClose={() => setToastInfo({...toastInfo, show: false})} />
@@ -222,6 +232,16 @@ export default function HistorisIndex({ listPegawai, listJenisPkm }: any) {
                             <div>
                                 <h3 className="font-black text-zinc-900 leading-tight">Review Hasil Import Excel</h3>
                                 <p className="text-[12px] text-zinc-500">{selectedRows.length} terpilih dari {previewData.length} baris terbaca</p>
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                    <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-bold text-emerald-700">
+                                        <MapPin size={12} />
+                                        {rowsWithCoordinates} sudah punya koordinat
+                                    </div>
+                                    <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-bold text-amber-700">
+                                        <MapPinOff size={12} />
+                                        {rowsWithoutCoordinates} belum punya koordinat
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <button onClick={handleImportSelected} disabled={selectedRows.length===0 || isProcessing} className="bg-poltekpar-primary text-white px-5 py-2.5 flex items-center gap-2 rounded-xl font-bold text-sm shadow-md hover:bg-poltekpar-navy disabled:opacity-50 transition-all">
@@ -244,13 +264,27 @@ export default function HistorisIndex({ listPegawai, listJenisPkm }: any) {
                                 </tr>
                             </thead>
                             <tbody className="text-[13px] divide-y divide-zinc-100">
-                                {previewData.map((row, idx) => (
-                                    <tr key={row.id} className={`hover:bg-zinc-50 cursor-pointer ${selectedRows.includes(row.id) ? 'bg-indigo-50/20' : ''}`} onClick={() => toggleRow(row.id)}>
+                                {previewData.map((row, idx) => {
+                                    const rowHasCoordinates = hasCoordinates(row);
+
+                                    return (
+                                    <tr key={row.id} className={`hover:bg-zinc-50 cursor-pointer ${selectedRows.includes(row.id) ? 'bg-indigo-50/20' : ''} ${rowHasCoordinates ? 'border-l-4 border-emerald-400' : 'border-l-4 border-amber-300'}`} onClick={() => toggleRow(row.id)}>
                                         <td className="py-3 px-4 text-center">
                                             {selectedRows.includes(row.id) ? <CheckSquare size={16} className="text-poltekpar-primary mx-auto" /> : <Square size={16} className="text-zinc-300 mx-auto" />}
                                         </td>
                                         <td className="py-3 px-4">
                                             <div className="font-bold text-zinc-900 line-clamp-1">{row.judul_kegiatan || <span className="italic text-red-500">Kosong</span>}</div>
+                                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                                                <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold ${rowHasCoordinates ? 'border border-emerald-200 bg-emerald-50 text-emerald-700' : 'border border-amber-200 bg-amber-50 text-amber-700'}`}>
+                                                    {rowHasCoordinates ? <MapPin size={12} /> : <MapPinOff size={12} />}
+                                                    {rowHasCoordinates ? 'Koordinat tersedia' : 'Koordinat belum diisi'}
+                                                </span>
+                                                {rowHasCoordinates && (
+                                                    <span className="text-[10px] font-mono text-slate-500">
+                                                        {Number(row.latitude).toFixed(5)}, {Number(row.longitude).toFixed(5)}
+                                                    </span>
+                                                )}
+                                            </div>
                                             <div className="text-[11px] text-zinc-500 mt-1 line-clamp-1">Lok: {row.alamat_lengkap || '-'}</div>
                                             <div className="text-[11px] text-zinc-500 mt-0.5 line-clamp-1">Ketua: {row.ketua_tim || '-'}</div>
                                         </td>
@@ -266,7 +300,7 @@ export default function HistorisIndex({ listPegawai, listJenisPkm }: any) {
                                             </button>
                                         </td>
                                     </tr>
-                                ))}
+                                )})}
                             </tbody>
                         </table>
                     </div>

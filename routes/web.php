@@ -196,6 +196,7 @@ Route::middleware('auth')->group(function () {
     // User: submit/update pengajuan
     Route::post('/pengajuan', [PengajuanUserController::class, 'store'])->name('pengajuan.store');
     Route::put('/pengajuan/{id}', [PengajuanUserController::class, 'update'])->name('pengajuan.update');
+    Route::post('/pengajuan/{id}/resubmit', [PengajuanUserController::class, 'resubmit'])->name('pengajuan.resubmit');
 
     // Pegawai names for autocomplete recommendations
     Route::get('/api/pegawai-options', function () {
@@ -243,6 +244,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/pengajuan/{id}/tim', [PengajuanController::class, 'syncTim'])->name('pengajuan.sync_tim');
         Route::get('/pengajuan/{id}', [PengajuanController::class, 'show'])->name('pengajuan.show');
         Route::put('/pengajuan/{id}', [PengajuanController::class, 'update'])->name('pengajuan.update');
+        Route::put('/pengajuan/{id}/tanggal-pengajuan', [PengajuanController::class, 'updateTanggalPengajuan'])->name('pengajuan.update_tanggal_pengajuan');
         Route::delete('/pengajuan/bulk', [PengajuanController::class, 'bulkDestroy'])->name('pengajuan.bulk_destroy');
         Route::delete('/pengajuan/{id}', [PengajuanController::class, 'destroy'])->name('pengajuan.destroy');
         Route::put('/pengajuan/{id}/status', [PengajuanController::class, 'updateStatus'])->name('pengajuan.update_status');

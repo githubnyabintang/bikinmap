@@ -22,6 +22,64 @@ interface MapLocationPickerProps {
 const DEFAULT_CENTER: [number, number] = [-5.1866, 119.4311]; // Default to Makassar
 const DEFAULT_ZOOM = 13;
 
+const toCoordinate = (value: unknown): number | null => {
+  const parsed = typeof value === 'number' ? value : Number(String(value ?? '').trim());
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const toLatLng = (latitude: unknown, longitude: unknown): L.LatLng | null => {
+  const lat = toCoordinate(latitude);
+  const lng = toCoordinate(longitude);
+
+  if (lat === null || lng === null) {
+    return null;
+  }
+
+  return new L.LatLng(lat, lng);
+};
+
+class MapPickerErrorBoundary extends React.Component<
+  { children: React.ReactNode; onRetry: () => void },
+  { hasError: boolean }
+> {
+  constructor(props: { children: React.ReactNode; onRetry: () => void }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error) {
+    console.error('MapLocationPicker crashed:', error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex h-full min-h-[240px] w-full items-center justify-center bg-slate-50 px-4 text-center">
+          <div className="space-y-3">
+            <div className="text-sm font-semibold text-slate-700">Peta gagal dimuat.</div>
+            <button
+              type="button"
+              onClick={() => {
+                this.setState({ hasError: false });
+                this.props.onRetry();
+              }}
+              className="rounded-md bg-poltekpar-primary px-4 py-2 text-sm font-semibold text-white hover:bg-poltekpar-navy"
+            >
+              Muat Ulang Peta
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 function LocationMarker({ position, setPosition }: { position: L.LatLng | null, setPosition: (pos: L.LatLng) => void }) {
   const markerRef = useRef<L.Marker>(null);
 
@@ -62,22 +120,42 @@ function MapUpdater({ center }: { center: L.LatLng }) {
 }
 
 export default function MapLocationPicker({ latitude, longitude, onChange, className = "h-64 w-full rounded-xl overflow-hidden shadow-inner border border-slate-200" }: MapLocationPickerProps) {
-    const [position, setPosition] = useState<L.LatLng | null>(
-        latitude && longitude ? new L.LatLng(latitude, longitude) : null
-    );
+  const initialLatLng = toLatLng(latitude, longitude);
+  const [position, setPosition] = useState<L.LatLng | null>(initialLatLng);
     const [searchQuery, setSearchQuery] = useState('');
-    const [center, setCenter] = useState<L.LatLng>(
-        latitude && longitude ? new L.LatLng(latitude, longitude) : new L.LatLng(DEFAULT_CENTER[0], DEFAULT_CENTER[1])
-    );
+  const [center, setCenter] = useState<L.LatLng>(initialLatLng ?? new L.LatLng(DEFAULT_CENTER[0], DEFAULT_CENTER[1]));
     const [isSearching, setIsSearching] = useState(false);
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [showResults, setShowResults] = useState(false);
+  const [mapInstanceKey, setMapInstanceKey] = useState(0);
 
     useEffect(() => {
         if (position) {
             onChange(position.lat, position.lng);
         }
-    }, [position]);
+  }, [onChange, position]);
+
+  useEffect(() => {
+    const nextLatLng = toLatLng(latitude, longitude);
+
+    setPosition((current) => {
+      if (!nextLatLng) {
+        return null;
+      }
+
+      if (current && current.lat === nextLatLng.lat && current.lng === nextLatLng.lng) {
+        return current;
+      }
+
+      return nextLatLng;
+    });
+
+    if (nextLatLng) {
+      setCenter((current) => (
+        current.lat === nextLatLng.lat && current.lng === nextLatLng.lng ? current : nextLatLng
+      ));
+    }
+  }, [latitude, longitude]);
 
     useEffect(() => {
         if (!searchQuery.trim() || searchQuery.length < 3) {
@@ -89,7 +167,7 @@ export default function MapLocationPicker({ latitude, longitude, onChange, class
         const timeout = setTimeout(async () => {
             setIsSearching(true);
             try {
-                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=5&addressdetails=1&countrycodes=id`);
+            const res = await fetch(`/api/geocode?q=${encodeURIComponent(searchQuery)}`);
                 const data = await res.json();
                 setSearchResults(data || []);
                 setShowResults(true);
@@ -106,6 +184,10 @@ export default function MapLocationPicker({ latitude, longitude, onChange, class
     const handleSelectLocation = (loc: any) => {
         const lat = parseFloat(loc.lat);
         const lon = parseFloat(loc.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+      return;
+    }
+
         const newPos = new L.LatLng(lat, lon);
         setCenter(newPos);
         setPosition(newPos);
@@ -149,14 +231,16 @@ export default function MapLocationPicker({ latitude, longitude, onChange, class
             </div>
 
             <div className={`relative ${className}`}>
-                <MapContainer center={center} zoom={DEFAULT_ZOOM} scrollWheelZoom={true} style={{ height: '100%', width: '100%', zIndex: 10 }}>
-                    <TileLayer
-                        attribution='&copy; OpenStreetMap'
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    />
-                    <MapUpdater center={center} />
-                    <LocationMarker position={position} setPosition={setPosition} />
-                </MapContainer>
+        <MapPickerErrorBoundary onRetry={() => setMapInstanceKey((value) => value + 1)}>
+          <MapContainer key={mapInstanceKey} center={center} zoom={DEFAULT_ZOOM} scrollWheelZoom={true} style={{ height: '100%', width: '100%', zIndex: 10 }}>
+            <TileLayer
+              attribution='&copy; OpenStreetMap'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            <MapUpdater center={center} />
+            <LocationMarker position={position} setPosition={setPosition} />
+          </MapContainer>
+        </MapPickerErrorBoundary>
             </div>
         </div>
     );

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\JenisPkm;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class MasterDataController extends Controller
@@ -28,25 +29,34 @@ class MasterDataController extends Controller
 
     public function storeJenis(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'nama_jenis' => 'required|string|max:255',
-            'warna_icon' => 'nullable|string|max:50',
+            'warna_icon' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/', Rule::unique('jenis_pkm', 'warna_icon')],
+        ], [
+            'warna_icon.regex' => 'Warna harus berupa kode hex 6 digit, misalnya #2563EB.',
+            'warna_icon.unique' => 'Warna hex ini sudah dipakai jenis PKM lain. Pilih warna yang berbeda.',
         ]);
 
-        JenisPkm::create($request->only('nama_jenis', 'warna_icon'));
+        $validated['warna_icon'] = strtoupper($validated['warna_icon']);
+
+        JenisPkm::create($validated);
 
         return redirect()->back()->with('success', 'Jenis PKM berhasil ditambahkan.');
     }
 
     public function updateJenis(Request $request, int $id)
     {
-        $request->validate([
+        $validated = $request->validate([
             'nama_jenis' => 'required|string|max:255',
-            'warna_icon' => 'nullable|string|max:50',
+            'warna_icon' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/', Rule::unique('jenis_pkm', 'warna_icon')->ignore($id, 'id_jenis_pkm')],
+        ], [
+            'warna_icon.regex' => 'Warna harus berupa kode hex 6 digit, misalnya #2563EB.',
+            'warna_icon.unique' => 'Warna hex ini sudah dipakai jenis PKM lain. Pilih warna yang berbeda.',
         ]);
 
         $jenis = JenisPkm::findOrFail($id);
-        $jenis->update($request->only('nama_jenis', 'warna_icon'));
+        $validated['warna_icon'] = strtoupper($validated['warna_icon']);
+        $jenis->update($validated);
 
         return redirect()->back()->with('success', 'Jenis PKM berhasil diperbarui.');
     }

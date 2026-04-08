@@ -45,56 +45,97 @@ export const PKM_STATUS_META: Record<string, PkmStatusMeta> = {
     },
 };
 
-// Palette warna curated — dipakai jika warna_icon dari DB tidak ada atau semua sama
-export const COLOR_PALETTE = [
-    '#15325F', // poltekpar-primary (navy biru)
-    '#DCAF67', // poltekpar-gold
-    '#2563eb', // biru terang
-    '#10b981', // emerald
-    '#f59e0b', // amber
-    '#ef4444', // merah
-    '#8b5cf6', // violet
-    '#06b6d4', // cyan
-    '#84cc16', // lime
-    '#f97316', // orange
+const FALLBACK_COLOR_PALETTE = [
+    '#2563EB',
+    '#DC2626',
+    '#059669',
+    '#D97706',
+    '#7C3AED',
+    '#0891B2',
+    '#EA580C',
+    '#65A30D',
+    '#DB2777',
+    '#4F46E5',
+    '#0F766E',
+    '#B91C1C',
 ];
+
+const normalizeTypeLabel = (value: unknown) => {
+    if (typeof value === 'string') {
+        return value.trim() || 'Lainnya';
+    }
+
+    if (value && typeof value === 'object' && 'nama_jenis' in value) {
+        return String((value as { nama_jenis?: unknown }).nama_jenis ?? '').trim() || 'Lainnya';
+    }
+
+    return String(value ?? '').trim() || 'Lainnya';
+};
+
+const normalizeHexColor = (value: unknown): string | null => {
+    if (typeof value !== 'string') {
+        return null;
+    }
+
+    const normalized = value.trim().toUpperCase();
+    return /^#[0-9A-F]{6}$/.test(normalized) ? normalized : null;
+};
+
+const getTypeColorFromItem = (item: any): string | null => {
+    const rawJenis = item?.jenis_pkm;
+
+    return normalizeHexColor(
+        item?.warna_icon
+        ?? (typeof rawJenis === 'object' && rawJenis !== null ? rawJenis?.warna_icon ?? rawJenis?.warna : null)
+    );
+};
+
+const pickFallbackDistinctColor = (usedColors: Set<string>, label: string): string => {
+    const seededOffset = Array.from(label).reduce((sum, char) => sum + char.charCodeAt(0), 0) % FALLBACK_COLOR_PALETTE.length;
+
+    for (let index = 0; index < FALLBACK_COLOR_PALETTE.length; index += 1) {
+        const candidate = FALLBACK_COLOR_PALETTE[(seededOffset + index) % FALLBACK_COLOR_PALETTE.length];
+        if (!usedColors.has(candidate)) {
+            return candidate;
+        }
+    }
+
+    return FALLBACK_COLOR_PALETTE[seededOffset];
+};
 
 /**
  * Mengekstrak jenis PKM secara dinamis dari seluruh pkmData yang ada.
- * Memastikan semua chart, marker map, dan legend menggunakan warna yang sama (palette fallback jika perlu).
+ * Warna setiap jenis mengikuti hex di master data Jenis PKM.
+ * Jika data belum punya warna valid, gunakan fallback yang tetap berbeda.
  */
 export const extractDynamicPkmTypes = (pkmData: any[]): PkmTypeMeta[] => {
     if (!Array.isArray(pkmData) || pkmData.length === 0) return [];
 
-    const jenisMap = new Map<string, { rawLabel: string, color: string }>();
+    const jenisMap = new Map<string, { rawLabel: string; color: string }>();
+    const usedColors = new Set<string>();
+
     pkmData.forEach((item) => {
-        const rawJenis = item?.jenis_pkm;
-        const rawLabel = (typeof rawJenis === 'string' ? rawJenis : (rawJenis?.nama_jenis || String(rawJenis ?? ''))) .trim() || 'Lainnya';
-        
+        const rawLabel = normalizeTypeLabel(item?.jenis_pkm);
+        const preferredColor = getTypeColorFromItem(item);
+
         if (!jenisMap.has(rawLabel)) {
-            const rawColor = (item as any)?.warna_icon || (typeof rawJenis === 'object' ? rawJenis?.warna : null);
-            const hasValidColor = rawColor && typeof rawColor === 'string' && (rawColor.startsWith('#') || rawColor.startsWith('rgb'));
-            jenisMap.set(rawLabel, { rawLabel, color: hasValidColor ? rawColor : '' });
+            const finalColor = preferredColor && !usedColors.has(preferredColor)
+                ? preferredColor
+                : pickFallbackDistinctColor(usedColors, rawLabel);
+
+            jenisMap.set(rawLabel, {
+                rawLabel,
+                color: finalColor,
+            });
+            usedColors.add(finalColor);
         }
     });
 
-    const allColors = [...jenisMap.values()].map((j) => j.color).filter(Boolean);
-    const uniqueColors = new Set(allColors);
-    const colorsAreUseful = uniqueColors.size > 1 || (uniqueColors.size === 1 && jenisMap.size === 1);
-
-    let colorIndex = 0;
     return Array.from(jenisMap.values()).map((jenis) => {
         const labelStr = jenis.rawLabel;
-        // User request 3: "penamaan PKM harus diawali dengan pkm di jenis pkm"
         const displayLabel = labelStr.toLowerCase().startsWith('pkm') ? labelStr : `PKM ${labelStr}`;
 
-        return {
-            key: labelStr,
-            label: displayLabel,
-            color: colorsAreUseful && jenis.color
-                ? jenis.color
-                : COLOR_PALETTE[colorIndex++ % COLOR_PALETTE.length],
-        };
+        return { key: labelStr, label: displayLabel, color: jenis.color };
     });
 };
 
