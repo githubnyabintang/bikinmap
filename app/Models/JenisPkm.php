@@ -13,6 +13,7 @@ class JenisPkm extends Model
     protected $fillable = [
         'nama_jenis',
         'warna_icon',
+        'deskripsi',
     ];
 
     public function pengajuan()

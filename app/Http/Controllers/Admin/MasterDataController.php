@@ -32,6 +32,7 @@ class MasterDataController extends Controller
         $validated = $request->validate([
             'nama_jenis' => 'required|string|max:255',
             'warna_icon' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/', Rule::unique('jenis_pkm', 'warna_icon')],
+            'deskripsi' => 'nullable|string',
         ], [
             'warna_icon.regex' => 'Warna harus berupa kode hex 6 digit, misalnya #2563EB.',
             'warna_icon.unique' => 'Warna hex ini sudah dipakai jenis PKM lain. Pilih warna yang berbeda.',
@@ -49,6 +50,7 @@ class MasterDataController extends Controller
         $validated = $request->validate([
             'nama_jenis' => 'required|string|max:255',
             'warna_icon' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/', Rule::unique('jenis_pkm', 'warna_icon')->ignore($id, 'id_jenis_pkm')],
+            'deskripsi' => 'nullable|string',
         ], [
             'warna_icon.regex' => 'Warna harus berupa kode hex 6 digit, misalnya #2563EB.',
             'warna_icon.unique' => 'Warna hex ini sudah dipakai jenis PKM lain. Pilih warna yang berbeda.',
@@ -90,12 +92,12 @@ class MasterDataController extends Controller
             }
         }
 
-        if (!empty($blocked)) {
-            return redirect()->back()->with('error', 'Beberapa jenis PKM masih digunakan oleh pengajuan: ' . implode(', ', $blocked));
+        if (! empty($blocked)) {
+            return redirect()->back()->with('error', 'Beberapa jenis PKM masih digunakan oleh pengajuan: '.implode(', ', $blocked));
         }
 
         JenisPkm::whereIn('id_jenis_pkm', $request->ids)->delete();
 
-        return redirect()->back()->with('success', count($request->ids) . ' jenis PKM berhasil dihapus massal.');
+        return redirect()->back()->with('success', count($request->ids).' jenis PKM berhasil dihapus massal.');
     }
 }

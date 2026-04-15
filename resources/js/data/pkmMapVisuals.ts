@@ -4,6 +4,7 @@ export interface PkmTypeMeta {
     key: string;
     label: string;
     color: string;
+    deskripsi?: string;
 }
 
 export interface PkmStatusMeta {
@@ -15,12 +16,12 @@ export interface PkmStatusMeta {
 export const PKM_STATUS_META: Record<string, PkmStatusMeta> = {
     selesai: {
         key: 'selesai',
-        label: 'PKM Selesai',
+        label: 'Selesai',
         markerIcon: 'fa-check-double',
     },
     berlangsung: {
         key: 'berlangsung',
-        label: 'PKM Berlangsung',
+        label: 'Berlangsung',
         markerIcon: 'fa-hourglass-half',
     },
     ada_pengajuan: {
@@ -111,12 +112,13 @@ const pickFallbackDistinctColor = (usedColors: Set<string>, label: string): stri
 export const extractDynamicPkmTypes = (pkmData: any[]): PkmTypeMeta[] => {
     if (!Array.isArray(pkmData) || pkmData.length === 0) return [];
 
-    const jenisMap = new Map<string, { rawLabel: string; color: string }>();
+    const jenisMap = new Map<string, { rawLabel: string; color: string; deskripsi: string }>();
     const usedColors = new Set<string>();
 
     pkmData.forEach((item) => {
         const rawLabel = normalizeTypeLabel(item?.jenis_pkm);
         const preferredColor = getTypeColorFromItem(item);
+        const deskripsi = item?.deskripsi_jenis || '';
 
         if (!jenisMap.has(rawLabel)) {
             const finalColor = preferredColor && !usedColors.has(preferredColor)
@@ -126,6 +128,7 @@ export const extractDynamicPkmTypes = (pkmData: any[]): PkmTypeMeta[] => {
             jenisMap.set(rawLabel, {
                 rawLabel,
                 color: finalColor,
+                deskripsi,
             });
             usedColors.add(finalColor);
         }
@@ -133,9 +136,9 @@ export const extractDynamicPkmTypes = (pkmData: any[]): PkmTypeMeta[] => {
 
     return Array.from(jenisMap.values()).map((jenis) => {
         const labelStr = jenis.rawLabel;
-        const displayLabel = labelStr.toLowerCase().startsWith('pkm') ? labelStr : `PKM ${labelStr}`;
+        const displayLabel = labelStr; // Remove PKM prefix logic
 
-        return { key: labelStr, label: displayLabel, color: jenis.color };
+        return { key: labelStr, label: displayLabel, color: jenis.color, deskripsi: jenis.deskripsi };
     });
 };
 

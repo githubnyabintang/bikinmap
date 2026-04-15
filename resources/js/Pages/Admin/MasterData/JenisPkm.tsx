@@ -9,6 +9,7 @@ interface JenisPkm {
     id_jenis_pkm: number;
     nama_jenis: string;
     warna_icon?: string;
+    deskripsi?: string;
 }
 
 interface Props {
@@ -20,6 +21,7 @@ const JenisPkmPage: React.FC<Props> = ({ listJenisPkm, filters }) => {
     const [modalOpen, setModalOpen] = useState(false);
     const [nama, setNama] = useState('');
     const [warna, setWarna] = useState('');
+    const [deskripsi, setDeskripsi] = useState('');
     const [editId, setEditId] = useState<number | null>(null);
     const [search, setSearch] = useState('');
     const [sortField, setSortField] = useState(filters?.sort || 'nama_jenis');
@@ -72,17 +74,17 @@ const JenisPkmPage: React.FC<Props> = ({ listJenisPkm, filters }) => {
         return '#2563EB';
     };
 
-    const openCreate = () => { setEditId(null); setNama(''); setWarna(createDistinctColor()); setModalOpen(true); };
-    const openEdit = (item: JenisPkm) => { setEditId(item.id_jenis_pkm); setNama(item.nama_jenis); setWarna((item.warna_icon || '').toUpperCase()); setModalOpen(true); };
-    const closeModal = () => { setModalOpen(false); setEditId(null); setNama(''); setWarna(''); };
+    const openCreate = () => { setEditId(null); setNama(''); setWarna(createDistinctColor()); setDeskripsi(''); setModalOpen(true); };
+    const openEdit = (item: JenisPkm) => { setEditId(item.id_jenis_pkm); setNama(item.nama_jenis); setWarna((item.warna_icon || '').toUpperCase()); setDeskripsi(item.deskripsi || ''); setModalOpen(true); };
+    const closeModal = () => { setModalOpen(false); setEditId(null); setNama(''); setWarna(''); setDeskripsi(''); };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const finalWarna = (warna || createDistinctColor()).toUpperCase();
         if (editId) {
-            router.put(`/admin/master/jenis-pkm/${editId}`, { nama_jenis: nama, warna_icon: finalWarna }, { onSuccess: closeModal });
+            router.put(`/admin/master/jenis-pkm/${editId}`, { nama_jenis: nama, warna_icon: finalWarna, deskripsi }, { onSuccess: closeModal });
         } else {
-            router.post('/admin/master/jenis-pkm', { nama_jenis: nama, warna_icon: finalWarna }, { onSuccess: closeModal });
+            router.post('/admin/master/jenis-pkm', { nama_jenis: nama, warna_icon: finalWarna, deskripsi }, { onSuccess: closeModal });
         }
     };
 
@@ -245,6 +247,12 @@ const JenisPkmPage: React.FC<Props> = ({ listJenisPkm, filters }) => {
                                 <button type="button" onClick={() => setWarna(createDistinctColor())} className="mt-3 text-[12px] font-semibold text-poltekpar-primary hover:text-poltekpar-navy">
                                     Gunakan warna berbeda otomatis
                                 </button>
+                            </div>
+                            <div>
+                                <label className="text-[13px] font-medium text-zinc-700 block mb-1.5">Deskripsi (untuk tooltip legend peta)</label>
+                                <textarea value={deskripsi} onChange={e => setDeskripsi(e.target.value)} placeholder="Masukkan deskripsi singkat tentang jenis PKM ini..."
+                                    className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-zinc-200 focus:border-zinc-400 text-zinc-900 placeholder-zinc-400 transition-all resize-none" rows={3} />
+                                <p className="text-[11px] text-zinc-500 mt-1">Deskripsi ini akan muncul saat mouse mengarah ke ikon (?) pada legend peta.</p>
                             </div>
                             <div className="flex gap-3 pt-4">
                                 <button type="submit" className="flex-1 py-2 rounded-md text-[13px] font-medium text-white shadow-sm bg-zinc-900 hover:bg-zinc-800 transition-all">

@@ -44,6 +44,7 @@ class DashboardController extends Controller
                 'jenis_nama' => $p->jenisPkm?->nama_jenis ?? 'Jenis Lainnya',
                 'jenis_pkm' => $p->jenisPkm?->nama_jenis ?? '',
                 'warna_icon' => $p->jenisPkm?->warna_icon ?? '#64748b',
+                'deskripsi_jenis' => $p->jenisPkm?->deskripsi ?? '',
                 'tahun' => $p->aktivitas?->tgl_realisasi_mulai?->year ?? $p->tgl_mulai?->year ?? $p->created_at?->year ?? date('Y'),
                 'status' => $p->aktivitas
                     ? ($p->aktivitas->status_pelaksanaan === 'selesai' ? 'selesai'

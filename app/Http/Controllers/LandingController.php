@@ -27,11 +27,16 @@ class LandingController extends Controller
                 'tahun' => $p->aktivitas?->tgl_realisasi_mulai?->year ?? $p->tgl_mulai?->year ?? $p->created_at?->year ?? date('Y'),
                 'jenis_pkm' => $p->jenisPkm?->nama_jenis ?? '',
                 'warna_icon' => $p->jenisPkm?->warna_icon ?? '',
+                'deskripsi_jenis' => $p->jenisPkm?->deskripsi ?? '',
                 'status' => $p->aktivitas
                     ? ($p->aktivitas->status_pelaksanaan === 'selesai' ? 'selesai'
                         : ($p->aktivitas->status_pelaksanaan === 'berjalan' ? 'berlangsung' : 'belum_mulai'))
-                    : ($p->status_pengajuan === 'diproses' ? 'ada_pengajuan' : ($p->status_pengajuan === 'diterima' ? 'belum_mulai' : 'belum_mulai')),
-                'is_review' => $p->status_pengajuan === 'diproses' && $p->admin_read_at !== null,
+                    : (match ($p->status_pengajuan) {
+                        'diproses' => 'ada_pengajuan',
+                        'direvisi' => 'direvisi',
+                        default => 'belum_mulai',
+                    }),
+                'is_review' => in_array($p->status_pengajuan, ['diproses', 'direvisi', 'diterima']) && $p->admin_read_at !== null,
                 'deskripsi' => $p->kebutuhan ?? '',
                 'thumbnail' => $p->aktivitas?->url_thumbnail ?? '',
                 'provinsi' => $p->provinsi ?? '',
@@ -114,7 +119,7 @@ class LandingController extends Controller
                 ->where('id_user', $user->id_user)
                 ->latest()
                 ->get();
-            $listJenisPkm = JenisPkm::all();
+            $listJenisPkm = JenisPkm::select('id_jenis_pkm', 'nama_jenis', 'warna_icon', 'deskripsi')->get();
         }
 
         return Inertia::render('LandingPage', [

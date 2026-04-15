@@ -80,7 +80,7 @@ function MapSummaryOverlay({
                 <i className={`fa-solid ${isCollapsed ? 'fa-chart-pie' : 'fa-chevron-down md:fa-chevron-left'} transition-transform duration-300`}></i>
             </button>
             <div className={`flex flex-col items-start md:flex-row md:items-end gap-3 transition-all duration-500 origin-bottom md:origin-left flex-1 ${panelClass}`}>
-                <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-1 shadow-2xl border border-white/40 whitespace-nowrap pointer-events-auto max-w-[calc(100vw-32px)] overflow-x-auto">
+                <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-1 shadow-2xl border border-white/40 whitespace-nowrap pointer-events-auto" style={{ overflow: 'visible' }}>
                     <MapLegend className="bg-transparent border-none shadow-none" compact typesMeta={typesMeta} selectedTypes={selectedTypes} onToggleType={onToggleType} selectedStatuses={selectedStatuses} onToggleStatus={onToggleStatus} />
                 </div>
                 <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-3 shadow-2xl border border-white/40 flex items-center gap-5 whitespace-nowrap mb-1 pointer-events-auto">
@@ -206,7 +206,7 @@ export default function PkmMapDashboardCard({ pkmData, watchKey = 'pkm-map', isA
                         <i className="fa-solid fa-list-ul"></i><span className="hidden sm:inline">DAFTAR KEGIATAN PKM</span><span className="sm:hidden">DAFTAR PKM</span>
                     </button>
                 </div>
-                <MapSummaryOverlay total={totalPkm} selesai={totalSelesai} berlangsung={totalBerlangsung} belumMulai={totalBelumMulai} forceHide={isListSidebarOpen || !!selectedPkm} typesMeta={typesMeta} selectedTypes={selectedTypes} onToggleType={(key) => setSelectedTypes((value) => value.includes(key) ? value.filter((item) => item !== key) : [...value, key])} selectedStatuses={selectedStatuses} onToggleStatus={(key) => setSelectedStatuses((value) => value.includes(key) ? value.filter((item) => item !== key) : [...value, key])} />
+                <MapSummaryOverlay total={totalPkm} selesai={totalSelesai} berlangsung={totalBerlangsung} belumMulai={totalBelumMulai} forceHide={isListSidebarOpen || !!selectedPkm || isYearDropdownOpen} typesMeta={typesMeta} selectedTypes={selectedTypes} onToggleType={(key) => setSelectedTypes((value) => value.includes(key) ? value.filter((item) => item !== key) : [...value, key])} selectedStatuses={selectedStatuses} onToggleStatus={(key) => setSelectedStatuses((value) => value.includes(key) ? value.filter((item) => item !== key) : [...value, key])} />
                 <div className={`absolute top-0 bottom-0 right-0 sm:top-4 sm:bottom-4 sm:right-4 md:top-8 md:bottom-8 md:right-8 w-full sm:w-[360px] md:w-[400px] max-w-full sm:max-w-[calc(100%-32px)] md:max-w-[calc(100%-64px)] bg-white/95 backdrop-blur-xl sm:rounded-2xl md:rounded-[40px] shadow-2xl z-[1150] overflow-hidden flex flex-col transition-transform duration-700 border border-white/60 ${(!isListSidebarOpen && !selectedPkm) ? 'translate-x-[120%]' : 'translate-x-0'}`}>
                     {selectedPkm ? (
                         <>
