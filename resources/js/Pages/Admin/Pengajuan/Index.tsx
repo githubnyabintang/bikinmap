@@ -1,3 +1,4 @@
+// BUILD_VERSION: 2026-04-08-STRICT-CHECK-V2
 import React, { useState, useCallback } from 'react';
 import { Link, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
@@ -81,33 +82,61 @@ const getKetuaName = (item: Pengajuan): string => {
 const getSubmitterName = (item: Pengajuan): string =>
     item.nama_pengusul || (getSubmitterType(item) === 'dosen' ? getKetuaName(item) : '') || item.user?.name || '-';
 
+const getSubmitterEmail = (item: Pengajuan): string =>
+    item.email_pengusul || item.user?.email || '-';
+
 const getIncompleteReasons = (item: Pengajuan): string[] => {
     const reasons: string[] = [];
     const isDosen = getSubmitterType(item) === 'dosen';
 
-    if (!getSubmitterName(item) || getSubmitterName(item) === '-') reasons.push('nama pengusul');
-    if (!item.instansi_mitra) reasons.push('instansi');
-    if (!item.no_telepon) reasons.push('kontak');
-    if (!item.kebutuhan) reasons.push(isDosen ? 'deskripsi kegiatan' : 'kebutuhan');
-    if (!item.provinsi || !item.kota_kabupaten) reasons.push('lokasi');
-    if (!item.surat_permohonan) reasons.push('surat permohonan');
+    // Helper to check if a value is effectively empty
+    const isEmpty = (val: any) => {
+        if (val === null || val === undefined) return true;
+        const s = String(val).trim();
+        return s === '' || s === '-' || s === '[]' || s === '{}' || s.toLowerCase() === 'null' || s.toLowerCase() === 'undefined';
+    };
 
+    // Submitter Info
+    const sName = getSubmitterName(item);
+    const sEmail = getSubmitterEmail(item);
+    if (isEmpty(sName)) reasons.push('nama pengusul');
+    if (isEmpty(sEmail)) reasons.push('email pengusul');
+    if (isEmpty(item.no_telepon)) reasons.push('kontak/wa');
+    if (isEmpty(item.instansi_mitra)) reasons.push('instansi');
+
+    // Common fields
+    if (isEmpty(item.kebutuhan)) reasons.push(isDosen ? 'deskripsi kegiatan' : 'kebutuhan pkm');
+    if (isEmpty(item.provinsi) || isEmpty(item.kota_kabupaten)) reasons.push('lokasi (provinsi/kota)');
+    if (isEmpty(item.surat_permohonan)) reasons.push('surat permohonan');
+
+    // RAB Check (Consistent with Detail page)
+    const hasRabItems = Array.isArray(item.rab_items) && item.rab_items.length > 0 && item.rab_items.some((ri) =>
+        !isEmpty(ri.nama_item) && Number(ri.jumlah || 0) > 0
+    );
+    
+    // Fallback for Masyarakat who might use the link field instead of table
+    const hasRabLink = !isEmpty((item as any).rab);
+    
+    if (!hasRabItems && !hasRabLink) reasons.push('dokumen/rincian RAB');
+
+    // Team Check
+    const tim = item.tim_kegiatan || [];
+    const hasKetua = tim.some(m => !isEmpty(m.peran_tim) && String(m.peran_tim).toLowerCase().includes('ketua'));
+    
     if (isDosen) {
-        const hasRabItems = (item.rab_items || []).some((rabItem) =>
-            String(rabItem.nama_item || '').trim() !== '' && Number(rabItem.jumlah || 0) > 0
-        );
-        if (!item.judul_kegiatan) reasons.push('judul kegiatan');
-        if (!hasRabItems) reasons.push('rincian RAB');
+        if (!hasKetua) reasons.push('ketua tim');
+        const anggotaCount = tim.filter(m => !String(m.peran_tim || '').toLowerCase().includes('ketua')).length;
+        if (anggotaCount === 0) reasons.push('anggota tim (dosen/staff/mhs)');
         
-        const hasSumberDana = !!item.sumber_dana 
-            || Number(item.dana_perguruan_tinggi || 0) > 0
+        if (isEmpty(item.judul_kegiatan)) reasons.push('judul kegiatan');
+        
+        const hasFunding = Number(item.dana_perguruan_tinggi || 0) > 0
             || Number(item.dana_pemerintah || 0) > 0
             || Number(item.dana_lembaga_dalam || 0) > 0
-            || Number(item.dana_lembaga_luar || 0) > 0;
-        if (!hasSumberDana) reasons.push('sumber dana');
-
-        const anggotaCount = (item.tim_kegiatan || []).filter(m => !String(m.peran_tim || '').toLowerCase().includes('ketua')).length;
-        if (anggotaCount === 0) reasons.push('tim terlibat (Dosen/Staff/Mahasiswa)');
+            || Number(item.dana_lembaga_luar || 0) > 0
+            || (!isEmpty(item.sumber_dana));
+            
+        if (!hasFunding) reasons.push('sumber dana');
     }
 
     return reasons;
@@ -157,33 +186,50 @@ const Index: React.FC<IndexProps> = ({ listPengajuan, filters, availableYears })
 
     // ── Bulk Delete ──────────────────────────────────────────
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
+    const [selectAllAcrossPages, setSelectAllAcrossPages] = useState(false);
     
     const allIdsOnPage = listPengajuan.data.map(p => p.id_pengajuan);
     const allChecked = allIdsOnPage.length > 0 && allIdsOnPage.every(id => selectedIds.includes(id));
 
     const toggleAll = () => {
-        if (allChecked) {
-            setSelectedIds(prev => prev.filter(id => !allIdsOnPage.includes(id)));
+        if (allChecked || selectAllAcrossPages) {
+            setSelectedIds([]);
+            setSelectAllAcrossPages(false);
         } else {
-            setSelectedIds(prev => [...new Set([...prev, ...allIdsOnPage])]);
+            setSelectedIds(allIdsOnPage);
         }
     };
 
     const toggleOne = (id: number) => {
-        setSelectedIds(prev =>
-            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-        );
+        if (selectAllAcrossPages) {
+            setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+        } else {
+            setSelectedIds(prev =>
+                prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+            );
+        }
     };
 
     const handleBulkDelete = () => {
-        if (confirm(`Apakah Anda yakin ingin menghapus ${selectedIds.length} pengajuan terpilih?`)) {
+        const count = selectAllAcrossPages ? (listPengajuan.total - selectedIds.length) : selectedIds.length;
+        if (confirm(`Apakah Anda yakin ingin menghapus ${count} pengajuan terpilih?`)) {
             router.delete('/admin/pengajuan/bulk', {
-                data: { ids: selectedIds },
-                onSuccess: () => setSelectedIds([]),
+                data: { 
+                    ids: !selectAllAcrossPages ? selectedIds : [],
+                    select_all: selectAllAcrossPages,
+                    excluded_ids: selectAllAcrossPages ? selectedIds : [],
+                    filters: { search, tab, tahun }
+                },
+                onSuccess: () => {
+                    setSelectedIds([]);
+                    setSelectAllAcrossPages(false);
+                },
                 preserveState: true,
             });
         }
     };
+
+    const isAllPageSelected = allChecked && listPengajuan.total > listPengajuan.data.length;
 
     // ── Delete ──────────────────────────────────────────
     const [deleteTarget, setDeleteTarget] = useState<{ id: number; judul: string } | null>(null);
@@ -268,27 +314,67 @@ const Index: React.FC<IndexProps> = ({ listPengajuan, filters, availableYears })
 
             {/* Bulk action bar */}
             {selectedIds.length > 0 && (
-                <div className="flex flex-wrap items-center gap-3 mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-[13px] animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center">
-                        <Check size={12} className="text-white" />
-                    </div>
-                    <span className="font-bold text-red-800">{selectedIds.length} item dipilih</span>
-                    <span className="text-red-300">|</span>
-                    
-                    <button
-                        onClick={handleBulkDelete}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white border border-red-700 rounded-md text-[12px] font-bold hover:bg-red-700 transition-colors"
-                    >
-                        <Trash2 size={13} /> Hapus Terpilih
-                    </button>
+                <div className="flex flex-col gap-2 mb-4">
+                    <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-[13px] animate-in fade-in slide-in-from-top-2 duration-200 shadow-sm">
+                        <div className="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center shadow-sm">
+                            <Check size={12} className="text-white" />
+                        </div>
+                        <span className="font-bold text-red-800">
+                            {selectAllAcrossPages ? listPengajuan.total : selectedIds.length} item terpilih
+                        </span>
+                        <span className="text-red-300">|</span>
+                        
+                        <button
+                            onClick={handleBulkDelete}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white border border-red-700 rounded-lg text-[12px] font-bold hover:bg-red-700 transition-all shadow-sm active:scale-95"
+                        >
+                            <Trash2 size={13} /> Hapus Terpilih
+                        </button>
 
-                    <button
-                        onClick={() => setSelectedIds([])}
-                        className="ml-auto px-2 py-1 text-red-400 hover:text-red-700 hover:bg-red-100 rounded-md transition-colors"
-                        title="Hapus semua pilihan"
-                    >
-                        <X size={16} />
-                    </button>
+                        <button
+                            onClick={() => {
+                                setSelectedIds([]);
+                                setSelectAllAcrossPages(false);
+                            }}
+                            className="ml-auto px-2 py-1 text-red-400 hover:text-red-700 hover:bg-red-100 rounded-md transition-colors font-medium"
+                            title="Hapus semua pilihan"
+                        >
+                            <X size={16} />
+                        </button>
+                    </div>
+
+                    {isAllPageSelected && !selectAllAcrossPages && (
+                        <div className="flex items-center justify-center py-2 px-4 bg-indigo-50 border border-indigo-100 rounded-xl text-[12px] text-indigo-700 font-medium animate-in fade-in slide-in-from-top-1 duration-300 shadow-sm">
+                            <div className="flex items-center gap-2">
+                                <AlertCircle size={14} className="text-indigo-400" />
+                                <span>Semua <b>{selectedIds.length}</b> pengajuan di halaman ini terpilih.</span>
+                                <button 
+                                    onClick={() => setSelectAllAcrossPages(true)}
+                                    className="px-2 py-1 bg-indigo-600 text-white rounded-md font-bold hover:bg-indigo-700 transition-colors shadow-sm"
+                                >
+                                    Pilih semua {listPengajuan.total} pengajuan
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {selectAllAcrossPages && (
+                        <div className="flex items-center justify-center py-2 px-4 bg-emerald-50 border border-emerald-100 rounded-xl text-[12px] text-emerald-700 font-medium animate-in fade-in slide-in-from-top-1 duration-300 shadow-sm">
+                            <div className="flex items-center gap-2">
+                                <Check size={14} className="text-emerald-400" />
+                                <span>Semua <b>{listPengajuan.total}</b> pengajuan terpilih (lintas halaman).</span>
+                                <button 
+                                    onClick={() => {
+                                        setSelectedIds([]);
+                                        setSelectAllAcrossPages(false);
+                                    }}
+                                    className="px-2 py-1 bg-white border border-emerald-200 text-emerald-600 rounded-md font-bold hover:bg-emerald-50 transition-colors shadow-sm"
+                                >
+                                    Batalkan pilihan global
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -403,8 +489,9 @@ const Index: React.FC<IndexProps> = ({ listPengajuan, filters, availableYears })
                                                         </div>
                                                     </div>
                                                 ) : (
-                                                    <div className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
-                                                        Data lengkap
+                                                    <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 border border-emerald-100">
+                                                        <Check size={10} className="text-emerald-500" />
+                                                        Data Terverifikasi Lengkap
                                                     </div>
                                                 )}
                                             </td>

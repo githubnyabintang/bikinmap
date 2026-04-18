@@ -328,6 +328,7 @@ export const resolvePublicPkmData = (serverData) => {
     const data = resolveCollection(serverData, demoPkmRecords);
     return data.map((item) => ({
         ...item,
+        deskripsi_jenis: item.deskripsi_jenis ?? '',
         testimoni: item.testimoni ?? (item.status === 'selesai' ? demoTestimoni : []),
     }));
 };

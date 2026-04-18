@@ -36,7 +36,7 @@ export default function LoginDosenPortal({ initialNip = null, autoCheck = false 
     });
 
     const verifyNip = async (nipValue: string) => {
-        if (nipValue.length !== 18) return;
+        if (!nipValue) return;
         setNipStatus({ status: 'checking' });
 
         try {
@@ -92,8 +92,8 @@ export default function LoginDosenPortal({ initialNip = null, autoCheck = false 
             return;
         }
 
-        const sanitizedNip = initialNip.replace(/\D/g, '').slice(0, 18);
-        if (sanitizedNip.length !== 18) {
+        const sanitizedNip = initialNip.replace(/\D/g, '');
+        if (!sanitizedNip) {
             setHasAutoChecked(true);
             return;
         }
@@ -137,7 +137,7 @@ export default function LoginDosenPortal({ initialNip = null, autoCheck = false 
                         />
                         <div className="login-brand-text login-brand-text-wide">
                             <span className="brand-heading brand-heading-wide">
-                                Portal Dosen & Staff SIGAPPA
+                                Portal Dosen & Staff {import.meta.env.VITE_APP_NAME || 'SIGAPPA'}
                             </span>
                             <span className="brand-subheading brand-subheading-wide">Politeknik Pariwisata Makassar</span>
                         </div>
@@ -173,17 +173,16 @@ export default function LoginDosenPortal({ initialNip = null, autoCheck = false 
                                         type="text"
                                         id="nip"
                                         name="nip"
-                                        placeholder="Contoh: 198501012010011001"
+                                        placeholder="Masukkan NIP Anda"
                                         value={data.nip}
                                         onChange={(e) => {
-                                            setData('nip', e.target.value.replace(/\D/g, '').slice(0, 18));
+                                            setData('nip', e.target.value.replace(/\D/g, ''));
                                             if (step === 'form-expand') {
                                                 setStep('nip-entry');
                                                 setNipStatus({ status: 'idle' });
                                             }
                                         }}
                                         inputMode="numeric"
-                                        maxLength={18}
                                         disabled={nipStatus.status === 'checking'}
                                         required
                                     />
@@ -192,9 +191,9 @@ export default function LoginDosenPortal({ initialNip = null, autoCheck = false 
                                         <button
                                             type="button"
                                             onClick={handleNipCheck}
-                                            disabled={data.nip.length !== 18 || nipStatus.status === 'checking'}
-                                            className={`absolute right-3 top-1/2 -translate-y-1/2 bg-blue-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg transition-colors ${data.nip.length !== 18 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'}`}
-                                            title={data.nip.length !== 18 ? "NIP harus 18 digit angka" : "Cek ketersediaan NIP"}
+                                            disabled={!data.nip || nipStatus.status === 'checking'}
+                                            className={`absolute right-3 top-1/2 -translate-y-1/2 bg-blue-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg transition-colors ${!data.nip ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'}`}
+                                            title="Cek ketersediaan NIP"
                                         >
                                             {nipStatus.status === 'checking' ? <i className="fa-solid fa-spinner fa-spin"></i> : 'CEK NIP'}
                                         </button>

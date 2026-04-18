@@ -9,7 +9,7 @@ interface PanduanProps {
 export default function Panduan({ pdfUrl }: PanduanProps) {
     return (
         <Layout>
-            <Head title="Panduan | SIGAPPA" />
+            <Head title={`Panduan | ${import.meta.env.VITE_APP_NAME || 'SIGAPPA'}`} />
 
             <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 py-8">
                 <div className="bg-white rounded-[32px] shadow-xl border border-slate-100 overflow-hidden">
@@ -19,7 +19,7 @@ export default function Panduan({ pdfUrl }: PanduanProps) {
                             <i className="fa-solid fa-book-open text-lg"></i>
                         </div>
                         <div>
-                            <h1 className="text-xl font-bold text-slate-900">Panduan Penggunaan SIGAPPA</h1>
+                            <h1 className="text-xl font-bold text-slate-900">Panduan Penggunaan {import.meta.env.VITE_APP_NAME || 'SIGAPPA'}</h1>
                             <p className="text-sm text-slate-500 mt-0.5">Dokumen panduan lengkap untuk pengajuan dan pengelolaan PKM</p>
                         </div>
                         <a
@@ -36,7 +36,7 @@ export default function Panduan({ pdfUrl }: PanduanProps) {
                     <div className="w-full" style={{ height: 'calc(100vh - 260px)', minHeight: '600px' }}>
                         <iframe
                             src={pdfUrl}
-                            title="Panduan SIGAPPA"
+                            title={`Panduan ${import.meta.env.VITE_APP_NAME || 'SIGAPPA'}`}
                             className="w-full h-full border-0"
                         />
                     </div>

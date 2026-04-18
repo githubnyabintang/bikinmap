@@ -54,7 +54,7 @@ const navItems: NavItem[] = [
     },
     { label: 'Arsip', href: '/admin/arsip', icon: Folder },
     { label: 'Testimoni', href: '/admin/testimoni', icon: MessageSquare },
-    { label: 'Evaluasi Sistem', href: '/admin/evaluasi-sistem', icon: StarHalf },
+    { label: 'Feedback', href: '/admin/evaluasi-sistem', icon: StarHalf },
     { label: 'Atur Template', href: '/admin/templates', icon: FileText },
     { label: 'Kontak', href: '/admin/kontak', icon: Phone },
     { label: 'Data Historis', href: '/admin/historis', icon: Database, superadminOnly: true },
@@ -175,7 +175,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
                         <img src="/logo-poltekpar.png" alt="Poltekpar Logo" className="w-full h-full object-contain" />
                     </div>
                     <div className="flex flex-col">
-                        <span className="text-[18px] font-extrabold text-white tracking-tight leading-none">SIGAPPA</span>
+                        <span className="text-[18px] font-extrabold text-white tracking-tight leading-none">{import.meta.env.VITE_APP_NAME || 'SIGAPPA'}</span>
                         <span className="text-[9px] font-bold text-poltekpar-gold/80 uppercase tracking-widest mt-1">Geospasial & Pariwisata</span>
                     </div>
                 </div>

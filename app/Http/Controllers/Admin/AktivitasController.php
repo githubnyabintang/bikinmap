@@ -314,7 +314,7 @@ class AktivitasController extends Controller
                     $p?->email_pengusul ?? $p?->user?->email ?? '-',
                     $p?->no_telepon ?? '-',
                     $p?->jenisPkm?->nama_jenis ?? '-',
-                    $p?->tgl_mulai ? $p->tgl_mulai->format('Y') : '-',
+                    $p?->tgl_mulai ? $p->tgl_mulai->format('Y') : ($p?->created_at ? $p->created_at->format('Y') : '-'),
                     $p?->tgl_mulai ? $p->tgl_mulai->format('d/m/Y') : '-',
                     $p?->tgl_selesai ? $p->tgl_selesai->format('d/m/Y') : '-',
                     $p?->provinsi ?? '-',
@@ -385,13 +385,47 @@ class AktivitasController extends Controller
     public function bulkDestroy(Request $request)
     {
         $request->validate([
-            'ids' => 'required|array',
+            'ids' => 'nullable|array',
             'ids.*' => 'integer|exists:aktivitas,id_aktivitas',
+            'select_all' => 'nullable|boolean',
+            'excluded_ids' => 'nullable|array',
+            'excluded_ids.*' => 'integer',
+            'filters' => 'nullable|array',
         ]);
 
-        $ids = $request->input('ids');
-        Aktivitas::whereIn('id_aktivitas', $ids)->delete();
+        $selectAll = $request->input('select_all', false);
+        $ids = $request->input('ids', []);
+        $excludedIds = $request->input('excluded_ids', []);
+        $filters = $request->input('filters', []);
 
-        return redirect()->back()->with('success', count($ids) . ' data aktivitas berhasil dihapus massal.');
+        if ($selectAll) {
+            $query = Aktivitas::query();
+
+            if (!empty($filters['search'])) {
+                $search = $filters['search'];
+                $query->where(function($q) use ($search) {
+                    $q->where('judul_aktivitas', 'like', "%{$search}%")
+                      ->orWhere('deskripsi_aktivitas', 'like', "%{$search}%")
+                      ->orWhere('lokasi_kegiatan', 'like', "%{$search}%");
+                });
+            }
+
+            if (!empty($filters['tahun'])) {
+                $query->whereYear('tgl_mulai', $filters['tahun']);
+            }
+
+            if (!empty($excludedIds)) {
+                $query->whereNotIn('id_aktivitas', $excludedIds);
+            }
+
+            $items = $query->get();
+            $count = $items->count();
+            $query->delete(); // Soft delete all matched
+        } else {
+            $count = count($ids);
+            Aktivitas::whereIn('id_aktivitas', $ids)->delete();
+        }
+
+        return redirect()->back()->with('success', $count . ' data aktivitas berhasil dihapus massal.');
     }
 }

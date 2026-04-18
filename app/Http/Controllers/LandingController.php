@@ -106,7 +106,21 @@ class LandingController extends Controller
             'total_belum_mulai' => (int) ($pkmSummary->total_belum_mulai ?? 0),
         ];
 
-        $testimonials = Testimoni::latest()->limit(10)->get();
+        $testimonials = EvaluasiSistem::whereNotNull('masukan')
+            ->latest()
+            ->limit(10)
+            ->get()
+            ->map(function($item) {
+                // Hitung rata-rata rating dari 5 pertanyaan (q1-q5)
+                $avgRating = round(($item->q1 + $item->q2 + $item->q3 + $item->q4 + $item->q5) / 5);
+                
+                return [
+                    'nama_pemberi' => $item->nama,
+                    'rating' => $avgRating,
+                    'pesan_ulasan' => $item->masukan,
+                    'asal_instansi' => $item->asal_instansi,
+                ];
+            });
 
         // Data user jika sudah login
         $user = null;
@@ -285,6 +299,6 @@ class LandingController extends Controller
 
         EvaluasiSistem::create($request->all());
 
-        return redirect()->back()->with('success', 'Terima kasih atas evaluasi Anda.');
+        return redirect()->back()->with('success', 'Terima kasih atas feedback Anda.');
     }
 }

@@ -1,5 +1,6 @@
 import React, { useRef, useState, useMemo, useEffect, ChangeEvent, FormEvent } from 'react';
 import { useForm, router } from '@inertiajs/react';
+import axios from 'axios';
 import ActionFeedbackDialog from './ActionFeedbackDialog';
 import MapLocationPicker from './MapLocationPicker';
 import DocumentationGallery from './DocumentationGallery';
@@ -95,18 +96,6 @@ interface FormData {
     link_tambahan: { name: string; url: string }[];
 }
 
-interface EvaluasiFormData {
-    nama: string;
-    asal_instansi: string;
-    no_telp: string;
-    q1: number;
-    q2: number;
-    q3: number;
-    q4: number;
-    q5: number;
-    masukan: string;
-}
-
 const EVALUATION_QUESTIONS = [
     'Website SIGAPPA mudah diakses dan memiliki navigasi yang jelas.',
     'Informasi yang tersedia lengkap, akurat, dan mudah dipahami.',
@@ -114,12 +103,6 @@ const EVALUATION_QUESTIONS = [
     'Proses pengajuan layanan PKM melalui SIGAPPA mudah dilakukan.',
     'Secara keseluruhan, saya puas terhadap layanan SIGAPPA.',
 ];
-
-const getEvaluationLabel = (value: number): string => {
-    if (value === 0) return 'Pilih rating...';
-
-    return ['(1) Sangat Tidak Setuju', '(2) Tidak Setuju', '(3) Cukup Setuju', '(4) Setuju', '(5) Sangat Setuju'][value - 1];
-};
 
 export default function MasyarakatSubmissionCard({
     submissionStatus = 'belum_diajukan',
@@ -135,25 +118,21 @@ export default function MasyarakatSubmissionCard({
     editSubmission = null,
 }: MasyarakatSubmissionCardProps) {
     const [mainTab, setMainTab] = useState('pengajuan');
-    const [expandedHubSections, setExpandedHubSections] = useState({ kegiatan: false, riwayat: false });
     const [selectedDetail, setSelectedDetail] = useState<Submission | null>(null);
     const [isMockSubmitting, setIsMockSubmitting] = useState(false);
-    const [showFeedbackModal, setShowFeedbackModal] = useState(false);
-    const [evaluasiSubmitting, setEvaluasiSubmitting] = useState(false);
-    const [evaluasiForm, setEvaluasiForm] = useState<EvaluasiFormData>({
-        nama: '',
-        asal_instansi: '',
-        no_telp: '',
-        q1: 0,
-        q2: 0,
-        q3: 0,
-        q4: 0,
-        q5: 0,
-        masukan: '',
-    });
+    
     const [feedbackDialog, setFeedbackDialog] = useState<{ show: boolean; type: 'success' | 'error'; title: string; message: string }>({ show: false, type: 'success', title: '', message: '' });
     const [sortOption, setSortOption] = useState<'default' | 'status' | 'waktu_terbaru' | 'waktu_terlama'>('default');
     const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
+
+    // Feedback Flow States
+    const [showFeedbackFlow, setShowFeedbackFlow] = useState(false);
+    const [flowStep, setFlowStep] = useState<'rating' | 'comment' | 'success'>('rating');
+    const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
+    const [ratings, setRatings] = useState<number[]>(new Array(EVALUATION_QUESTIONS.length).fill(0));
+    const [hoverRating, setHoverRating] = useState(0);
+    const [feedbackComment, setFeedbackComment] = useState('');
+    const [isSubmittingFinal, setIsSubmittingFinal] = useState(false);
 
     const sortedHistory = useMemo(() => {
         let history = [...submissionHistory];
@@ -187,7 +166,7 @@ export default function MasyarakatSubmissionCard({
         return history;
     }, [submissionHistory, sortOption]);
 
-    const { data, setData, errors, setError, clearErrors, reset } = useForm<FormData>({
+    const { data, setData, errors, reset } = useForm<FormData>({
         name: '',
         institution: '',
         email: '',
@@ -211,11 +190,9 @@ export default function MasyarakatSubmissionCard({
     const [filePermohonan, setFilePermohonan] = useState<File | null>(null);
     const [fileProposal, setFileProposal] = useState<File | null>(null);
 
-    // Track editing mode
     const [editingId, setEditingId] = useState<number | null>(null);
     const isEditing = !!editingId;
 
-    // Pre-fill form when editSubmission is provided
     useEffect(() => {
         if (!editSubmission) return;
         
@@ -260,19 +237,50 @@ export default function MasyarakatSubmissionCard({
         setData('link_tambahan', updated);
     };
 
-    const handleSubmit = (e: FormEvent) => {
+    const handleInitialSubmit = (e: FormEvent) => {
         e.preventDefault();
         if (!data.name.trim() || !data.institution.trim() || !data.needs.trim() || (!filePermohonan && !isEditing)) {
-            setFeedbackDialog({ show: true, type: 'error', title: 'Form Belum Lengkap', message: 'Mohon lengkapi data identitas, kebutuhan, dan surat permohonan.' });
+            setFeedbackDialog({ show: true, type: 'error', title: 'Form Belum Lengkap', message: 'Mohon lengkapi identitas, kebutuhan, dan dokumen wajib.' });
             return;
         }
 
-        // When editing a revision, skip evaluasi modal and submit directly
-        if (isEditing) {
-            setIsMockSubmitting(true);
+        setShowFeedbackFlow(true);
+        setFlowStep('rating');
+        setActiveQuestionIndex(0);
+        setRatings(new Array(EVALUATION_QUESTIONS.length).fill(0));
+    };
+
+    const handleRatingClick = (star: number) => {
+        const newRatings = [...ratings];
+        newRatings[activeQuestionIndex] = star;
+        setRatings(newRatings);
+
+        setTimeout(() => {
+            if (activeQuestionIndex < EVALUATION_QUESTIONS.length - 1) {
+                setActiveQuestionIndex(prev => prev + 1);
+                setHoverRating(0);
+            } else {
+                setFlowStep('comment');
+            }
+        }, 300);
+    };
+
+    const submitAllData = async () => {
+        if (ratings.some(r => r === 0)) return;
+        
+        setIsSubmittingFinal(true);
+
+        try {
+            await axios.post('/evaluasi-sistem', {
+                nama: data.name,
+                no_telp: data.whatsapp,
+                asal_instansi: data.institution,
+                q1: ratings[0], q2: ratings[1], q3: ratings[2], q4: ratings[3], q5: ratings[4],
+                masukan: feedbackComment
+            });
 
             const formData = new FormData();
-            formData.append('_method', 'PUT');
+            if (isEditing) formData.append('_method', 'PUT');
             formData.append('name', data.name);
             formData.append('institution', data.institution);
             formData.append('email', data.email);
@@ -292,131 +300,43 @@ export default function MasyarakatSubmissionCard({
             if (fileProposal) formData.append('surat_proposal', fileProposal);
             formData.append('link_tambahan', JSON.stringify(data.link_tambahan.filter(v => v.url.trim() !== '')));
 
-            router.post(`/pengajuan/${editingId}`, formData as any, {
+            const url = isEditing ? `/pengajuan/${editingId}` : '/pengajuan';
+
+            router.post(url, formData as any, {
                 preserveScroll: true,
                 onSuccess: () => {
-                    setIsMockSubmitting(false);
-                    setEditingId(null);
-                    onUpdateSubmissionStatus?.('diproses');
-                    setFeedbackDialog({ show: true, type: 'success', title: 'Pengajuan Diperbarui', message: 'Pengajuan berhasil diperbarui. Mengarahkan ke halaman status...' });
-                    setTimeout(() => {
-                        router.visit('/cek-status');
-                    }, 1800);
-                },
-                onError: () => {
-                    setIsMockSubmitting(false);
-                    setFeedbackDialog({ show: true, type: 'error', title: 'Gagal Memperbarui', message: 'Terjadi kesalahan saat memperbarui pengajuan.' });
-                },
-            });
-            return;
-        }
-
-        setEvaluasiForm({
-            nama: data.name,
-            asal_instansi: data.institution,
-            no_telp: data.whatsapp,
-            q1: 0,
-            q2: 0,
-            q3: 0,
-            q4: 0,
-            q5: 0,
-            masukan: '',
-        });
-        setShowFeedbackModal(true);
-    };
-
-    const handleEvaluasiFieldChange = (field: keyof EvaluasiFormData, value: string | number) => {
-        setEvaluasiForm(prev => ({ ...prev, [field]: value }));
-    };
-
-    const handleFinalSubmit = async () => {
-        if (!evaluasiForm.nama.trim() || !evaluasiForm.no_telp.trim()) {
-            setFeedbackDialog({ show: true, type: 'error', title: 'Evaluasi Belum Lengkap', message: 'Nama dan nomor telepon pada evaluasi wajib diisi.' });
-            return;
-        }
-
-        if ([evaluasiForm.q1, evaluasiForm.q2, evaluasiForm.q3, evaluasiForm.q4, evaluasiForm.q5].some(value => value === 0)) {
-            setFeedbackDialog({ show: true, type: 'error', title: 'Evaluasi Belum Lengkap', message: 'Mohon isi seluruh penilaian bintang pada evaluasi aplikasi.' });
-            return;
-        }
-
-        setEvaluasiSubmitting(true);
-
-        try {
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-            const evaluasiResponse = await fetch('/evaluasi-sistem', {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': csrfToken,
-                },
-                body: JSON.stringify(evaluasiForm),
-            });
-
-            if (!evaluasiResponse.ok) {
-                throw new Error('Evaluasi aplikasi gagal disimpan.');
-            }
-        } catch (error) {
-            setEvaluasiSubmitting(false);
-            setFeedbackDialog({ show: true, type: 'error', title: 'Gagal Menyimpan Evaluasi', message: 'Evaluasi aplikasi belum berhasil dikirim. Pengajuan belum disimpan.' });
-            return;
-        }
-
-        setShowFeedbackModal(false);
-        setIsMockSubmitting(true);
-
-        const formData = new FormData();
-        formData.append('name', data.name);
-        formData.append('institution', data.institution);
-        formData.append('email', data.email);
-        formData.append('whatsapp', data.whatsapp);
-        formData.append('needs', data.needs);
-        formData.append('provinsi', data.provinsi);
-        formData.append('kota_kabupaten', data.kota_kabupaten);
-        formData.append('kecamatan', data.kecamatan);
-        formData.append('kelurahan_desa', data.kelurahan_desa);
-        formData.append('alamat_lengkap', data.alamat_lengkap);
-        if (data.latitude) formData.append('latitude', data.latitude.toString());
-        if (data.longitude) formData.append('longitude', data.longitude.toString());
-        if (data.tgl_mulai) formData.append('tgl_mulai', data.tgl_mulai);
-        if (data.tgl_selesai) formData.append('tgl_selesai', data.tgl_selesai);
-        formData.append('is_tahun_saja', data.is_tahun_saja ? '1' : '0');
-        if (filePermohonan) formData.append('surat_permohonan', filePermohonan);
-        if (fileProposal) formData.append('surat_proposal', fileProposal);
-        formData.append('link_tambahan', JSON.stringify(data.link_tambahan.filter(v => v.url.trim() !== '')));
-
-        router.post('/pengajuan', formData as any, {
-            preserveScroll: true,
-            preserveState: true,
-            onSuccess: () => {
-                setIsMockSubmitting(false);
-                setEvaluasiSubmitting(false);
-                onSubmitted?.({
-                    id: Date.now(),
-                    judul: `Pengajuan PKM ${data.institution}`,
-                    ringkasan: data.needs,
-                    tanggal: createSubmittedLabel(),
-                    status: 'diproses'
-                });
-                onUpdateSubmissionStatus?.('diproses');
-                setEvaluasiForm({ nama: '', asal_instansi: '', no_telp: '', q1: 0, q2: 0, q3: 0, q4: 0, q5: 0, masukan: '' });
-                setFeedbackDialog({ show: true, type: 'success', title: 'Pengajuan Berhasil', message: 'Pengajuan Anda telah dikirim. Mengarahkan ke halaman status...' });
-                setTimeout(() => {
+                    setFlowStep('success');
+                    setIsSubmittingFinal(false);
                     reset();
                     setFilePermohonan(null);
                     setFileProposal(null);
-                    router.visit('/cek-status');
-                }, 1800);
-            },
-            onError: () => {
-                setIsMockSubmitting(false);
-                setEvaluasiSubmitting(false);
-                setFeedbackDialog({ show: true, type: 'error', title: 'Gagal Mengirim', message: 'Terjadi kesalahan saat mengirim pengajuan.' });
-            },
-        });
+                },
+                onError: () => {
+                    setIsSubmittingFinal(false);
+                    alert('Gagal mengirim pengajuan. Namun evaluasi Anda telah tersimpan.');
+                }
+            });
+        } catch (error) {
+            setIsSubmittingFinal(false);
+            alert('Terjadi kesalahan koneksi. Silakan coba lagi.');
+        }
+    };
+
+    const getRatingLabel = (r: number) => {
+        if (r === 1) return 'Kecewa ☹️';
+        if (r === 2) return 'Kurang Puas 🙁';
+        if (r === 3) return 'Biasa Saja 😐';
+        if (r === 4) return 'Puas! 🙂';
+        if (r === 5) return 'Sangat Puas! 😍';
+        return 'Pilih Bintang';
+    };
+
+    const getFullUrl = (path: string | null | undefined) => {
+        if (!path) return '';
+        if (path.startsWith('blob:') || path.startsWith('http')) return path;
+        const origin = window.location.origin;
+        const cleanPath = path.startsWith('/') ? path : `/${path}`;
+        return `${origin}${cleanPath}`;
     };
 
     const renderDetailModal = () => {
@@ -424,7 +344,7 @@ export default function MasyarakatSubmissionCard({
         const style = getSubmissionStatusStyle(selectedDetail.status);
 
         return (
-            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200 text-left">
                 <div className="absolute inset-0" onClick={() => setSelectedDetail(null)}></div>
                 <div className="relative bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200">
                     <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
@@ -451,9 +371,8 @@ export default function MasyarakatSubmissionCard({
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
                             <div className="space-y-6">
-                                {/* Section 1: Identitas Pengusul */}
                                 <section>
                                     <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Identitas Pengusul</h4>
                                     <div className="space-y-2 text-sm bg-slate-50 p-4 rounded-xl border border-slate-100/60">
@@ -464,7 +383,6 @@ export default function MasyarakatSubmissionCard({
                                     </div>
                                 </section>
 
-                                {/* Section 2: Kebutuhan PKM */}
                                 <section>
                                     <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Kebutuhan PKM</h4>
                                     <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-sm text-slate-700 leading-relaxed italic">
@@ -474,7 +392,6 @@ export default function MasyarakatSubmissionCard({
                             </div>
 
                             <div className="space-y-6">
-                                {/* Section 3: Lokasi PKM */}
                                 <section>
                                     <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Lokasi PKM</h4>
                                     <div className="space-y-2 text-sm bg-slate-50 p-4 rounded-xl border border-slate-100/60">
@@ -489,13 +406,12 @@ export default function MasyarakatSubmissionCard({
                                     </div>
                                 </section>
 
-                                {/* Section 4: Tautan Dokumen */}
                                 <section>
                                     <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Tautan Dokumen</h4>
                                     <div className="bg-slate-50 p-4 rounded-xl border border-slate-100/60 flex flex-col gap-3">
                                         <div className="flex flex-wrap gap-2">
-                                            {selectedDetail.surat_permohonan ? <a href={selectedDetail.surat_permohonan} target="_blank" className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 text-[10px] font-bold rounded-lg transition-colors border border-slate-200 shadow-sm"><i className="fa-solid fa-file-contract mr-1.5 text-poltekpar-primary"></i>SURAT PERMOHONAN</a> : <span className="text-xs text-slate-400 flex items-center gap-1.5"><i className="fa-solid fa-triangle-exclamation"></i> Surat Permohonan Kosong</span>}
-                                            {selectedDetail.proposal && <a href={selectedDetail.proposal} target="_blank" className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 text-[10px] font-bold rounded-lg transition-colors border border-slate-200 shadow-sm"><i className="fa-solid fa-file-pdf mr-1.5 text-poltekpar-primary"></i>PROPOSAL</a>}
+                                            {selectedDetail.surat_permohonan ? <a href={getFullUrl(selectedDetail.surat_permohonan)} target="_blank" className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 text-[10px] font-bold rounded-lg transition-colors border border-slate-200 shadow-sm"><i className="fa-solid fa-file-contract mr-1.5 text-poltekpar-primary"></i>SURAT PERMOHONAN</a> : <span className="text-xs text-slate-400 flex items-center gap-1.5"><i className="fa-solid fa-triangle-exclamation"></i> Surat Permohonan Kosong</span>}
+                                            {selectedDetail.proposal && <a href={getFullUrl(selectedDetail.proposal)} target="_blank" className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 text-[10px] font-bold rounded-lg transition-colors border border-slate-200 shadow-sm"><i className="fa-solid fa-file-pdf mr-1.5 text-poltekpar-primary"></i>PROPOSAL</a>}
                                         </div>
                                         {selectedDetail.rab && (
                                             <div className="space-y-2 pt-2 border-t border-slate-200">
@@ -511,17 +427,7 @@ export default function MasyarakatSubmissionCard({
                                                             ));
                                                         }
                                                     } catch(e) {}
-                                                    
-                                                    return selectedDetail.rab.split(',').map((link, i) => {
-                                                        const url = link.trim();
-                                                        if (!url) return null;
-                                                        return (
-                                                            <p key={i} className="text-[12px] bg-white p-2 rounded-lg border border-slate-100">
-                                                                <span className="text-slate-500 font-bold text-[10px] uppercase block mb-0.5">Tautan Tambahan {i + 1}: </span>
-                                                                <a href={url} target="_blank" className="text-poltekpar-primary font-medium hover:underline break-all">{url}</a>
-                                                            </p>
-                                                        );
-                                                    });
+                                                    return null;
                                                 })()}
                                             </div>
                                         )}
@@ -531,7 +437,7 @@ export default function MasyarakatSubmissionCard({
                         </div>
 
                         {selectedDetail.catatan && (
-                            <section>
+                            <section className="text-left">
                                 <h4 className="text-[11px] font-bold text-amber-600 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                                     <i className="fa-solid fa-comment-dots"></i> Catatan Admin
                                 </h4>
@@ -554,11 +460,6 @@ export default function MasyarakatSubmissionCard({
                                 <i className="fa-solid fa-pen-to-square"></i> Edit Pengajuan
                             </button>
                         )}
-                        {selectedDetail.status === 'selesai' && (
-                            <a target="_blank" rel="noopener noreferrer" href={`/testimoni/${selectedDetail.kode_unik || selectedDetail.id}`} className="px-6 py-2 bg-emerald-500 text-white text-sm font-bold rounded-xl hover:bg-emerald-600 transition-colors shadow-sm flex items-center gap-2">
-                                <i className="fa-solid fa-comment-dots"></i> Isi Testimoni PKM
-                            </a>
-                        )}
                         <button onClick={() => setSelectedDetail(null)} className="px-6 py-2 bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl hover:bg-slate-50 transition-colors shadow-sm">Tutup</button>
                     </div>
                 </div>
@@ -568,7 +469,7 @@ export default function MasyarakatSubmissionCard({
 
     if (onlyShowStatus) {
         return (
-            <div className="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
+            <div className="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden text-left">
                 <div className="p-6">
                     <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <h3 className="text-sm font-bold text-slate-900 border-l-4 border-poltekpar-primary pl-3">Daftar Riwayat Pengajuan</h3>
@@ -607,8 +508,8 @@ export default function MasyarakatSubmissionCard({
                         <table className="w-full text-left border-collapse min-w-[600px]">
                             <thead className="bg-slate-50 border-b border-slate-100">
                                 <tr>
-                                    <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-widest">Nama Pengajuan</th>
-                                    <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-widest">Tanggal</th>
+                                    <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-widest text-left">Nama Pengajuan</th>
+                                    <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-widest text-left">Tanggal</th>
                                     <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-widest text-center">Status</th>
                                     <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-widest text-center">Aksi</th>
                                 </tr>
@@ -619,11 +520,11 @@ export default function MasyarakatSubmissionCard({
                                         const style = getSubmissionStatusStyle(item.status);
                                         return (
                                             <tr key={item.id} className="hover:bg-slate-50/50 transition-colors group">
-                                                <td className="px-6 py-5">
-                                                    <strong className="text-[14px] font-bold text-slate-900 block group-hover:text-poltekpar-primary transition-colors">{item.judul}</strong>
-                                                    <span className="text-[11px] text-slate-400 font-medium line-clamp-1">{item.ringkasan}</span>
+                                                <td className="px-6 py-5 text-left">
+                                                    <strong className="text-[14px] font-bold text-slate-900 block group-hover:text-poltekpar-primary transition-colors text-left">{item.judul}</strong>
+                                                    <span className="text-[11px] text-slate-400 font-medium line-clamp-1 text-left">{item.ringkasan}</span>
                                                 </td>
-                                                <td className="px-6 py-5 text-[13px] text-slate-600 font-medium whitespace-nowrap">{item.tanggal}</td>
+                                                <td className="px-6 py-5 text-[13px] text-slate-600 font-medium whitespace-nowrap text-left">{item.tanggal}</td>
                                                 <td className="px-6 py-5">
                                                     <div className="flex justify-center">
                                                         <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter flex items-center gap-1.5 shadow-sm" style={{ backgroundColor: style.bg, color: style.color }}>
@@ -669,33 +570,33 @@ export default function MasyarakatSubmissionCard({
     }
 
     const renderSubmissionTab = () => (
-        <form onSubmit={handleSubmit} className="p-6 space-y-8">
+        <form onSubmit={handleInitialSubmit} className="p-6 space-y-8 text-left">
             <section className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-6">
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2"><i className="fa-solid fa-id-card text-poltekpar-primary"></i>Identitas Pengusul</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5"><label className="text-xs font-semibold text-slate-700">Nama Lengkap / Perwakilan <span className="text-red-500">*</span></label><input type="text" value={data.name} onChange={e => setData('name', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary focus:ring-2 focus:ring-blue-100" placeholder="Masukkan nama" required /></div>
-                    <div className="space-y-1.5"><label className="text-xs font-semibold text-slate-700">Nama Instansi / Organisasi <span className="text-red-500">*</span></label><input type="text" value={data.institution} onChange={e => setData('institution', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary" placeholder="Nama instansi" required /></div>
-                    <div className="space-y-1.5"><label className="text-xs font-semibold text-slate-700">Email <span className="text-red-500">*</span></label><input type="email" value={data.email} onChange={e => setData('email', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary" placeholder="email@contoh.com" required /></div>
-                    <div className="space-y-1.5"><label className="text-xs font-semibold text-slate-700">WhatsApp <span className="text-red-500">*</span></label><input type="tel" value={data.whatsapp} onChange={e => setData('whatsapp', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary" placeholder="0812..." required /></div>
+                    <div className="space-y-1.5 text-left"><label className="text-xs font-semibold text-slate-700 block mb-1">Nama Lengkap / Perwakilan <span className="text-red-500">*</span></label><input type="text" value={data.name} onChange={e => setData('name', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary focus:ring-2 focus:ring-blue-100 outline-none" placeholder="Masukkan nama" required /></div>
+                    <div className="space-y-1.5 text-left"><label className="text-xs font-semibold text-slate-700 block mb-1">Nama Instansi / Organisasi <span className="text-red-500">*</span></label><input type="text" value={data.institution} onChange={e => setData('institution', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary outline-none" placeholder="Nama instansi" required /></div>
+                    <div className="space-y-1.5 text-left"><label className="text-xs font-semibold text-slate-700 block mb-1">Email <span className="text-red-500">*</span></label><input type="email" value={data.email} onChange={e => setData('email', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary outline-none" placeholder="email@contoh.com" required /></div>
+                    <div className="space-y-1.5 text-left"><label className="text-xs font-semibold text-slate-700 block mb-1">WhatsApp <span className="text-red-500">*</span></label><input type="tel" value={data.whatsapp} onChange={e => setData('whatsapp', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary outline-none" placeholder="0812..." required /></div>
                 </div>
             </section>
 
             <section className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-4">
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2"><i className="fa-solid fa-handshake-angle text-poltekpar-primary"></i>Kebutuhan PKM</h3>
-                <div className="space-y-1.5"><label className="text-xs font-semibold text-slate-700">Deskripsi Kebutuhan / Permintaan <span className="text-red-500">*</span></label><textarea value={data.needs} onChange={e => setData('needs', e.target.value)} rows={3} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary resize-none" placeholder="Jelaskan kebutuhan pengabdian..." required /></div>
+                <div className="space-y-1.5 text-left"><label className="text-xs font-semibold text-slate-700 block mb-1">Deskripsi Kebutuhan / Permintaan <span className="text-red-500">*</span></label><textarea value={data.needs} onChange={e => setData('needs', e.target.value)} rows={3} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary resize-none outline-none" placeholder="Jelaskan kebutuhan pengabdian..." required /></div>
             </section>
 
             <section className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-6">
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2"><i className="fa-solid fa-map-location-dot text-poltekpar-primary"></i>Lokasi PKM</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5"><label className="text-xs font-semibold text-slate-700">Provinsi <span className="text-red-500">*</span></label><input type="text" value={data.provinsi} onChange={e => setData('provinsi', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary" placeholder="Provinsi" required /></div>
-                    <div className="space-y-1.5"><label className="text-xs font-semibold text-slate-700">Kota / Kabupaten <span className="text-red-500">*</span></label><input type="text" value={data.kota_kabupaten} onChange={e => setData('kota_kabupaten', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary" placeholder="Kota/Kabupaten" required /></div>
-                    <div className="space-y-1.5"><label className="text-xs font-semibold text-slate-700">Kecamatan</label><input type="text" value={data.kecamatan} onChange={e => setData('kecamatan', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary" placeholder="Kecamatan" /></div>
-                    <div className="space-y-1.5"><label className="text-xs font-semibold text-slate-700">Kelurahan / Desa</label><input type="text" value={data.kelurahan_desa} onChange={e => setData('kelurahan_desa', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary" placeholder="Kelurahan/Desa" /></div>
-                    <div className="md:col-span-2 space-y-1.5"><label className="text-xs font-semibold text-slate-700">Alamat Lengkap</label><textarea value={data.alamat_lengkap} onChange={e => setData('alamat_lengkap', e.target.value)} rows={2} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary resize-none" placeholder="Detail alamat..." /></div>
+                    <div className="space-y-1.5 text-left"><label className="text-xs font-semibold text-slate-700 block mb-1">Provinsi <span className="text-red-500">*</span></label><input type="text" value={data.provinsi} onChange={e => setData('provinsi', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary outline-none" placeholder="Provinsi" required /></div>
+                    <div className="space-y-1.5 text-left"><label className="text-xs font-semibold text-slate-700 block mb-1">Kota / Kabupaten <span className="text-red-500">*</span></label><input type="text" value={data.kota_kabupaten} onChange={e => setData('kota_kabupaten', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary outline-none" placeholder="Kota/Kabupaten" required /></div>
+                    <div className="space-y-1.5 text-left"><label className="text-xs font-semibold text-slate-700 block mb-1">Kecamatan</label><input type="text" value={data.kecamatan} onChange={e => setData('kecamatan', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary outline-none" placeholder="Kecamatan" /></div>
+                    <div className="space-y-1.5 text-left"><label className="text-xs font-semibold text-slate-700 block mb-1">Kelurahan / Desa</label><input type="text" value={data.kelurahan_desa} onChange={e => setData('kelurahan_desa', e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary outline-none" placeholder="Kelurahan/Desa" /></div>
+                    <div className="md:col-span-2 space-y-1.5 text-left"><label className="text-xs font-semibold text-slate-700 block mb-1">Alamat Lengkap</label><textarea value={data.alamat_lengkap} onChange={e => setData('alamat_lengkap', e.target.value)} rows={2} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary resize-none outline-none" placeholder="Detail alamat..." /></div>
                 </div>
-                <div className="space-y-1.5 mt-4">
-                    <label className="text-xs font-semibold text-slate-700">Tandai Lokasi di Peta (Koordinat)</label>
+                <div className="space-y-1.5 mt-4 text-left">
+                    <label className="text-xs font-semibold text-slate-700 block mb-1">Tandai Lokasi di Peta (Koordinat)</label>
                     <p className="text-[10px] text-slate-500 mb-2">Geser peta atau klik untuk menandai lokasi spesifik agar mempermudah tim survei.</p>
                     <MapLocationPicker
                         latitude={data.latitude}
@@ -708,82 +609,65 @@ export default function MasyarakatSubmissionCard({
                                 if (address.suburb || address.village) newData.kecamatan = address.suburb || address.village;
                                 if (address.neighbourhood || address.residential || address.hamlet) newData.kelurahan_desa = address.neighbourhood || address.residential || address.hamlet;
                             }
-                            // In inertia, calling setData with object assigns the keys
                             Object.entries(newData).forEach(([key, val]) => setData(key as any, val as any));
                         }}
                     />
-                    {formatCoordinate(data.latitude) && formatCoordinate(data.longitude) ? (
-                        <p className="text-[10px] text-slate-500 mt-1 font-mono">Lat: {formatCoordinate(data.latitude)}, Lng: {formatCoordinate(data.longitude)}</p>
-                    ) : data.kelurahan_desa ? (
-                        <p className="text-[10px] text-red-500 mt-1 font-bold animate-pulse flex items-center gap-1">
-                            <i className="fa-solid fa-triangle-exclamation"></i>
-                            Nama desa terisi namun titik peta belum ditandai. Mohon tandai di peta!
-                        </p>
-                    ) : null}
                 </div>
             </section>
 
             <section className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-4">
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2"><i className="fa-solid fa-link text-poltekpar-primary"></i>Tautan Dokumen</h3>
                 <div className="space-y-4">
-                    <div className="space-y-1.5">
-                        <div className="flex items-center justify-between">
+                    <div className="space-y-1.5 text-left">
+                        <div className="flex items-center justify-between mb-1">
                             <label className="text-xs font-semibold text-slate-700">Surat Permohonan <span className="text-red-500">*</span></label>
-                            <a href="/template/surat_permohonan" target="_blank" rel="noreferrer" className="text-[10px] font-bold text-poltekpar-primary hover:underline flex items-center gap-1.5"><i className="fa-solid fa-download"></i> Download Template Surat Permohonan</a>
+                            <a href="/template/surat_permohonan" target="_blank" rel="noreferrer" className="text-[10px] font-bold text-poltekpar-primary hover:underline flex items-center gap-1.5"><i className="fa-solid fa-download"></i> Download Template</a>
                         </div>
-                        <input type="file" accept=".pdf" onChange={e => setFilePermohonan(e.target.files?.[0] || null)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-poltekpar-primary/10 file:text-poltekpar-primary" required={!isEditing} />
-                        {isEditing && !filePermohonan && data.surat_permohonan && (
-                            <p className="text-[10px] text-emerald-600 font-semibold mt-1 flex items-center gap-1"><i className="fa-solid fa-check-circle"></i> File sebelumnya sudah tersimpan. Upload baru jika ingin mengganti.</p>
-                        )}
+                        <input type="file" accept=".pdf" onChange={e => setFilePermohonan(e.target.files?.[0] || null)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-poltekpar-primary/10 file:text-poltekpar-primary outline-none" required={!isEditing} />
                         {filePermohonan && filePermohonan.type === 'application/pdf' && (
-                            <div className="mt-2 border border-slate-200 rounded-lg overflow-hidden h-64 bg-slate-50 relative shadow-inner">
-                                <span className="absolute top-2 right-2 text-[10px] font-bold bg-slate-800 text-white px-2 py-1 rounded-md opacity-50 z-10">Preview</span>
-                                <object data={URL.createObjectURL(filePermohonan)} type="application/pdf" className="w-full h-full relative z-20">
-                                    <div className="flex items-center justify-center h-full text-xs text-slate-400">Browser tidak mendukung preview PDF secara instan.</div>
-                                </object>
+                            <div className="mt-2 border border-slate-200 rounded-xl overflow-hidden h-80 bg-slate-50 relative shadow-inner flex flex-col">
+                                <div className="bg-slate-800 text-white px-3 py-1.5 flex justify-between items-center text-[10px] font-bold z-10 shrink-0">
+                                    <span>Preview Surat Permohonan</span>
+                                    <a href={getFullUrl(URL.createObjectURL(filePermohonan))} target="_blank" rel="noreferrer" className="text-blue-300 hover:text-blue-200 flex items-center gap-1">
+                                        <i className="fa-solid fa-external-link text-[9px]"></i> Buka Tab Baru
+                                    </a>
+                                </div>
+                                <iframe src={URL.createObjectURL(filePermohonan)} className="w-full flex-1 relative z-20 border-0" title="Preview Surat Permohonan" />
                             </div>
                         )}
                     </div>
-                    <div className="space-y-1.5">
-                        <div className="flex items-center justify-between">
+                    <div className="space-y-1.5 text-left">
+                        <div className="flex items-center justify-between mb-1">
                             <label className="text-xs font-semibold text-slate-700">Proposal (Opsional)</label>
-                            <a href="/template/proposal" target="_blank" rel="noreferrer" className="text-[10px] font-bold text-poltekpar-primary hover:underline flex items-center gap-1.5"><i className="fa-solid fa-download"></i> Download Template Proposal</a>
+                            <a href="/template/proposal" target="_blank" rel="noreferrer" className="text-[10px] font-bold text-poltekpar-primary hover:underline flex items-center gap-1.5"><i className="fa-solid fa-download"></i> Download Template</a>
                         </div>
-                        <input type="file" accept=".pdf" onChange={e => setFileProposal(e.target.files?.[0] || null)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-poltekpar-primary/10 file:text-poltekpar-primary" />
+                        <input type="file" accept=".pdf" onChange={e => setFileProposal(e.target.files?.[0] || null)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-poltekpar-primary/10 file:text-poltekpar-primary outline-none" />
                         {fileProposal && fileProposal.type === 'application/pdf' && (
-                            <div className="mt-2 border border-slate-200 rounded-lg overflow-hidden h-64 bg-slate-50 relative shadow-inner">
-                                <span className="absolute top-2 right-2 text-[10px] font-bold bg-slate-800 text-white px-2 py-1 rounded-md opacity-50 z-10">Preview</span>
-                                <object data={URL.createObjectURL(fileProposal)} type="application/pdf" className="w-full h-full relative z-20">
-                                    <div className="flex items-center justify-center h-full text-xs text-slate-400">Browser tidak mendukung preview PDF.</div>
-                                </object>
+                            <div className="mt-2 border border-slate-200 rounded-xl overflow-hidden h-80 bg-slate-50 relative shadow-inner flex flex-col">
+                                <div className="bg-slate-800 text-white px-3 py-1.5 flex justify-between items-center text-[10px] font-bold z-10 shrink-0">
+                                    <span>Preview Proposal</span>
+                                    <a href={getFullUrl(URL.createObjectURL(fileProposal))} target="_blank" rel="noreferrer" className="text-blue-300 hover:text-blue-200 flex items-center gap-1">
+                                        <i className="fa-solid fa-external-link text-[9px]"></i> Buka Tab Baru
+                                    </a>
+                                </div>
+                                <iframe src={URL.createObjectURL(fileProposal)} className="w-full flex-1 relative z-20 border-0" title="Preview Proposal" />
                             </div>
                         )}
-                    </div>
-                    <div className="space-y-3">
-                        <label className="text-xs font-semibold text-slate-700">Link Tambahan</label>
-                        {data.link_tambahan.map((l, i) => (
-                            <div key={i} className="flex gap-2">
-                                <input type="text" value={l.name} onChange={e => handleLinkChange(i, 'name', e.target.value)} className="w-1/3 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary" placeholder="Nama Tautan" />
-                                <input type="url" value={l.url} onChange={e => handleLinkChange(i, 'url', e.target.value)} className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary" placeholder="Link lainnya..." />
-                                {data.link_tambahan.length > 1 && <button type="button" onClick={() => handleRemoveLink(i)} className="w-10 h-10 shrink-0 flex items-center justify-center rounded-lg bg-red-50 text-red-500"><i className="fa-solid fa-trash-can"></i></button>}
-                            </div>
-                        ))}
-                        <button type="button" onClick={handleAddLink} className="text-xs font-bold text-poltekpar-primary hover:underline flex items-center gap-1.5"><i className="fa-solid fa-plus-circle"></i>Tambah Tautan Lagi</button>
                     </div>
                 </div>
             </section>
 
             <button type="submit" disabled={isMockSubmitting} className="w-full py-3.5 bg-poltekpar-primary hover:bg-poltekpar-navy text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
-                {isMockSubmitting ? <><i className="fa-solid fa-spinner fa-spin"></i>Mengirim...</> : isEditing ? <><i className="fa-solid fa-pen-to-square"></i>Perbarui Pengajuan</> : <><i className="fa-solid fa-paper-plane"></i>Kirim Pengajuan</>}
+                {isMockSubmitting ? <><i className="fa-solid fa-spinner fa-spin"></i>Mengirim...</> : isEditing ? <><i className="fa-solid fa-pen-to-square"></i>Perbarui Pengajuan</> : <><i className="fa-solid fa-paper-plane"></i>Lanjut Ke Evaluasi & Submit</>}
             </button>
         </form>
     );
 
     return (
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden text-left">
             <div className="p-5 border-b border-slate-100 flex items-center gap-4">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-poltekpar-primary to-poltekpar-navy flex items-center justify-center text-white shadow-md"><i className="fa-solid fa-file-signature text-lg"></i></div>
-                <div><h3 className="text-base font-bold text-slate-900">Akses Pengajuan PKM</h3><p className="text-sm text-slate-500 mt-0.5">Formulir pengajuan untuk masyarakat</p></div>
+                <div><h3 className="text-base font-bold text-slate-900 text-left">Akses Pengajuan PKM</h3><p className="text-sm text-slate-500 mt-0.5 text-left">Formulir pengajuan untuk masyarakat</p></div>
             </div>
             {!hideMainTabNav && (
                 <div className="flex border-b border-slate-100">
@@ -795,129 +679,104 @@ export default function MasyarakatSubmissionCard({
             <ActionFeedbackDialog show={feedbackDialog.show} type={feedbackDialog.type} title={feedbackDialog.title} message={feedbackDialog.message} onClose={() => setFeedbackDialog({ ...feedbackDialog, show: false })} />
             {renderDetailModal()}
             
-            {/* Modal Evaluasi Aplikasi Sebelum Submit */}
-            {showFeedbackModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-300">
-                    <div className="bg-white rounded-[32px] shadow-2xl border border-slate-100 w-full max-w-3xl overflow-hidden animate-in zoom-in-95 duration-300 max-h-[90vh] flex flex-col">
-                        <div className="bg-poltekpar-navy text-white px-8 py-7 text-center relative overflow-hidden">
-                            <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] animate-pulse-slow"></div>
-                            <div className="relative z-10">
-                                <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-5 backdrop-blur-sm">
-                                    <i className="fa-solid fa-comment-dots text-2xl"></i>
+            {showFeedbackFlow && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+                    <div className="bg-white rounded-[32px] w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-8 duration-500">
+                        {flowStep === 'rating' && (
+                            <div className="p-10 text-center space-y-8 animate-in fade-in slide-in-from-right-8 duration-500">
+                                <div className="flex justify-between items-center px-2">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Wajib Isi Evaluasi</span>
+                                    <span className="text-[10px] font-black text-poltekpar-primary bg-blue-50 px-2 py-1 rounded-lg">Pertanyaan {activeQuestionIndex + 1}/{EVALUATION_QUESTIONS.length}</span>
                                 </div>
-                                <h3 className="text-2xl font-black mb-2 tracking-tight">Evaluasi Sistem SIGAPPA</h3>
-                                <p className="text-white/80 text-sm max-w-2xl mx-auto font-medium">Sebelum pengajuan dikirim, mohon isi evaluasi aplikasi berikut terlebih dahulu.</p>
-                            </div>
-                        </div>
+                                
+                                <div className="min-h-[100px] flex items-center justify-center">
+                                    <h3 className="text-xl font-black text-slate-900 leading-tight">
+                                        {EVALUATION_QUESTIONS[activeQuestionIndex]}
+                                    </h3>
+                                </div>
 
-                        <div className="p-6 md:p-8 overflow-y-auto space-y-8">
-                            <div className="space-y-5">
-                                <div className="flex items-center gap-3 border-b-2 border-slate-100 pb-3">
-                                    <h4 className="text-lg font-black text-slate-800 uppercase tracking-wide">1. Data Responden</h4>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                    <div>
-                                        <label className="text-sm font-bold text-slate-700 block mb-2">Nama Lengkap <span className="text-red-500">*</span></label>
-                                        <input
-                                            type="text"
-                                            value={evaluasiForm.nama}
-                                            onChange={e => handleEvaluasiFieldChange('nama', e.target.value)}
-                                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-poltekpar-primary focus:bg-white transition-all font-medium"
-                                            placeholder="Cth: John Doe"
-                                        />
+                                <div className="space-y-4">
+                                    <div className="flex justify-center gap-3">
+                                        {[1, 2, 3, 4, 5].map((star) => (
+                                            <button
+                                                key={star}
+                                                type="button"
+                                                onMouseEnter={() => setHoverRating(star)}
+                                                onMouseLeave={() => setHoverRating(0)}
+                                                onClick={() => handleRatingClick(star)}
+                                                className={`transition-all transform hover:scale-125 active:scale-95 ${ratings[activeQuestionIndex] >= star ? 'scale-110' : ''}`}
+                                            >
+                                                <i className={`fa-solid fa-star text-4xl ${(hoverRating || ratings[activeQuestionIndex]) >= star ? 'text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]' : 'text-slate-200'}`}></i>
+                                            </button>
+                                        ))}
                                     </div>
-                                    <div>
-                                        <label className="text-sm font-bold text-slate-700 block mb-2">No. Telepon / WA <span className="text-red-500">*</span></label>
-                                        <input
-                                            type="text"
-                                            value={evaluasiForm.no_telp}
-                                            onChange={e => handleEvaluasiFieldChange('no_telp', e.target.value)}
-                                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-poltekpar-primary focus:bg-white transition-all font-medium"
-                                            placeholder="Cth: 08123456789"
-                                        />
+                                    <div className="text-sm font-black text-poltekpar-primary h-5 uppercase tracking-wider">
+                                        {(hoverRating || ratings[activeQuestionIndex]) > 0 ? getRatingLabel(hoverRating || ratings[activeQuestionIndex]) : ''}
                                     </div>
                                 </div>
+
+                                <p className="text-slate-400 text-[10px] font-bold mt-4 uppercase tracking-widest">
+                                    Klik bintang untuk lanjut
+                                </p>
+                            </div>
+                        )}
+
+                        {flowStep === 'comment' && (
+                            <div className="p-10 text-center space-y-8 animate-in fade-in slide-in-from-right-8 duration-500">
                                 <div>
-                                    <label className="text-sm font-bold text-slate-700 block mb-2">Asal Instansi (Opsional)</label>
-                                    <input
-                                        type="text"
-                                        value={evaluasiForm.asal_instansi}
-                                        onChange={e => handleEvaluasiFieldChange('asal_instansi', e.target.value)}
-                                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-poltekpar-primary focus:bg-white transition-all font-medium"
-                                        placeholder="Cth: Universitas XYZ / Desa ABC"
+                                    <h3 className="text-2xl font-black text-slate-900">Satu langkah lagi!</h3>
+                                    <p className="text-slate-500 mt-2 font-medium">Ada saran atau masukan tambahan untuk sistem SIGAPPA?</p>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <textarea 
+                                        placeholder="Tulis masukan Anda di sini (Opsional)"
+                                        value={feedbackComment}
+                                        onChange={e => setFeedbackComment(e.target.value)}
+                                        className="w-full px-4 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm focus:ring-2 focus:ring-poltekpar-primary/20 focus:border-poltekpar-primary/30 outline-none resize-none min-h-[120px] transition-all"
                                     />
                                 </div>
-                            </div>
 
-                            <div className="space-y-6">
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b-2 border-slate-100 pb-3 gap-2">
-                                    <h4 className="text-lg font-black text-slate-800 uppercase tracking-wide">2. Kuesioner Evaluasi</h4>
-                                    <span className="text-[11px] font-bold text-poltekpar-primary bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">Bintang 1 - 5</span>
+                                <div className="flex gap-3">
+                                    <button 
+                                        type="button"
+                                        onClick={() => setFlowStep('rating')}
+                                        className="flex-1 py-4 bg-slate-100 text-slate-500 rounded-2xl font-bold text-sm hover:bg-slate-200 transition-all"
+                                    >
+                                        Kembali
+                                    </button>
+                                    <button 
+                                        type="button"
+                                        onClick={submitAllData}
+                                        disabled={isSubmittingFinal}
+                                        className="flex-[2] py-4 bg-poltekpar-primary text-white rounded-2xl font-black text-sm shadow-xl shadow-poltekpar-primary/30 hover:bg-poltekpar-navy transition-all disabled:opacity-50"
+                                    >
+                                        {isSubmittingFinal ? 'Memproses Data...' : 'SUBMIT PENGAJUAN'}
+                                    </button>
                                 </div>
-
-                                {EVALUATION_QUESTIONS.map((question, index) => {
-                                    const key = `q${index + 1}` as keyof Pick<EvaluasiFormData, 'q1' | 'q2' | 'q3' | 'q4' | 'q5'>;
-                                    const currentValue = evaluasiForm[key];
-
-                                    return (
-                                        <div key={key} className="bg-slate-50 rounded-2xl p-5 border border-slate-100 hover:border-poltekpar-primary/30 transition-colors">
-                                            <p className="text-[15px] font-bold text-slate-700 leading-relaxed mb-4">{index + 1}. {question}</p>
-                                            <div className="flex flex-wrap items-center gap-3">
-                                                <div className="flex gap-2">
-                                                    {[1, 2, 3, 4, 5].map((value) => (
-                                                        <button
-                                                            key={value}
-                                                            type="button"
-                                                            onClick={() => handleEvaluasiFieldChange(key, value)}
-                                                            className={`p-3 rounded-xl border-2 transition-all duration-300 ${currentValue >= value ? 'bg-amber-50 border-amber-300 text-amber-500 scale-110 shadow-sm' : 'bg-white border-slate-200 text-slate-300 hover:border-amber-200 hover:text-amber-300'}`}
-                                                        >
-                                                            <i className={`fa-solid fa-star text-xl ${currentValue >= value ? 'text-amber-400' : ''}`}></i>
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                                <div className="w-full sm:w-auto sm:ml-4 text-[13px] font-bold text-slate-500 py-1.5 px-3 bg-white rounded-lg border border-slate-100">
-                                                    {getEvaluationLabel(currentValue)}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
                             </div>
+                        )}
 
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-3 border-b-2 border-slate-100 pb-3">
-                                    <h4 className="text-lg font-black text-slate-800 uppercase tracking-wide">3. Umpan Balik Tambahan</h4>
+                        {flowStep === 'success' && (
+                            <div className="p-10 text-center space-y-6 animate-in zoom-in-95 duration-500">
+                                <div className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+                                    <i className="fa-solid fa-check-double text-4xl animate-bounce"></i>
                                 </div>
                                 <div>
-                                    <label className="text-sm font-bold text-slate-700 block mb-2">Masukan & Saran Konstruktif (Opsional)</label>
-                                    <textarea
-                                        rows={4}
-                                        value={evaluasiForm.masukan}
-                                        onChange={e => handleEvaluasiFieldChange('masukan', e.target.value)}
-                                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-poltekpar-primary focus:bg-white transition-all font-medium custom-scrollbar"
-                                        placeholder="Silakan tuliskan jika ada hal lain yang ingin disampaikan mengenai sistem ini..."
-                                    />
+                                    <h3 className="text-2xl font-black text-slate-900">Selesai! Berhasil Terkirim</h3>
+                                    <p className="text-slate-500 mt-2 font-medium">Terima kasih atas evaluasi dan pengajuan PKM Anda. Tim kami akan segera memproses berkas Anda.</p>
+                                </div>
+                                <div className="pt-4">
+                                    <button 
+                                        type="button"
+                                        onClick={() => { window.location.href = '/cek-status'; }}
+                                        className="w-full py-4 bg-poltekpar-primary text-white rounded-2xl font-black text-sm shadow-xl shadow-poltekpar-primary/30 hover:bg-poltekpar-navy transition-all"
+                                    >
+                                        Lihat Status Pengajuan
+                                    </button>
                                 </div>
                             </div>
-                        </div>
-
-                        <div className="p-6 border-t border-slate-100 bg-white flex flex-col sm:flex-row gap-3">
-                            <button 
-                                    type="button"
-                                onClick={() => setShowFeedbackModal(false)}
-                                className="flex-1 py-4 px-6 border border-slate-200 text-slate-500 font-bold rounded-2xl hover:bg-slate-50 transition-all active:scale-95"
-                            >
-                                BATAL
-                            </button>
-                            <button 
-                                    type="button"
-                                onClick={handleFinalSubmit}
-                                disabled={evaluasiSubmitting}
-                                className={`flex-1 py-4 px-6 font-black rounded-2xl shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2 ${evaluasiSubmitting ? 'bg-slate-200 text-slate-500 cursor-not-allowed' : 'bg-poltekpar-primary text-white shadow-poltekpar-primary/20 hover:shadow-poltekpar-primary/40'}`}
-                            >
-                                {evaluasiSubmitting ? 'MENYIMPAN EVALUASI...' : 'KIRIM EVALUASI & SUBMIT'} <i className="fa-solid fa-paper-plane"></i>
-                            </button>
-                        </div>
+                        )}
                     </div>
                 </div>
             )}

@@ -25,7 +25,7 @@ const getNavLinks = (user: User | null): NavLink[] => {
 
     if (!user) {
         navLinks.push({ label: 'Panduan', href: '/panduan', icon: 'fa-book-open' });
-        navLinks.push({ label: 'Evaluasi Sistem', href: '/evaluasi', icon: 'fa-star' });
+        navLinks.push({ label: 'Feedback', href: '/evaluasi', icon: 'fa-star' });
         return navLinks;
     }
 
@@ -66,13 +66,17 @@ export default function Navbar() {
         setMobileOpen(false);
     }, []);
 
+    const appName = (import.meta.env.VITE_APP_NAME && !import.meta.env.VITE_APP_NAME.includes('${')) 
+        ? import.meta.env.VITE_APP_NAME 
+        : 'SIGAPPA';
+
     return (
         <header className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
             <div className="max-w-7xl mx-auto px-4 sm:px-6">
                 <div className="flex items-center justify-between h-16">
                     {/* Brand */}
-                    <a
-                        href="https://p3m.poltekparmakassar.ac.id/"
+                    <Link
+                        href="/"
                         className="flex items-center gap-3 group"
                     >
                         <span className="w-10 h-10 flex items-center justify-center">
@@ -86,13 +90,13 @@ export default function Navbar() {
                             <span className="block text-xs font-bold text-poltekpar-navy uppercase tracking-wide leading-tight">
                                 Sistem Informasi Geospasial dan Akses Pelayanan
                                 <br />
-                                Pariwisata (SIGAPPA)
+                                Pariwisata ({appName})
                             </span>
                             <span className="block text-xs font-medium text-slate-500 mt-0.5">
                                 Politeknik Pariwisata Makassar
                             </span>
                         </div>
-                    </a>
+                    </Link>
 
                     {/* Desktop Nav */}
                     <nav className="hidden md:flex items-center gap-1" role="navigation" aria-label="Main navigation">
@@ -118,7 +122,7 @@ export default function Navbar() {
                     {/* Utility */}
                     <div className="hidden lg:flex items-center gap-4">
                         <a
-                            href="https://p3m.poltekparmakassar.ac.id/peta-sebaran-p3m"
+                            href="https://p3m.poltekparmakassar.ac.id/"
                             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-poltekpar-primary bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
                         >
                             <i className="fa-solid fa-arrow-up-right-from-square text-xs"></i>
@@ -171,7 +175,7 @@ export default function Navbar() {
                     <div className="flex items-center justify-between px-4 py-4 border-b border-slate-100">
                         <div className="flex items-center gap-3">
                             <img src={poltekparLogoSrc} alt="" className="w-8 h-8 object-contain" />
-                            <span className="text-sm font-bold text-poltekpar-navy">SIGAPPA</span>
+                            <span className="text-sm font-bold text-poltekpar-navy">{appName}</span>
                         </div>
                         <button
                             type="button"

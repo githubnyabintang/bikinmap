@@ -57,7 +57,7 @@ export default function Register() {
                             <span className="brand-heading brand-heading-wide">
                                 Sistem Informasi Geospasial dan Akses Pelayanan Pengabdian Kepada Masyarakat
                             </span>
-                            <span className="brand-heading brand-heading-wide">(SIGAP PKM)</span>
+                            <span className="brand-heading brand-heading-wide">({import.meta.env.VITE_APP_NAME || 'SIGAPPA'})</span>
                             <span className="brand-subheading brand-subheading-wide">Politeknik Pariwisata Makassar</span>
                         </div>
                     </div>

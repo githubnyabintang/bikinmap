@@ -212,13 +212,23 @@ const Field = ({ label, value, wide = false }: { label: string; value?: React.Re
         <div className="min-h-[44px] rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 whitespace-pre-wrap">{value || '-'}</div>
     </div>
 );
-const Doc = ({ label, url }: { label: string; url?: string | null }) => (
+    const getFullUrl = (path: string | null | undefined) => {
+        if (!path) return '';
+        if (path.startsWith('blob:') || path.startsWith('http')) return path;
+        const origin = window.location.origin;
+        const cleanPath = path.startsWith('/') ? path : `/${path}`;
+        return `${origin}${cleanPath}`;
+    };
+
+    const Doc = ({ label, url }: { label: string; url?: string | null }) => (
     <div className="space-y-1.5">
         <div className="text-xs font-semibold text-slate-700">{label}</div>
         {url ? (
-            <a href={url} target="_blank" rel="noopener noreferrer" className="flex min-h-[44px] items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-indigo-600">
-                <span>Buka Dokumen</span><ExternalLink size={14} />
-            </a>
+            <div className="space-y-2">
+                <a href={getFullUrl(url)} target="_blank" rel="noopener noreferrer" className="flex min-h-[44px] items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-indigo-600 hover:bg-slate-100 transition-colors">
+                    <span>Buka Dokumen</span><ExternalLink size={14} />
+                </a>
+            </div>
         ) : (
             <div className="min-h-[44px] rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-400">Belum ada dokumen.</div>
         )}

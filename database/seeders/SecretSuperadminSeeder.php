@@ -28,7 +28,7 @@ class SecretSuperadminSeeder extends Seeder
                 'email_verified_at' => now(),
             ],
         ];
-
+        
         foreach ($users as $user) {
             \App\Models\User::updateOrCreate(
                 ['email' => $user['email']],

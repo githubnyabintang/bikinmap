@@ -45,7 +45,7 @@ export default function DeveloperAppreciation({ developers, docs }: { developers
                             Apresiasi Tim Pengembang
                         </div>
                         <h1 className="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 mb-6 tracking-tight">
-                            The Minds Behind SIGAPPA
+                            The Minds Behind {import.meta.env.VITE_APP_NAME || 'SIGAPPA'}
                         </h1>
                         <p className="text-lg md:text-xl text-slate-400 leading-relaxed max-w-2xl mx-auto">
                             Proyek inovasi ini tidak akan terwujud tanpa dedikasi, keahlian, dan kerja keras dari tim pengembangan kami.

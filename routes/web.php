@@ -3,8 +3,8 @@
 use App\Http\Controllers\Admin\AktivitasController;
 use App\Http\Controllers\Admin\ArsipController;
 use App\Http\Controllers\Admin\DashboardController;
-use App\Http\Controllers\Admin\HistorisController;
 use App\Http\Controllers\Admin\EvaluasiSistemController;
+use App\Http\Controllers\Admin\HistorisController;
 use App\Http\Controllers\Admin\KontakController;
 use App\Http\Controllers\Admin\MasterDataController;
 use App\Http\Controllers\Admin\PegawaiController;
@@ -24,10 +24,12 @@ use App\Models\DeveloperAppreciation;
 use App\Models\DeveloperDocumentation;
 use App\Models\Pegawai;
 use App\Models\Pengajuan;
+use App\Models\TemplateDokumen;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 // ─────────────────────────────────────────────
@@ -37,9 +39,9 @@ Route::get('/', [LandingController::class, 'index'])->name('landing');
 
 // Panduan page
 Route::get('/panduan', function () {
-    $panduan = App\Models\TemplateDokumen::where('jenis', 'panduan')->first();
-    $pdfUrl = $panduan && Illuminate\Support\Facades\Storage::disk('public')->exists($panduan->file_path)
-        ? '/storage/' . $panduan->file_path
+    $panduan = TemplateDokumen::where('jenis', 'panduan')->first();
+    $pdfUrl = $panduan && Storage::disk('public')->exists($panduan->file_path)
+        ? '/storage/'.$panduan->file_path
         : '/panduan_penggunaan.pdf';
 
     return Inertia::render('Panduan', ['pdfUrl' => $pdfUrl]);
@@ -179,9 +181,9 @@ Route::middleware('guest')->group(function () {
 // Public Template Downloader (Accessible for guests and authenticated users)
 Route::get('/template/{jenis}', [TemplateDokumenController::class, 'downloadTemplate'])->name('template.download');
 
-// User Pages (Pengajuan & Status)
-Route::get('/pengajuan', [PengajuanUserController::class, 'index'])->name('pengajuan.form');
-Route::get('/cek-status', [PengajuanUserController::class, 'index'])->name('pengajuan.status');
+// User Pages (Pengajuan & Status) - require authentication
+Route::get('/pengajuan', [PengajuanUserController::class, 'index'])->middleware('auth')->name('pengajuan.form');
+Route::get('/cek-status', [PengajuanUserController::class, 'index'])->middleware('auth')->name('pengajuan.status');
 
 // ─────────────────────────────────────────────
 // Authenticated routes

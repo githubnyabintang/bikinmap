@@ -40,7 +40,7 @@ export default function PengumpulanArsip({ namaKegiatan = 'NAMA KEGIATAN PKM', k
 
     return (
         <div className="min-h-screen bg-[#f8fafc] flex flex-col" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-            <Head title="Pengumpulan Arsip | SIGAPPA" />
+            <Head title={`Pengumpulan Arsip | ${import.meta.env.VITE_APP_NAME || 'SIGAPPA'}`} />
             
             <Navbar />
             
@@ -61,7 +61,7 @@ export default function PengumpulanArsip({ namaKegiatan = 'NAMA KEGIATAN PKM', k
                             <h1 className="text-2xl font-black text-slate-900 tracking-tight">Pengumpulan Arsip PKM</h1>
                             <p className="text-slate-500 font-bold text-sm mt-1 uppercase tracking-widest flex items-center gap-2">
                                 <span className="w-2 h-2 bg-poltekpar-gold rounded-full"></span>
-                                Dokumentasi & Pelaporan Sistem SIGAPPA
+                                Dokumentasi & Pelaporan Sistem {import.meta.env.VITE_APP_NAME || 'SIGAPPA'}
                             </p>
                         </div>
                         <div className="md:ml-auto">

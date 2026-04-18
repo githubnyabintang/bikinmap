@@ -1,7 +1,11 @@
 import React from 'react';
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
+import { PageProps } from '@/types';
 
 export default function CTABanner() {
+    const { auth } = usePage<PageProps>().props;
+    const isAuthenticated = !!auth.user;
+
     return (
         <section className="py-10 sm:py-16 px-4 sm:px-6 bg-gradient-to-br from-poltekpar-primary to-poltekpar-navy rounded-xl sm:rounded-2xl shadow-glow overflow-hidden relative" id="cta-pengajuan">
             {/* Glow effect */}
@@ -26,11 +30,11 @@ export default function CTABanner() {
                 
                 {/* CTA Button */}
                 <Link 
-                    href="/cek-status" 
+                    href={isAuthenticated ? "/pengajuan" : "/login"} 
                     className="inline-flex items-center gap-3 px-8 py-4 bg-white text-poltekpar-primary font-bold rounded-xl shadow-lg hover:bg-slate-50 hover:shadow-xl hover:scale-105 transition-all duration-200"
                 >
-                    <i className="fa-solid fa-arrow-down text-lg"></i>
-                    <span>Buka Form Pengajuan</span>
+                    <i className={`fa-solid ${isAuthenticated ? 'fa-file-circle-plus' : 'fa-right-to-bracket'} text-lg`}></i>
+                    <span>{isAuthenticated ? 'Buka Form Pengajuan' : 'Masuk untuk Mengajukan'}</span>
                 </Link>
             </div>
         </section>

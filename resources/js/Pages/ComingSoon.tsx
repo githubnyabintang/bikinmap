@@ -28,7 +28,7 @@ export default function NotFound() {
                     </Link>
 
                     <div className="mt-16 pt-10 border-t border-zinc-100 text-zinc-400 text-sm">
-                        &copy; {new Date().getFullYear()} SIGAP PKM Politeknik Pariwisata Makassar
+                        &copy; {new Date().getFullYear()} {import.meta.env.VITE_APP_NAME || 'SIGAPPA'} Politeknik Pariwisata Makassar
                     </div>
                 </div>
             </div>

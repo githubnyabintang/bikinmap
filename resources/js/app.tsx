@@ -6,10 +6,11 @@ import { createInertiaApp } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import PageLoadingScreen from './Components/PageLoadingScreen';
 
-const appName = import.meta.env.VITE_APP_NAME || 'SIGAP PKM';
+const rawAppName = import.meta.env.VITE_APP_NAME || 'SIGAPPA';
+const appName = rawAppName.includes('${') ? 'SIGAPPA' : rawAppName;
 
 createInertiaApp({
-    title: (title) => `${title} - ${appName}`,
+    title: (title) => title ? `${title} - ${appName}` : appName,
     resolve: (name) => {
         const pages = import.meta.glob('./Pages/**/*.{jsx,tsx}');
         let path = `./Pages/${name}.tsx`;

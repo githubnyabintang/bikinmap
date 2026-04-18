@@ -42,3 +42,9 @@ diff.txt
 diff8.txt
 *.diff
 *.patch
+
+# Build Artifacts & Logs
+*.zip
+ts_errors.txt
+type-check-result.txt
+.gemini/

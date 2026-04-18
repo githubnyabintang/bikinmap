@@ -46,9 +46,9 @@ class AuthController extends Controller
     public function checkNip(Request $request)
     {
         $request->validate([
-            'nip' => ['required', 'regex:/^\d{18}$/'],
+            'nip' => ['required', 'numeric'],
         ], [
-            'nip.regex' => 'NIP harus terdiri dari 18 digit angka.',
+            'nip.numeric' => 'NIP harus berupa angka.',
         ]);
 
         $pegawai = Pegawai::where('nip', $request->nip)->first();
@@ -183,11 +183,11 @@ class AuthController extends Controller
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
-            'nip' => [$preferredRole === 'dosen' ? 'required' : 'nullable', 'regex:/^\d{18}$/'],
+            'nip' => [$preferredRole === 'dosen' ? 'required' : 'nullable', 'numeric'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ], [
             'nip.required' => 'NIP wajib diisi untuk registrasi dosen.',
-            'nip.regex' => 'NIP harus terdiri dari 18 digit angka.',
+            'nip.numeric' => 'NIP harus berupa angka.',
         ]);
 
         $role = 'masyarakat';

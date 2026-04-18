@@ -127,7 +127,7 @@ export default function VerifyEmail({ status }: VerifyEmailProps): JSX.Element {
                             </form>
                         ) : (
                             <Link href="/" className="btn-login verify-btn-resend">
-                                Lanjut ke SIGAPPA <i className="fa-solid fa-arrow-right"></i>
+                                Lanjut ke {import.meta.env.VITE_APP_NAME || 'SIGAPPA'} <i className="fa-solid fa-arrow-right"></i>
                             </Link>
                         )}
 

@@ -50,7 +50,7 @@ export default function Login() {
                         />
                         <div className="login-brand-text login-brand-text-wide">
                             <span className="brand-heading brand-heading-wide">
-                                Sistem Informasi Geospasial dan Akses Pelayanan Pengabdian (SIGAPPA)
+                                Sistem Informasi Geospasial dan Akses Pelayanan Pengabdian ({import.meta.env.VITE_APP_NAME || 'SIGAPPA'})
                             </span>
                             <span className="brand-subheading brand-subheading-wide">Politeknik Pariwisata Makassar</span>
                         </div>

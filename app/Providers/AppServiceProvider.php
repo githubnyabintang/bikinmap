@@ -13,7 +13,9 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        if (php_sapi_name() !== 'cli' && strpos(base_path(), '/var/www/html/sigappa') !== false) {
+            $this->app->usePublicPath('/var/www/html');
+        }
     }
 
     public function boot(): void

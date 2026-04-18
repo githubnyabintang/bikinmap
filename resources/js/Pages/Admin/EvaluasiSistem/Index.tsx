@@ -61,18 +61,18 @@ export default function EvaluasiSistemIndex({ auth, evaluasi }: any) {
     };
 
     return (
-        <AdminLayout title="Supervisi Evaluasi Sistem">
-            <Head title="Supervisi Evaluasi Sistem" />
+        <AdminLayout title="Supervisi Feedback">
+            <Head title="Supervisi Feedback" />
 
             <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-800">Evaluasi Sistem</h1>
+                    <h1 className="text-2xl font-bold text-slate-800">Feedback</h1>
                     <p className="text-sm text-slate-500 mt-1">Umpan balik dan penilaian dari masyarakat dan stakeholder</p>
                 </div>
             </div>
 
 
-            <BulkActionBar selectedCount={selectedIds.length} onDelete={handleBulkDelete} onClear={() => setSelectedIds([])} entityLabel="evaluasi" />
+            <BulkActionBar selectedCount={selectedIds.length} onDelete={handleBulkDelete} onClear={() => setSelectedIds([])} entityLabel="feedback" />
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex items-center justify-between">

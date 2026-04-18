@@ -19,11 +19,11 @@ export default function Evaluasi() {
     });
 
     const questions = [
-        "1. Website SIGAPPA mudah diakses dan memiliki navigasi yang jelas (menu, halaman, dan fitur mudah dipahami).",
-        "2. Informasi yang tersedia (data PKM, peta spasial, dan statistik) lengkap, akurat, dan mudah dipahami.",
-        "3. Fitur peta (WebGIS) pada SIGAPPA membantu saya dalam memahami sebaran kegiatan PKM dan informasi pariwisata.",
-        "4. Proses pengajuan layanan PKM melalui SIGAPPA mudah dilakukan dan sesuai kebutuhan stakeholder (masyarakat, pemerintah, dan industri).",
-        "5. Secara keseluruhan, saya puas terhadap layanan dan fitur yang disediakan oleh website SIGAPPA."
+        `1. Website ${import.meta.env.VITE_APP_NAME || 'SIGAPPA'} mudah diakses dan memiliki navigasi yang jelas (menu, halaman, dan fitur mudah dipahami).`,
+        "2. Informasi yang tersedia (data PKM, peta spasial, dan statistik) lengkap, akurat, and mudah dipahami.",
+        `3. Fitur peta (WebGIS) pada ${import.meta.env.VITE_APP_NAME || 'SIGAPPA'} membantu saya dalam memahami sebaran kegiatan PKM dan informasi pariwisata.`,
+        `4. Proses pengajuan layanan PKM melalui ${import.meta.env.VITE_APP_NAME || 'SIGAPPA'} mudah dilakukan dan sesuai kebutuhan stakeholder (masyarakat, pemerintah, dan industri).`,
+        `5. Secara keseluruhan, saya puas terhadap layanan dan fitur yang disediakan oleh website ${import.meta.env.VITE_APP_NAME || 'SIGAPPA'}.`
     ];
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -53,7 +53,7 @@ export default function Evaluasi() {
 
     return (
         <Layout mainClassName="site-main-content">
-            <Head title="Evaluasi Sistem SIGAPPA" />
+            <Head title={`Feedback ${import.meta.env.VITE_APP_NAME || 'SIGAPPA'}`} />
             
             <div className="bg-poltekpar-navy text-white pt-12 pb-24 relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] animate-pulse-slow"></div>
@@ -61,7 +61,7 @@ export default function Evaluasi() {
                     <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-6 backdrop-blur-sm">
                         <MessageSquare size={32} className="text-white" />
                     </div>
-                    <h1 className="text-3xl md:text-5xl font-black mb-4 tracking-tight">Evaluasi Sistem SIGAPPA</h1>
+                    <h1 className="text-3xl md:text-5xl font-black mb-4 tracking-tight">Feedback {import.meta.env.VITE_APP_NAME || 'SIGAPPA'}</h1>
                     <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto leading-relaxed font-medium">Bantu kami meningkatkan kualitas layanan P3M Politeknik Pariwisata Makassar melalui umpan balik dan penilaian Anda.</p>
                 </div>
             </div>
@@ -73,8 +73,8 @@ export default function Evaluasi() {
                             <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
                                 <ShieldCheck size={48} className="text-emerald-500" />
                             </div>
-                            <h2 className="text-2xl font-black text-slate-800 mb-3">Evaluasi Berhasil Dikirim!</h2>
-                            <p className="text-slate-500 max-w-md mx-auto">Terima kasih banyak atas waktu dan penilaian Anda. Umpan balik Anda sangat berharga bagi pengembangan SIGAPPA.</p>
+                            <h2 className="text-2xl font-black text-slate-800 mb-3">Feedback Berhasil Dikirim!</h2>
+                            <p className="text-slate-500 max-w-md mx-auto">Terima kasih banyak atas waktu dan penilaian Anda. Umpan balik Anda sangat berharga bagi pengembangan {import.meta.env.VITE_APP_NAME || 'SIGAPPA'}.</p>
                             <button onClick={() => setShowSuccess(false)} className="mt-8 px-6 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-colors">
                                 Kirim Respon Lainnya
                             </button>
@@ -106,7 +106,7 @@ export default function Evaluasi() {
 
                             <div className="space-y-6">
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b-2 border-slate-100 pb-3 gap-2">
-                                    <h3 className="text-lg font-black text-slate-800 uppercase tracking-wide">2. Kuesioner Evaluasi</h3>
+                                    <h3 className="text-lg font-black text-slate-800 uppercase tracking-wide">2. Kuesioner Feedback</h3>
                                     <span className="text-[11px] font-bold text-poltekpar-primary bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">Bintang 1 (Sangat Tidak Setuju) - 5 (Sangat Setuju)</span>
                                 </div>
                                 

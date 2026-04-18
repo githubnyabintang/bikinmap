@@ -194,8 +194,8 @@ class PengajuanController extends Controller
         $pengajuan = Pengajuan::with(['aktivitas', 'timKegiatan', 'arsip'])->findOrFail($id);
 
         // Cascading soft deletes using model delete() to trigger model events
-        foreach ($pengajuan->aktivitas as $aktivitas) {
-            $aktivitas->delete();
+        if ($pengajuan->aktivitas) {
+            $pengajuan->aktivitas->delete();
         }
         foreach ($pengajuan->timKegiatan as $tim) {
             $tim->delete();
@@ -212,16 +212,57 @@ class PengajuanController extends Controller
     public function bulkDestroy(Request $request)
     {
         $request->validate([
-            'ids' => 'required|array',
+            'ids' => 'nullable|array',
             'ids.*' => 'integer|exists:pengajuan,id_pengajuan',
+            'select_all' => 'nullable|boolean',
+            'excluded_ids' => 'nullable|array',
+            'excluded_ids.*' => 'integer',
+            'filters' => 'nullable|array',
         ]);
 
-        $ids = $request->input('ids');
-        $pengajuans = Pengajuan::with(['aktivitas', 'timKegiatan', 'arsip'])->whereIn('id_pengajuan', $ids)->get();
+        $selectAll = $request->input('select_all', false);
+        $ids = $request->input('ids', []);
+        $excludedIds = $request->input('excluded_ids', []);
+        $filters = $request->input('filters', []);
+
+        if ($selectAll) {
+            $query = Pengajuan::query();
+            
+            // Apply filters to match the user's current view
+            if (!empty($filters['search'])) {
+                $search = $filters['search'];
+                $query->where(function($q) use ($search) {
+                    $q->where('judul_kegiatan', 'like', "%{$search}%")
+                      ->orWhere('nama_pengusul', 'like', "%{$search}%")
+                      ->orWhere('instansi_mitra', 'like', "%{$search}%");
+                });
+            }
+
+            if (!empty($filters['tab'])) {
+                $tab = $filters['tab'];
+                if ($tab === 'pengajuan') $query->where('status_pengajuan', 'diproses');
+                elseif ($tab === 'reviu') $query->where('status_pengajuan', 'direvisi');
+                else $query->where('status_pengajuan', $tab);
+            }
+
+            if (!empty($filters['tahun'])) {
+                $query->whereYear('created_at', $filters['tahun']);
+            }
+
+            if (!empty($excludedIds)) {
+                $query->whereNotIn('id_pengajuan', $excludedIds);
+            }
+
+            $pengajuans = $query->with(['aktivitas', 'timKegiatan', 'arsip'])->get();
+            $count = $pengajuans->count();
+        } else {
+            $pengajuans = Pengajuan::with(['aktivitas', 'timKegiatan', 'arsip'])->whereIn('id_pengajuan', $ids)->get();
+            $count = count($ids);
+        }
 
         foreach ($pengajuans as $pengajuan) {
-            foreach ($pengajuan->aktivitas as $aktivitas) {
-                $aktivitas->delete();
+            if ($pengajuan->aktivitas) {
+                $pengajuan->aktivitas->delete();
             }
             foreach ($pengajuan->timKegiatan as $tim) {
                 $tim->delete();
@@ -232,7 +273,7 @@ class PengajuanController extends Controller
             $pengajuan->delete();
         }
 
-        return redirect()->back()->with('success', count($ids) . ' data pengajuan berhasil dihapus massal.');
+        return redirect()->back()->with('success', $count . ' data pengajuan berhasil dihapus massal.');
     }
 
     public function updateStatus(Request $request, int $id)
@@ -544,7 +585,7 @@ class PengajuanController extends Controller
                         $p->user?->name ?? '-',
                         $p->jenisPkm?->nama_jenis ?? '-',
                         $p->instansi_mitra ?? '-',
-                        $p->tgl_mulai?->year ?? $p->created_at?->year ?? '-',
+                        $p->tgl_mulai?->year ?? ($p->created_at ? $p->created_at->year : '-'),
                         $p->sumber_dana ?? '-',
                         number_format((float) $p->total_anggaran, 0, ',', '.'),
                         $namaTim ?: '-',
