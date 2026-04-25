@@ -33,9 +33,10 @@ use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 // ─────────────────────────────────────────────
-// Landing Page & Public routes
+// Welcome & Public routes
 // ─────────────────────────────────────────────
-Route::get('/', [LandingController::class, 'index'])->name('landing');
+Route::get('/', [LandingController::class, 'welcome'])->name('welcome');
+Route::get('/beranda', [LandingController::class, 'index'])->name('beranda');
 
 // Panduan page
 Route::get('/panduan', function () {
@@ -197,8 +198,8 @@ Route::middleware('auth')->group(function () {
 
     // User: submit/update pengajuan
     Route::post('/pengajuan', [PengajuanUserController::class, 'store'])->name('pengajuan.store');
-    Route::put('/pengajuan/{id}', [PengajuanUserController::class, 'update'])->name('pengajuan.update');
-    Route::post('/pengajuan/{id}/resubmit', [PengajuanUserController::class, 'resubmit'])->name('pengajuan.resubmit');
+    Route::put('/pengajuan/{kode}', [PengajuanUserController::class, 'update'])->name('pengajuan.update');
+    Route::post('/pengajuan/{kode}/resubmit', [PengajuanUserController::class, 'resubmit'])->name('pengajuan.resubmit');
 
     // Pegawai names for autocomplete recommendations
     Route::get('/api/pegawai-options', function () {
@@ -312,6 +313,7 @@ Route::middleware('auth')->group(function () {
 
         // Evaluasi Sistem
         Route::get('/evaluasi-sistem', [EvaluasiSistemController::class, 'index'])->name('evaluasi-sistem.index');
+        Route::patch('/evaluasi-sistem/{id}/date', [EvaluasiSistemController::class, 'updateDate'])->name('evaluasi-sistem.update_date');
         Route::delete('/evaluasi-sistem/bulk', [EvaluasiSistemController::class, 'bulkDestroy'])->name('evaluasi-sistem.bulk_destroy');
         Route::delete('/evaluasi-sistem/{id}', [EvaluasiSistemController::class, 'destroy'])->name('evaluasi-sistem.destroy');
 

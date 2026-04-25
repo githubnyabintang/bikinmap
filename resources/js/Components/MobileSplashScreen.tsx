@@ -73,11 +73,11 @@ export default function MobileSplashScreen() {
 
                 {/* Text Content */}
                 <div className="text-center mb-8">
-                    <p className="text-white/70 text-xs font-medium uppercase tracking-wider mb-2">
-                        Sistem Informasi Geospasial dan Akses Pelayanan
+                    <p className="text-white/70 text-[10px] font-bold uppercase tracking-[0.2em] mb-3">
+                        Sistem Informasi Geospasial
                     </p>
-                    <h1 className="text-3xl font-bold text-white mb-2">SIGAP PKM</h1>
-                    <p className="text-white/80 text-sm font-medium">Politeknik Pariwisata Makassar</p>
+                    <h1 className="text-5xl font-black text-white mb-2 tracking-tighter">SIGAPPA</h1>
+                    <p className="text-poltekpar-gold text-xs font-bold uppercase tracking-widest">Politeknik Pariwisata Makassar</p>
                 </div>
 
                 {/* Loader */}

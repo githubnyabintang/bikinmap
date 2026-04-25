@@ -149,8 +149,14 @@ const Index: React.FC<IndexProps> = ({ listPengajuan, filters, availableYears })
     const [sortField, setSortField] = useState(filters.sort || 'created_at');
     const [sortDir, setSortDir] = useState(filters.direction || 'desc');
 
+    // ── Bulk Delete ──────────────────────────────────────────
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
+    const [selectAllAcrossPages, setSelectAllAcrossPages] = useState(false);
+
     // ── Filter helpers ─────────────────────────────────
     const applyFilters = useCallback((newSortField?: string, newSortDir?: string, newTahun?: string) => {
+        setSelectedIds([]);
+        setSelectAllAcrossPages(false);
         router.get('/admin/pengajuan', {
             search: search || undefined,
             tab: tab || undefined,
@@ -170,6 +176,8 @@ const Index: React.FC<IndexProps> = ({ listPengajuan, filters, availableYears })
 
     const handleTabChange = (newTab: string) => {
         setTab(newTab);
+        setSelectedIds([]);
+        setSelectAllAcrossPages(false);
         router.get('/admin/pengajuan', {
             search: search || undefined,
             tab: newTab || undefined,
@@ -181,13 +189,11 @@ const Index: React.FC<IndexProps> = ({ listPengajuan, filters, availableYears })
 
     const clearFilters = () => {
         setSearch(''); setTab(''); setTahun(''); setSortField('created_at'); setSortDir('desc');
+        setSelectedIds([]);
+        setSelectAllAcrossPages(false);
         router.get('/admin/pengajuan', {}, { preserveState: true, replace: true });
     };
 
-    // ── Bulk Delete ──────────────────────────────────────────
-    const [selectedIds, setSelectedIds] = useState<number[]>([]);
-    const [selectAllAcrossPages, setSelectAllAcrossPages] = useState(false);
-    
     const allIdsOnPage = listPengajuan.data.map(p => p.id_pengajuan);
     const allChecked = allIdsOnPage.length > 0 && allIdsOnPage.every(id => selectedIds.includes(id));
 
@@ -547,7 +553,7 @@ const Index: React.FC<IndexProps> = ({ listPengajuan, filters, availableYears })
                                     <button
                                         key={i}
                                         disabled={!link.url}
-                                        onClick={() => link.url && router.get(link.url, {}, { preserveState: true })}
+                                        onClick={() => { if (link.url) { setSelectedIds([]); setSelectAllAcrossPages(false); router.get(link.url, {}, { preserveState: true }); } }}
                                         className={`w-8 h-8 flex items-center justify-center rounded-md text-[13px] font-medium transition-colors shadow-sm focus:outline-none disabled:cursor-not-allowed ${link.active
                                             ? 'bg-zinc-900 text-white'
                                             : 'border border-zinc-200 bg-white text-zinc-500 hover:bg-zinc-50 disabled:opacity-40'

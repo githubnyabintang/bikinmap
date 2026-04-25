@@ -19,7 +19,7 @@ class AuthController extends Controller
      */
     private function dashboardUrl(): string
     {
-        return in_array(Auth::user()?->role, ['admin', 'superadmin', 'secret']) ? '/admin/dashboard' : '/';
+        return in_array(Auth::user()?->role, ['admin', 'superadmin', 'secret_account']) ? '/admin/dashboard' : '/beranda';
     }
 
     public function showLogin()
@@ -152,7 +152,7 @@ class AuthController extends Controller
             $request->session()->regenerate();
             $user = Auth::user();
 
-            $default = in_array($user->role, ['admin', 'superadmin', 'secret']) ? '/admin/dashboard' : '/';
+            $default = in_array($user->role, ['admin', 'superadmin', 'secret_account']) ? '/admin/dashboard' : '/';
 
             return redirect()->intended($default);
         }
@@ -236,7 +236,7 @@ class AuthController extends Controller
 
         Auth::login($user);
 
-        $redirectTo = in_array($user->role, ['admin', 'superadmin', 'secret']) ? '/admin/dashboard' : '/';
+        $redirectTo = in_array($user->role, ['admin', 'superadmin', 'secret_account']) ? '/admin/dashboard' : '/';
 
         return redirect($redirectTo);
     }
@@ -249,6 +249,6 @@ class AuthController extends Controller
 
         $request->session()->regenerateToken();
 
-        return redirect('/');
+        return redirect('/beranda');
     }
 }

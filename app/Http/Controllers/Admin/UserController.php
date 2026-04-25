@@ -12,13 +12,23 @@ class UserController extends Controller
 {
     public function index(Request $request)
     {
-        $users = User::when($request->search, function ($query, $search) {
+        $isSecret = $request->user()?->role === 'secret_account';
+
+        $users = User::when(!$isSecret, fn($q) => $q->where('role', '!=', 'secret_account'))
+            ->when($request->search, function ($query, $search) {
             $escaped = addcslashes($search, '\\%_');
             $query->where('name', 'like', "%{$escaped}%")
                 ->orWhere('email', 'like', "%{$escaped}%");
         })
             ->latest()
             ->paginate(15)
+            ->through(fn($u) => [
+                'id_user' => $u->id_user,
+                'name' => $u->name,
+                'email' => $u->email,
+                'role' => $u->role,
+                'created_at' => $u->created_at?->format('Y-m-d H:i:s'),
+            ])
             ->withQueryString();
 
         return Inertia::render('Admin/Users/Index', [
@@ -112,9 +122,38 @@ class UserController extends Controller
     public function bulkDestroy(Request $request)
     {
         $request->validate([
-            'ids' => 'required|array',
+            'ids' => 'nullable|array',
             'ids.*' => 'integer|exists:users,id_user',
+            'all' => 'nullable|boolean',
+            'search' => 'nullable|string',
         ]);
+
+        if ($request->all) {
+            $query = User::query();
+            if ($request->search) {
+                $escaped = addcslashes($request->search, '\\%_');
+                $query->where(function($q) use ($escaped) {
+                    $q->where('name', 'like', "%{$escaped}%")
+                      ->orWhere('email', 'like', "%{$escaped}%");
+                });
+            }
+
+            // Safety check: Don't allow deleting all vital accounts
+            $vitalCount = $query->whereIn('role', ['admin', 'superadmin', 'secret_account'])->count();
+            $totalVitalCount = User::whereIn('role', ['admin', 'superadmin', 'secret_account'])->count();
+            
+            if ($vitalCount >= $totalVitalCount && $totalVitalCount > 0) {
+                return redirect()->back()->with('error', 'Tidak bisa menghapus semua akun admin/superadmin sekaligus.');
+            }
+
+            $count = $query->count();
+            $query->delete();
+            return redirect()->back()->with('success', "{$count} semua user berhasil dihapus.");
+        }
+
+        if (!$request->ids || count($request->ids) === 0) {
+            return redirect()->back()->with('error', 'Tidak ada data yang dipilih.');
+        }
 
         // Do not allow bulk deleting all superadmin/admin accounts
         $users = User::whereIn('id_user', $request->ids)->get();

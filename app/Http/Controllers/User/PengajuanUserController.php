@@ -34,10 +34,12 @@ class PengajuanUserController extends Controller
                     'judul' => $p->judul_kegiatan,
                     'ringkasan' => $p->kebutuhan ?: ($p->instansi_mitra ?: '-'),
                     'tanggal' => optional($p->created_at)->format('d M Y') ?? '-',
-                    'status' => $p->aktivitas 
-                        ? ($p->aktivitas->status_pelaksanaan === 'selesai' ? 'selesai' 
-                            : ($p->aktivitas->status_pelaksanaan === 'berjalan' ? 'berlangsung' : 'diterima'))
-                        : $p->status_pengajuan,
+                    'status' => in_array($p->status_pengajuan, ['diproses', 'direvisi', 'ditolak'])
+                        ? $p->status_pengajuan
+                        : ($p->aktivitas
+                            ? ($p->aktivitas->status_pelaksanaan === 'selesai' ? 'selesai'
+                                : ($p->aktivitas->status_pelaksanaan === 'berjalan' ? 'berlangsung' : 'diterima'))
+                            : $p->status_pengajuan),
                     'catatan' => $p->catatan_admin,
                     'instansi_mitra' => $p->instansi_mitra,
                     'no_telepon' => $p->no_telepon,
@@ -84,7 +86,7 @@ class PengajuanUserController extends Controller
             'initialView' => $request->routeIs('pengajuan.status') ? 'status' : 'form',
             'userSubmissions' => $userSubmissions,
             'jenisPkmOptions' => $jenisPkmOptions,
-            'editSubmissionId' => $request->integer('edit') ?: null,
+            'editSubmissionKode' => $request->string('edit')->toString() ?: null,
         ]);
     }
 
@@ -219,11 +221,11 @@ class PengajuanUserController extends Controller
             ->with('success', 'Pengajuan PKM berhasil dikirim! Silakan tunggu konfirmasi dari admin.');
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, $kode)
     {
         $user = Auth::user();
 
-        $pengajuan = Pengajuan::where('id_pengajuan', $id)->where('id_user', $user->id_user)->firstOrFail();
+        $pengajuan = Pengajuan::where('kode_unik', $kode)->where('id_user', $user->id_user)->firstOrFail();
 
         if ($pengajuan->status_pengajuan !== 'direvisi') {
             return redirect()->back()->with('error', 'Hanya pengajuan dengan status direvisi yang dapat diubah.');
@@ -351,11 +353,11 @@ class PengajuanUserController extends Controller
     /**
      * Resubmit a revision without editing — just reset status to diproses.
      */
-    public function resubmit($id)
+    public function resubmit($kode)
     {
         $user = Auth::user();
 
-        $pengajuan = Pengajuan::where('id_pengajuan', $id)
+        $pengajuan = Pengajuan::where('kode_unik', $kode)
             ->where('id_user', $user->id_user)
             ->firstOrFail();
 

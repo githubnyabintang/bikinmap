@@ -227,7 +227,7 @@
                                                 <!-- Info -->
                                                 <td style="padding-left: 14px; vertical-align: middle;">
                                                     <p class="font-jakarta" style="font-size: 14px; font-weight: 700; color: #0D1F3C; margin: 0 0 2px;">
-                                                        Tim SIGAP PKM
+                                                        Tim SIGAPPA
                                                     </p>
                                                     <p class="font-jakarta" style="font-size: 12px; color: #64748B; margin: 0;">
                                                         Politeknik Pariwisata Makassar

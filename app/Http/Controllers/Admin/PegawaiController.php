@@ -21,6 +21,19 @@ class PegawaiController extends Controller
             })
             ->latest()
             ->paginate(20)
+            ->through(fn($p) => [
+                'id_pegawai' => $p->id_pegawai,
+                'id_user' => $p->id_user,
+                'nip' => $p->nip,
+                'nama_pegawai' => $p->nama_pegawai,
+                'jabatan' => $p->jabatan,
+                'posisi' => $p->posisi,
+                'user' => $p->user ? [
+                    'id_user' => $p->user->id_user,
+                    'name' => $p->user->name,
+                    'email' => $p->user->email,
+                ] : null,
+            ])
             ->withQueryString();
 
         return Inertia::render('Admin/Pegawai/Index', [
@@ -74,9 +87,29 @@ class PegawaiController extends Controller
     public function bulkDestroy(Request $request)
     {
         $request->validate([
-            'ids' => 'required|array',
+            'ids' => 'nullable|array',
             'ids.*' => 'integer|exists:pegawai,id_pegawai',
+            'all' => 'nullable|boolean',
+            'search' => 'nullable|string',
         ]);
+
+        if ($request->all) {
+            $query = Pegawai::query();
+            if ($request->search) {
+                $query->where(function($q) use ($request) {
+                    $search = addcslashes($request->search, '\\%_');
+                    $q->where('nama_pegawai', 'like', "%{$search}%")
+                      ->orWhere('nip', 'like', "%{$search}%");
+                });
+            }
+            $count = $query->count();
+            $query->delete();
+            return redirect()->back()->with('success', "{$count} semua data pegawai berhasil dihapus.");
+        }
+
+        if (!$request->ids || count($request->ids) === 0) {
+            return redirect()->back()->with('error', 'Tidak ada data yang dipilih.');
+        }
 
         Pegawai::whereIn('id_pegawai', $request->ids)->delete();
 

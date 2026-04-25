@@ -66,8 +66,12 @@ export default function HistorisIndex({ listPegawai, listJenisPkm }: any) {
         formData.append('file_xlsx', file);
 
         try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
             const response = await axios.post('/admin/historis/preview', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
+                headers: { 
+                    'Content-Type': 'multipart/form-data',
+                    'X-CSRF-TOKEN': csrfToken || ''
+                }
             });
             const rows = response.data.data;
             setPreviewData(rows);

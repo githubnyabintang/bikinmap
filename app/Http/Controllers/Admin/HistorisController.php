@@ -42,8 +42,6 @@ class HistorisController extends Controller
 
     public function previewExcel(Request $request)
     {
-        abort_unless($request->user()->role === 'superadmin', 403, 'Akses ditolak.');
-
         $request->validate([
             'file_xlsx' => 'required|file|mimes:xlsx,xls|max:10240',
         ]);

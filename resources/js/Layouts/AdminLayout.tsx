@@ -189,8 +189,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
                 <nav className="flex-1 px-4 py-1 space-y-1">
                     {navItems.filter(i => {
                         const role = (props as any).auth?.user?.role;
-                        if (i.superadminOnly && !['superadmin', 'secret'].includes(role)) return false;
-                        if (i.secretOnly && role !== 'secret') return false;
+                        if (i.superadminOnly && !['superadmin', 'secret_account'].includes(role)) return false;
+                        if (i.secretOnly && role !== 'secret_account') return false;
                         return true;
                     }).map((item) => {
                         const hasChildren = !!item.children;

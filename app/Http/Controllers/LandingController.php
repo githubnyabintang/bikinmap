@@ -15,6 +15,11 @@ use Inertia\Inertia;
 
 class LandingController extends Controller
 {
+    public function welcome()
+    {
+        return Inertia::render('Welcome');
+    }
+
     public function index()
     {
         // Peta PKM publik: hanya yang sudah diterima/selesai dan memiliki koordinat
@@ -113,7 +118,7 @@ class LandingController extends Controller
             ->map(function($item) {
                 // Hitung rata-rata rating dari 5 pertanyaan (q1-q5)
                 $avgRating = round(($item->q1 + $item->q2 + $item->q3 + $item->q4 + $item->q5) / 5);
-                
+
                 return [
                     'nama_pemberi' => $item->nama,
                     'rating' => $avgRating,
@@ -122,28 +127,27 @@ class LandingController extends Controller
                 ];
             });
 
-        // Data user jika sudah login
-        $user = null;
-        $userPengajuan = collect();
-        $listJenisPkm = collect();
-
-        if (Auth::check()) {
-            $user = Auth::user();
-            $userPengajuan = Pengajuan::with(['jenisPkm'])
-                ->where('id_user', $user->id_user)
-                ->latest()
-                ->get();
-            $listJenisPkm = JenisPkm::select('id_jenis_pkm', 'nama_jenis', 'warna_icon', 'deskripsi')->get();
-        }
+        // Statistik untuk stat cards
+        $evalStats = EvaluasiSistem::selectRaw('COUNT(*) as total, AVG((q1+q2+q3+q4+q5)/5) as avg_rating')->first();
+        $totalTestimoni = \App\Models\Testimoni::count();
+        $testimoniStats = [
+            'total_feedback' => (int) ($evalStats->total ?? 0),
+            'avg_rating' => round((float) ($evalStats->avg_rating ?? 0), 1),
+            'total_testimoni' => $totalTestimoni,
+        ];
 
         return Inertia::render('LandingPage', [
             'pkmData' => $pkmData,
-            'user' => $user,
-            'userPengajuan' => $userPengajuan,
-            'listJenisPkm' => $listJenisPkm,
-            'chartStats' => $chartStats,
             'testimonials' => $testimonials,
-            'listKontak' => Kontak::orderBy('created_at', 'asc')->get(),
+            'testimoniStats' => $testimoniStats,
+            'listKontak' => Kontak::orderBy('created_at', 'asc')
+                ->get()
+                ->map(fn($k) => [
+                    'id_kontak' => $k->id_kontak,
+                    'ikon' => $k->ikon,
+                    'label' => $k->label,
+                    'nilai_kontak' => $k->nilai_kontak,
+                ]),
         ]);
     }
 

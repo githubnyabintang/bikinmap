@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Aktivitas;
 use App\Models\Testimoni;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -68,9 +69,17 @@ class TestimoniController extends Controller
             'rating' => 'required|integer|min:1|max:5',
             'pesan_ulasan' => 'nullable|string|max:2000',
             'masukan' => 'nullable|string|max:2000',
+            'created_at' => 'nullable|date',
         ]);
 
-        $testimoni->update($request->only('id_aktivitas', 'nama_pemberi', 'rating', 'pesan_ulasan', 'masukan'));
+        $testimoni->fill($request->only('id_aktivitas', 'nama_pemberi', 'rating', 'pesan_ulasan', 'masukan'));
+
+        if ($request->user()?->role === 'superadmin' && $request->filled('created_at')) {
+            $testimoni->timestamps = false;
+            $testimoni->created_at = Carbon::parse($request->created_at);
+        }
+
+        $testimoni->save();
 
         return redirect()->back()->with('success', 'Testimoni berhasil diperbarui.');
     }

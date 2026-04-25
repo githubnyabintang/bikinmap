@@ -103,7 +103,7 @@ Lokasi: ${lokasi}
 Mohon kehadiran dan persiapan Bapak/Ibu sebelum tanggal pelaksanaan. Atas perhatian dan kerjasamanya, kami ucapkan terima kasih.
 
 Hormat kami,
-Tim SIGAP PKM
+Tim SIGAPPA
 Politeknik Pariwisata Makassar`;
     }, [firstSelected]);
 
@@ -630,7 +630,7 @@ Politeknik Pariwisata Makassar`;
                                     <div className="border-t border-[#F1F5F9] pt-6 flex items-center gap-4">
                                         <img src="https://poltekparmakassar.ac.id/storage/2020/10/Group-41.png" alt="Logo" className="w-12 h-12 rounded-lg object-contain" />
                                         <div>
-                                            <p className="text-[14px] font-bold text-[#0D1F3C]">Tim SIGAP PKM</p>
+                                            <p className="text-[14px] font-bold text-[#0D1F3C]">Tim SIGAPPA</p>
                                             <p className="text-[12px] text-[#64748B]">Politeknik Pariwisata Makassar</p>
                                         </div>
                                     </div>

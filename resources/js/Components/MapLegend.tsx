@@ -18,25 +18,25 @@ function TypeItemWithTooltip({
         <>
             <div
                 onClick={() => onToggleType?.(type.key)}
-                className={`flex items-center transition-colors group relative ${onToggleType ? 'cursor-pointer hover:bg-slate-50 p-1.5 -ml-1.5 rounded-lg' : ''}`}
+                className={`flex items-center transition-colors group relative ${onToggleType ? 'cursor-pointer hover:bg-slate-50 p-1.5 sm:p-1.5 -ml-1 rounded-lg min-h-[34px] sm:min-h-0' : ''}`}
             >
                 {onToggleType && (
-                    <div className={`flex items-center justify-center overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${selectedTypes?.includes(type.key) ? 'w-4 h-4 mr-2.5 opacity-100 scale-100 bg-poltekpar-primary border border-poltekpar-primary rounded shrink-0' : 'w-0 h-4 mr-0 opacity-0 scale-50 border-none'
+                    <div className={`flex items-center justify-center overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${selectedTypes?.includes(type.key) ? 'w-3.5 h-3.5 mr-2 opacity-100 scale-100 bg-poltekpar-primary border border-poltekpar-primary rounded shrink-0' : 'w-0 h-3.5 mr-0 opacity-0 scale-50 border-none'
                         }`}>
-                        <i className="fa-solid fa-check text-[10px] text-white"></i>
+                        <i className="fa-solid fa-check text-[8px] text-white"></i>
                     </div>
                 )}
                 <span
-                    className="w-4 h-4 mr-2.5 rounded-full shadow-sm shrink-0"
+                    className="w-3 h-3 mr-2 rounded-full shadow-sm shrink-0"
                     style={{ backgroundColor: type.color }}
                 ></span>
-                <span className="text-sm text-slate-600 font-medium leading-none">{type.label}</span>
+                <span className="text-[11px] sm:text-sm text-slate-600 font-bold sm:font-medium leading-none">{type.label}</span>
                 {type.deskripsi && (
                     <div className="relative ml-1">
                         <button
                             ref={buttonRef}
                             type="button"
-                            className="w-5 h-5 rounded-full bg-slate-100 text-slate-400 hover:bg-poltekpar-primary hover:text-white flex items-center justify-center text-[10px] transition-colors"
+                            className="w-4 h-4 rounded-full bg-slate-100 text-slate-400 hover:bg-poltekpar-primary hover:text-white flex items-center justify-center text-[8px] transition-colors"
                             title="Lihat deskripsi"
                             onClick={(e) => {
                                 e.stopPropagation();
@@ -103,24 +103,26 @@ export default function MapLegend({
 }: MapLegendProps) {
     return (
         <div
-            className={`bg-white rounded-xl shadow-soft border border-slate-100 p-4 flex flex-col ${compact ? 'p-3' : ''} ${className}`}
-            style={{ maxHeight: 'max(40vh, 300px)' }}
+            className={`bg-white rounded-xl shadow-soft border border-slate-100 p-4 flex flex-col ${compact ? 'p-2' : ''} ${className}`}
+            style={{ maxHeight: compact ? 'min(46vh, 320px)' : 'max(40vh, 300px)' }}
             aria-label="Legenda visual peta PKM"
         >
-            {/* Header - Fixed */}
-            <div className="mb-4 pb-3 border-b border-slate-100 shrink-0">
-                <span className="text-xs font-bold text-poltekpar-gray uppercase tracking-wider">Legenda</span>
-                <strong className="block text-lg font-bold text-slate-900 mt-0.5">Visual Dashboard</strong>
-            </div>
+            {/* Header - Fixed (Hidden in compact mode for mobile) */}
+            {!compact && (
+                <div className={`border-b border-slate-100 shrink-0 ${compact ? 'mb-3 pb-2' : 'mb-4 pb-3'}`}>
+                    <span className={`font-bold text-poltekpar-gray uppercase tracking-wider ${compact ? 'text-[11px]' : 'text-xs'}`}>Legenda</span>
+                    <strong className={`block font-bold text-slate-900 mt-0.5 ${compact ? 'text-base' : 'text-lg'}`}>Visual Dashboard</strong>
+                </div>
+            )}
 
             {/* Scrollable Content */}
-            <div className="overflow-y-auto custom-scrollbar pr-2 flex-1 space-y-6">
+            <div className={`overflow-y-auto custom-scrollbar flex-1 ${compact ? 'pr-1 space-y-3' : 'pr-2 space-y-6'}`}>
                 {/* PKM Types Section */}
                 <div>
-                    <span className="text-sm font-semibold text-slate-700 block mb-2.5 flex justify-between items-center sticky top-0 bg-white z-10 py-1">
+                    <span className={`font-bold text-slate-400 uppercase tracking-widest block flex justify-between items-center sticky top-0 bg-white z-10 ${compact ? 'text-[9px] mb-1.5 py-0.5' : 'text-sm mb-2.5 py-1'}`}>
                         Jenis PKM
                     </span>
-                    <div className="space-y-1.5">
+                    <div className="space-y-1">
                         {typesMeta.map((type) => (
                             <TypeItemWithTooltip 
                                 key={type.key} 
@@ -134,26 +136,26 @@ export default function MapLegend({
 
                 {/* PKM Status Section */}
                 <div>
-                    <span className="text-sm font-semibold text-slate-700 block mb-2.5 flex justify-between items-center">
+                    <span className={`font-bold text-slate-400 uppercase tracking-widest block flex justify-between items-center ${compact ? 'text-[9px] mb-1.5' : 'text-sm mb-2.5'}`}>
                         Status PKM
                     </span>
-                    <div className="space-y-1.5">
+                    <div className="space-y-1">
                         {PKM_LEGEND_STATUSES.map((status) => (
                             <div
                                 key={status.key}
                                 onClick={() => onToggleStatus?.(status.key)}
-                                className={`flex items-center transition-colors ${onToggleStatus ? 'cursor-pointer hover:bg-slate-50 p-1.5 -ml-1.5 rounded-lg' : ''}`}
+                                className={`flex items-center transition-colors ${onToggleStatus ? 'cursor-pointer hover:bg-slate-50 p-1 -ml-1 rounded-lg min-h-[30px] sm:min-h-0' : ''}`}
                             >
                                 {onToggleStatus && (
-                                    <div className={`flex items-center justify-center overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${selectedStatuses?.includes(status.key) ? 'w-4 h-4 mr-2.5 opacity-100 scale-100 bg-poltekpar-primary border border-poltekpar-primary rounded shrink-0' : 'w-0 h-4 mr-0 opacity-0 scale-50 border-none'
+                                    <div className={`flex items-center justify-center overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${selectedStatuses?.includes(status.key) ? 'w-3.5 h-3.5 mr-2 opacity-100 scale-100 bg-poltekpar-primary border border-poltekpar-primary rounded shrink-0' : 'w-0 h-3.5 mr-0 opacity-0 scale-50 border-none'
                                         }`}>
-                                        <i className="fa-solid fa-check text-[10px] text-white"></i>
+                                        <i className="fa-solid fa-check text-[8px] text-white"></i>
                                     </div>
                                 )}
-                                <span className={`mr-2.5 flex items-center justify-center w-6 h-6 rounded-full shrink-0 ${status.key === 'berlangsung' ? 'bg-amber-100' : 'bg-emerald-100'}`}>
-                                    <i className={`fa-solid ${status.markerIcon} text-sm ${status.key === 'berlangsung' ? 'text-amber-600' : 'text-emerald-600'}`}></i>
+                                <span className={`mr-2 flex items-center justify-center w-4 h-4 rounded-full shrink-0 ${status.key === 'berlangsung' ? 'bg-amber-100' : 'bg-emerald-100'}`}>
+                                    <i className={`fa-solid ${status.markerIcon} text-[8px] ${status.key === 'berlangsung' ? 'text-amber-600' : 'text-emerald-600'}`}></i>
                                 </span>
-                                <span className="text-sm text-slate-600 font-medium leading-none">{status.label}</span>
+                                <span className="text-[10px] sm:text-sm text-slate-600 font-bold sm:font-medium leading-none">{status.label}</span>
                             </div>
                         ))}
                     </div>

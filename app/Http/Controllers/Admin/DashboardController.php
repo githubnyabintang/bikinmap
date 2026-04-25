@@ -24,16 +24,40 @@ class DashboardController extends Controller
         ")->first();
 
         $aktivitasCounts = Aktivitas::selectRaw("
-            SUM(CASE WHEN status_pelaksanaan IN ('belum_mulai', 'persiapan') THEN 1 ELSE 0 END) as belum_mulai,
             SUM(CASE WHEN status_pelaksanaan = 'berjalan' THEN 1 ELSE 0 END) as berjalan,
             SUM(CASE WHEN status_pelaksanaan = 'selesai' THEN 1 ELSE 0 END) as selesai
         ")->first();
+
+        // Card diterima & belum mulai: hanya data tahun 2025 ke atas
+        $pengajuanDiterima2025 = Pengajuan::where('status_pengajuan', 'diterima')
+            ->where('tgl_mulai', '>=', '2025-01-01')
+            ->count();
+
+        $aktivitasBelumMulai2025 = Aktivitas::whereIn('status_pelaksanaan', ['belum_mulai', 'persiapan'])
+            ->whereHas('pengajuan', fn ($q) => $q->where('tgl_mulai', '>=', '2025-01-01'))
+            ->count();
 
         $recentPengajuan = Pengajuan::with(['user', 'jenisPkm'])
             ->where('status_pengajuan', 'diproses')
             ->latest('created_at')
             ->take(5)
-            ->get();
+            ->get()
+            ->map(fn($p) => [
+                'id_pengajuan' => $p->id_pengajuan,
+                'judul_kegiatan' => $p->judul_kegiatan,
+                'created_at' => $p->created_at?->format('d M Y') ?? '-',
+                'status_pengajuan' => $p->status_pengajuan,
+                'nama_pengusul' => $p->nama_pengusul ?? $p->user?->name,
+                'user' => $p->user ? [
+                    'id_user' => $p->user->id_user,
+                    'name' => $p->user->name,
+                    'email' => $p->user->email,
+                    'role' => $p->user->role,
+                ] : null,
+                'jenis_pkm' => $p->jenisPkm ? [
+                    'nama_jenis' => $p->jenisPkm->nama_jenis,
+                ] : null,
+            ]);
 
         $pkmMapData = Pengajuan::with(['jenisPkm', 'aktivitas.testimoni', 'aktivitas.arsip', 'timKegiatan.pegawai'])
             ->whereNotNull('latitude')
@@ -153,10 +177,10 @@ class DashboardController extends Controller
                 'pengajuanDiproses' => (int) ($statusCounts->diproses ?? 0),
                 'pengajuanBaru' => (int) ($statusCounts->diproses_baru ?? 0),
                 'pengajuanReviu' => (int) ($statusCounts->diproses_reviu ?? 0),
-                'pengajuanDiterima' => (int) ($statusCounts->diterima ?? 0),
+                'pengajuanDiterima' => $pengajuanDiterima2025,
                 'pengajuanDitolak' => (int) ($statusCounts->ditolak ?? 0),
                 'pengajuanDirevisi' => (int) ($statusCounts->direvisi ?? 0),
-                'aktivitasBelumMulai' => (int) ($aktivitasCounts->belum_mulai ?? 0),
+                'aktivitasBelumMulai' => $aktivitasBelumMulai2025,
                 'aktivitasBerjalan' => (int) ($aktivitasCounts->berjalan ?? 0),
                 'aktivitasSelesai' => (int) ($aktivitasCounts->selesai ?? 0),
             ],

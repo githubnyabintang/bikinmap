@@ -43,6 +43,28 @@ class AktivitasController extends Controller
                 $query->orderBy($sortField, $sortDir);
             })
             ->paginate(15)
+            ->through(fn($a) => [
+                'id_aktivitas' => $a->id_aktivitas,
+                'status_pelaksanaan' => $a->status_pelaksanaan,
+                'catatan_pelaksanaan' => $a->catatan_pelaksanaan,
+                'url_thumbnail' => $a->url_thumbnail,
+                'created_at' => $a->created_at?->format('Y-m-d H:i:s'),
+                'pengajuan' => $a->pengajuan ? [
+                    'id_pengajuan' => $a->pengajuan->id_pengajuan,
+                    'judul_kegiatan' => $a->pengajuan->judul_kegiatan,
+                    'tgl_mulai' => $a->pengajuan->tgl_mulai?->format('Y-m-d'),
+                    'tgl_selesai' => $a->pengajuan->tgl_selesai?->format('Y-m-d'),
+                    'user' => $a->pengajuan->user ? [
+                        'id_user' => $a->pengajuan->user->id_user,
+                        'name' => $a->pengajuan->user->name,
+                        'email' => $a->pengajuan->user->email,
+                    ] : null,
+                    'jenis_pkm' => $a->pengajuan->jenisPkm ? [
+                        'nama_jenis' => $a->pengajuan->jenisPkm->nama_jenis,
+                        'warna_icon' => $a->pengajuan->jenisPkm->warna_icon,
+                    ] : null,
+                ] : null,
+            ])
             ->withQueryString();
 
         return Inertia::render('Admin/Aktivitas/Index', [
@@ -64,7 +86,7 @@ class AktivitasController extends Controller
 
     public function show(int $id)
     {
-        $aktivitas = Aktivitas::with([
+        $a = Aktivitas::with([
             'pengajuan.user',
             'pengajuan.jenisPkm',
             'pengajuan.timKegiatan.pegawai',
@@ -72,8 +94,56 @@ class AktivitasController extends Controller
             'testimoni',
         ])->findOrFail($id);
 
+        $aktivitasMapped = [
+            'id_aktivitas' => $a->id_aktivitas,
+            'status_pelaksanaan' => $a->status_pelaksanaan,
+            'catatan_pelaksanaan' => $a->catatan_pelaksanaan,
+            'url_thumbnail' => $a->url_thumbnail,
+            'created_at' => $a->created_at?->format('Y-m-d H:i:s'),
+            'pengajuan' => $a->pengajuan ? [
+                'id_pengajuan' => $a->pengajuan->id_pengajuan,
+                'judul_kegiatan' => $a->pengajuan->judul_kegiatan,
+                'instansi_mitra' => $a->pengajuan->instansi_mitra,
+                'no_telepon' => $a->pengajuan->no_telepon,
+                'provinsi' => $a->pengajuan->provinsi,
+                'kota_kabupaten' => $a->pengajuan->kota_kabupaten,
+                'kecamatan' => $a->pengajuan->kecamatan,
+                'kelurahan_desa' => $a->pengajuan->kelurahan_desa,
+                'alamat_lengkap' => $a->pengajuan->alamat_lengkap,
+                'latitude' => $a->pengajuan->latitude,
+                'longitude' => $a->pengajuan->longitude,
+                'tgl_mulai' => $a->pengajuan->tgl_mulai?->format('Y-m-d'),
+                'tgl_selesai' => $a->pengajuan->tgl_selesai?->format('Y-m-d'),
+                'sumber_dana' => $a->pengajuan->sumber_dana,
+                'total_anggaran' => $a->pengajuan->total_anggaran,
+                'user' => $a->pengajuan->user ? [
+                    'id_user' => $a->pengajuan->user->id_user,
+                    'name' => $a->pengajuan->user->name,
+                    'email' => $a->pengajuan->user->email,
+                ] : null,
+                'jenis_pkm' => $a->pengajuan->jenisPkm ? [
+                    'nama_jenis' => $a->pengajuan->jenisPkm->nama_jenis,
+                ] : null,
+                'tim_kegiatan' => $a->pengajuan->timKegiatan->map(fn($t) => [
+                    'nama' => $t->pegawai ? $t->pegawai->nama_pegawai : $t->nama_mahasiswa,
+                    'peran' => $t->peran_tim,
+                ]),
+            ] : null,
+            'arsip' => $a->arsip->map(fn($ar) => [
+                'id_arsip' => $ar->id_arsip,
+                'nama_dokumen' => $ar->nama_dokumen,
+                'url_dokumen' => $ar->url_dokumen,
+                'jenis_arsip' => $ar->jenis_arsip,
+            ]),
+            'testimoni' => $a->testimoni->map(fn($t) => [
+                'nama_pemberi' => $t->nama_pemberi,
+                'rating' => $t->rating,
+                'pesan_ulasan' => $t->pesan_ulasan,
+            ]),
+        ];
+
         return Inertia::render('Admin/Aktivitas/Detail', [
-            'aktivitas' => $aktivitas,
+            'aktivitas' => $aktivitasMapped,
         ]);
     }
 

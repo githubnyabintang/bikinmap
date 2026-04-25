@@ -55,19 +55,19 @@ export default function Evaluasi() {
         <Layout mainClassName="site-main-content">
             <Head title={`Feedback ${import.meta.env.VITE_APP_NAME || 'SIGAPPA'}`} />
             
-            <div className="bg-poltekpar-navy text-white pt-12 pb-24 relative overflow-hidden">
+            <div className="bg-poltekpar-navy text-white pt-8 pb-16 sm:pt-12 sm:pb-24 relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] animate-pulse-slow"></div>
-                <div className="max-w-4xl mx-auto px-6 relative z-10 text-center">
-                    <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-6 backdrop-blur-sm">
-                        <MessageSquare size={32} className="text-white" />
+                <div className="max-w-4xl mx-auto px-4 sm:px-6 relative z-10 text-center">
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6 backdrop-blur-sm">
+                        <MessageSquare size={28} className="text-white" />
                     </div>
-                    <h1 className="text-3xl md:text-5xl font-black mb-4 tracking-tight">Feedback {import.meta.env.VITE_APP_NAME || 'SIGAPPA'}</h1>
-                    <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto leading-relaxed font-medium">Bantu kami meningkatkan kualitas layanan P3M Politeknik Pariwisata Makassar melalui umpan balik dan penilaian Anda.</p>
+                    <h1 className="text-2xl md:text-5xl font-black mb-3 sm:mb-4 tracking-tight">Feedback {import.meta.env.VITE_APP_NAME || 'SIGAPPA'}</h1>
+                    <p className="text-base md:text-xl text-white/80 max-w-2xl mx-auto leading-relaxed font-medium">Bantu kami meningkatkan kualitas layanan P3M Politeknik Pariwisata Makassar melalui umpan balik dan penilaian Anda.</p>
                 </div>
             </div>
 
-            <div className="max-w-3xl mx-auto px-6 -mt-16 mb-20 relative z-20">
-                <div className="bg-white rounded-[2rem] shadow-2xl p-6 md:p-10 border border-slate-100">
+            <div className="max-w-3xl mx-auto px-3 sm:px-6 -mt-10 sm:-mt-16 mb-12 sm:mb-20 relative z-20">
+                <div className="bg-white rounded-[1.5rem] sm:rounded-[2rem] shadow-2xl p-4 sm:p-10 border border-slate-100">
                     {showSuccess ? (
                         <div className="text-center py-16 animate-in zoom-in-95 duration-500">
                             <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">

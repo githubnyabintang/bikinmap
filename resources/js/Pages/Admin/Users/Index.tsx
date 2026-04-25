@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import AdminLayout from '../../../Layouts/AdminLayout';
 import ConfirmDialog from '../../../Components/ConfirmDialog';
+import Pagination from '../../../Components/Pagination';
 import { Users, Plus, Edit, Trash2, Search, Activity, X, Eye, EyeOff, Check } from 'lucide-react';
 import BulkActionBar, { CheckboxCell, CheckboxHeader } from '../../../Components/BulkActionBar';
 
@@ -113,25 +114,46 @@ const ManajemenUser: React.FC<Props> = ({ users, filters, errors }) => {
 
     // ── Bulk Delete ──
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
+    const [isAllSelected, setIsAllSelected] = useState(false);
     const allIdsOnPage = data.map(u => u.id_user);
     const allChecked = allIdsOnPage.length > 0 && allIdsOnPage.every(id => selectedIds.includes(id));
 
     const toggleAll = () => {
-        if (allChecked) setSelectedIds(prev => prev.filter(id => !allIdsOnPage.includes(id)));
-        else setSelectedIds(prev => [...new Set([...prev, ...allIdsOnPage])]);
+        if (allChecked) {
+            setSelectedIds(prev => prev.filter(id => !allIdsOnPage.includes(id)));
+            setIsAllSelected(false);
+        } else {
+            setSelectedIds(prev => [...new Set([...prev, ...allIdsOnPage])]);
+        }
     };
 
     const toggleOne = (id: number) =>
-        setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+        setSelectedIds(prev => {
+            const newIds = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
+            if (newIds.length < users.total) setIsAllSelected(false);
+            return newIds;
+        });
 
     const handleBulkDelete = () => {
-        if (confirm(`Hapus ${selectedIds.length} user terpilih?`)) {
+        const count = isAllSelected ? users.total : selectedIds.length;
+        if (confirm(`Hapus ${count} user terpilih?`)) {
             router.delete('/admin/users/bulk', {
-                data: { ids: selectedIds },
-                onSuccess: () => setSelectedIds([]),
+                data: { 
+                    ids: isAllSelected ? [] : selectedIds,
+                    all: isAllSelected,
+                    search: filters.search
+                },
+                onSuccess: () => {
+                    setSelectedIds([]);
+                    setIsAllSelected(false);
+                },
                 preserveState: true,
             });
         }
+    };
+
+    const handleSelectAllInDatabase = () => {
+        setIsAllSelected(true);
     };
 
     return (
@@ -147,7 +169,24 @@ const ManajemenUser: React.FC<Props> = ({ users, filters, errors }) => {
                 </button>
             </div>
 
-            <BulkActionBar selectedCount={selectedIds.length} onDelete={handleBulkDelete} onClear={() => setSelectedIds([])} entityLabel="user" />
+            <BulkActionBar selectedCount={isAllSelected ? users.total : selectedIds.length} onDelete={handleBulkDelete} onClear={() => { setSelectedIds([]); setIsAllSelected(false); }} entityLabel="user" />
+
+            {allChecked && users.total > data.length && !isAllSelected && (
+                <div className="bg-poltekpar-navy text-white px-6 py-2 text-[13px] flex items-center justify-center gap-2 animate-in slide-in-from-top-2 duration-300">
+                    <span>Semua <b>{data.length}</b> user di halaman ini terpilih.</span>
+                    <button onClick={handleSelectAllInDatabase} className="underline font-bold hover:text-poltekpar-gold transition-colors">
+                        Pilih semua {users.total} user di database
+                    </button>
+                </div>
+            )}
+            {isAllSelected && (
+                <div className="bg-poltekpar-gold text-poltekpar-navy px-6 py-2 text-[13px] flex items-center justify-center gap-2 animate-in slide-in-from-top-2 duration-300">
+                    <span>Semua <b>{users.total}</b> user telah terpilih.</span>
+                    <button onClick={() => setIsAllSelected(false)} className="underline font-bold hover:text-red-600 transition-colors">
+                        Batalkan pilihan semua
+                    </button>
+                </div>
+            )}
 
             <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
                 <div className="p-4 border-b border-zinc-200/80 bg-zinc-50/50 flex gap-4">
@@ -217,6 +256,10 @@ const ManajemenUser: React.FC<Props> = ({ users, filters, errors }) => {
                             })}
                         </tbody>
                     </table>
+                </div>
+                <div className="px-6 py-4 border-t border-zinc-200 bg-zinc-50/50 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <span className="text-[12px] font-medium text-zinc-500">Menampilkan {users.from || 0} sampai {users.to || 0} dari {users.total} user</span>
+                    <Pagination links={users.links} />
                 </div>
             </div>
 

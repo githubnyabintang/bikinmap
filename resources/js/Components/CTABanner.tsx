@@ -7,7 +7,7 @@ export default function CTABanner() {
     const isAuthenticated = !!auth.user;
 
     return (
-        <section className="py-10 sm:py-16 px-4 sm:px-6 bg-gradient-to-br from-poltekpar-primary to-poltekpar-navy rounded-xl sm:rounded-2xl shadow-glow overflow-hidden relative" id="cta-pengajuan">
+        <section className="py-12 sm:py-20 px-6 sm:px-10 bg-gradient-to-br from-poltekpar-primary to-poltekpar-navy rounded-[32px] sm:rounded-[40px] shadow-2xl shadow-blue-900/20 overflow-hidden relative" id="cta-pengajuan">
             {/* Glow effect */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>

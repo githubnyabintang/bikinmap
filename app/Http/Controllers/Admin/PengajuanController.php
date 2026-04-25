@@ -46,6 +46,25 @@ class PengajuanController extends Controller
                 $query->orderBy($sortField, $sortDir);
             })
             ->paginate(10)
+            ->through(fn($p) => [
+                'id_pengajuan' => $p->id_pengajuan,
+                'kode_unik' => $p->kode_unik,
+                'judul_kegiatan' => $p->judul_kegiatan,
+                'status_pengajuan' => $p->status_pengajuan,
+                'admin_read_at' => $p->admin_read_at,
+                'created_at' => $p->created_at?->format('Y-m-d H:i:s'),
+                'tgl_mulai' => $p->tgl_mulai?->format('Y-m-d'),
+                'user' => $p->user ? [
+                    'id_user' => $p->user->id_user,
+                    'name' => $p->user->name,
+                    'email' => $p->user->email,
+                ] : null,
+                'jenis_pkm' => $p->jenisPkm ? [
+                    'nama_jenis' => $p->jenisPkm->nama_jenis,
+                ] : null,
+                'nama_pengusul' => $p->nama_pengusul,
+                'instansi_mitra' => $p->instansi_mitra,
+            ])
             ->withQueryString();
 
         return Inertia::render('Admin/Pengajuan/Index', [
@@ -67,7 +86,7 @@ class PengajuanController extends Controller
 
     public function show(int $id)
     {
-        $pengajuan = Pengajuan::with([
+        $p = Pengajuan::with([
             'user',
             'jenisPkm',
             'timKegiatan.pegawai',
@@ -75,9 +94,72 @@ class PengajuanController extends Controller
             'arsip',
         ])->findOrFail($id);
 
-        if ($pengajuan->admin_read_at === null) {
-            $pengajuan->update(['admin_read_at' => now()]);
+        if ($p->admin_read_at === null) {
+            $p->update(['admin_read_at' => now()]);
         }
+
+        $pengajuanMapped = [
+            'id_pengajuan' => $p->id_pengajuan,
+            'kode_unik' => $p->kode_unik,
+            'judul_kegiatan' => $p->judul_kegiatan,
+            'nama_pengusul' => $p->nama_pengusul,
+            'email_pengusul' => $p->email_pengusul,
+            'no_telepon' => $p->no_telepon,
+            'instansi_mitra' => $p->instansi_mitra,
+            'kebutuhan' => $p->kebutuhan,
+            'sumber_dana' => $p->sumber_dana,
+            'total_anggaran' => $p->total_anggaran,
+            'dana_perguruan_tinggi' => $p->dana_perguruan_tinggi,
+            'dana_pemerintah' => $p->dana_pemerintah,
+            'dana_lembaga_dalam' => $p->dana_lembaga_dalam,
+            'dana_lembaga_luar' => $p->dana_lembaga_luar,
+            'tgl_mulai' => $p->tgl_mulai?->format('Y-m-d'),
+            'tgl_selesai' => $p->tgl_selesai?->format('Y-m-d'),
+            'is_tahun_saja' => $p->is_tahun_saja,
+            'provinsi' => $p->provinsi,
+            'kota_kabupaten' => $p->kota_kabupaten,
+            'kecamatan' => $p->kecamatan,
+            'kelurahan_desa' => $p->kelurahan_desa,
+            'alamat_lengkap' => $p->alamat_lengkap,
+            'latitude' => $p->latitude,
+            'longitude' => $p->longitude,
+            'status_pengajuan' => $p->status_pengajuan,
+            'catatan_admin' => $p->catatan_admin,
+            'proposal' => $p->proposal,
+            'surat_permohonan' => $p->surat_permohonan,
+            'rab' => $p->rab,
+            'rab_items' => $p->rab_items,
+            'admin_read_at' => $p->admin_read_at,
+            'user' => $p->user ? [
+                'id_user' => $p->user->id_user,
+                'name' => $p->user->name,
+                'email' => $p->user->email,
+                'role' => $p->user->role,
+            ] : null,
+            'jenis_pkm' => $p->jenisPkm ? [
+                'id_jenis_pkm' => $p->jenisPkm->id_jenis_pkm,
+                'nama_jenis' => $p->jenisPkm->nama_jenis,
+            ] : null,
+            'tim_kegiatan' => $p->timKegiatan->map(fn($t) => [
+                'id_tim' => $t->id_tim,
+                'nama' => $t->pegawai ? $t->pegawai->nama_pegawai : $t->nama_mahasiswa,
+                'peran' => $t->peran_tim,
+                'pegawai' => $t->pegawai ? [
+                    'id_pegawai' => $t->pegawai->id_pegawai,
+                    'nama_pegawai' => $t->pegawai->nama_pegawai,
+                ] : null,
+            ]),
+            'aktivitas' => $p->aktivitas ? [
+                'id_aktivitas' => $p->aktivitas->id_aktivitas,
+                'status_pelaksanaan' => $p->aktivitas->status_pelaksanaan,
+            ] : null,
+            'arsip' => $p->arsip->map(fn($ar) => [
+                'id_arsip' => $ar->id_arsip,
+                'nama_dokumen' => $ar->nama_dokumen,
+                'url_dokumen' => $ar->url_dokumen,
+                'jenis_arsip' => $ar->jenis_arsip,
+            ]),
+        ];
 
         $listPegawai = Pegawai::with('user:id_user,role')->orderBy('nama_pegawai')
             ->get(['id_pegawai', 'id_user', 'nama_pegawai', 'nip'])
@@ -93,7 +175,7 @@ class PengajuanController extends Controller
         $listJenisPkm = JenisPkm::orderBy('nama_jenis')->get();
 
         return Inertia::render('Admin/Pengajuan/Detail', [
-            'pengajuan' => $pengajuan,
+            'pengajuan' => $pengajuanMapped,
             'listPegawai' => $listPegawai,
             'listJenisPkm' => $listJenisPkm,
         ]);
@@ -280,7 +362,7 @@ class PengajuanController extends Controller
     {
         $request->validate([
             'status_pengajuan' => 'required|in:'.Pengajuan::STATUS_DIPROSES.','.Pengajuan::STATUS_DIREVISI.','.Pengajuan::STATUS_DITERIMA.','.Pengajuan::STATUS_DITOLAK.','.Pengajuan::STATUS_SELESAI,
-            'catatan_admin' => 'nullable|string|max:1000',
+            'catatan_admin' => 'required_if:status_pengajuan,ditolak|required_if:status_pengajuan,direvisi|nullable|string|max:1000',
         ]);
 
         $pengajuan = Pengajuan::findOrFail($id);

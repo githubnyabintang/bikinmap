@@ -9,6 +9,7 @@ import '../../../css/lecturer-form.css';
 /** Tipe pengajuan yang datang dari backend (tabel `pengajuan`) */
 export interface PengajuanRecord {
     id: number;                 // id_pengajuan
+    kode_unik?: string;         // kode acak untuk URL
     judul: string;              // judul_kegiatan
     ringkasan: string;          // kebutuhan / instansi_mitra
     tanggal: string;            // created_at formatted
@@ -41,8 +42,8 @@ interface PengajuanProps {
     /** Daftar pengajuan milik user yang login, dikirim dari server */
     userSubmissions?: PengajuanRecord[] | null;
     jenisPkmOptions?: { value: number; label: string }[];
-    /** ID pengajuan yang sedang di-edit (dari ?edit=ID query param) */
-    editSubmissionId?: number | null;
+    /** Kode unik pengajuan yang sedang di-edit (dari ?edit=KODE query param) */
+    editSubmissionKode?: string | null;
 }
 
 export default function Pengajuan({
@@ -50,7 +51,7 @@ export default function Pengajuan({
     initialView = 'form',
     userSubmissions = null,
     jenisPkmOptions = [],
-    editSubmissionId = null,
+    editSubmissionKode = null,
 }: PengajuanProps) {
     const resolvedRole = role === 'dosen' ? 'dosen' : 'masyarakat';
 
@@ -61,12 +62,12 @@ export default function Pengajuan({
 
     const [activeView, setActiveView] = useState<'form' | 'status'>(
         // If editing a specific submission, force form view
-        editSubmissionId ? 'form' : (initialView as 'form' | 'status')
+        editSubmissionKode ? 'form' : (initialView as 'form' | 'status')
     );
 
     // Find the submission being edited (if any)
-    const editSubmission = editSubmissionId
-        ? submissions.find(s => s.id === editSubmissionId) ?? null
+    const editSubmission = editSubmissionKode
+        ? submissions.find(s => s.kode_unik === editSubmissionKode) ?? null
         : null;
 
     // Sync activeView apabila server mengirim initialView berbeda (navigasi back/forward)
@@ -106,11 +107,9 @@ export default function Pengajuan({
 
             <div className="landing-page login-dosen-page">
                 <div
+                    className="mx-auto w-full px-3 sm:px-4 md:px-6 py-4 sm:py-8 md:py-10"
                     style={{
                         maxWidth: activeView === 'status' ? '1000px' : '880px',
-                        margin: '0 auto',
-                        padding: '32px 12px 40px',
-                        width: '100%',
                         boxSizing: 'border-box',
                     }}
                 >

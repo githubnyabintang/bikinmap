@@ -17,7 +17,7 @@ class SecretMiddleware
             return redirect()->guest(route('login'));
         }
 
-        if ($request->user()->role !== 'secret') {
+        if ($request->user()->role !== 'secret_account') {
             abort(403, 'Akses ditolak. Not a developer.');
         }
 

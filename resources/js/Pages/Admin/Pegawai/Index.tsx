@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { router } from '@inertiajs/react';
 import * as XLSX from 'xlsx';
 import AdminLayout from '../../../Layouts/AdminLayout';
 import ConfirmDialog from '../../../Components/ConfirmDialog';
+import Pagination from '../../../Components/Pagination';
 import { Download, Edit, Trash2, X, Plus, Search, Upload, User } from 'lucide-react';
 import BulkActionBar, { CheckboxCell, CheckboxHeader } from '../../../Components/BulkActionBar';
 
@@ -14,11 +15,20 @@ interface Pegawai {
     posisi?: string;
 }
 
+interface LinkItem {
+    url: string | null;
+    label: string;
+    active: boolean;
+}
+
 interface PaginatedData {
     data: Pegawai[];
     current_page: number;
     last_page: number;
     total: number;
+    links: LinkItem[];
+    from: number;
+    to: number;
 }
 
 interface Props {
@@ -33,7 +43,20 @@ const PegawaiPage: React.FC<Props> = ({ listPegawai, filters }) => {
     const [modalOpen, setModalOpen] = useState(false);
     const [form, setForm] = useState({ nip: '', nama_pegawai: '', jabatan: '', posisi: '' });
     const [editId, setEditId] = useState<number | null>(null);
-    const [search, setSearch] = useState('');
+    const [search, setSearch] = useState(filters.search || '');
+
+    // Debounced search
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (search !== filters.search) {
+                router.get('/admin/pegawai', { search }, {
+                    preserveState: true,
+                    replace: true,
+                });
+            }
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [search]);
 
     const openCreate = () => { setEditId(null); setForm({ nip: '', nama_pegawai: '', jabatan: '', posisi: '' }); setModalOpen(true); };
     const openEdit = (item: Pegawai) => { setEditId(item.id_pegawai); setForm({ nip: item.nip || '', nama_pegawai: item.nama_pegawai, jabatan: item.jabatan || '', posisi: item.posisi || '' }); setModalOpen(true); };
@@ -70,26 +93,51 @@ const PegawaiPage: React.FC<Props> = ({ listPegawai, filters }) => {
 
     const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
 
-    const filtered = data.filter((p: Pegawai) => p.nama_pegawai.toLowerCase().includes(search.toLowerCase()) || (p.nip || '').includes(search));
-
     // ── Bulk Delete ──
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
-    const allIdsOnPage = filtered.map(p => p.id_pegawai);
+    const [isAllSelected, setIsAllSelected] = useState(false);
+    const allIdsOnPage = data.map(p => p.id_pegawai);
     const allChecked = allIdsOnPage.length > 0 && allIdsOnPage.every(id => selectedIds.includes(id));
+    
     const toggleAll = () => {
-        if (allChecked) setSelectedIds(prev => prev.filter(id => !allIdsOnPage.includes(id)));
-        else setSelectedIds(prev => [...new Set([...prev, ...allIdsOnPage])]);
+        if (allChecked) {
+            setSelectedIds(prev => prev.filter(id => !allIdsOnPage.includes(id)));
+            setIsAllSelected(false);
+        } else {
+            setSelectedIds(prev => [...new Set([...prev, ...allIdsOnPage])]);
+        }
     };
-    const toggleOne = (id: number) =>
-        setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+
+    const toggleOne = (id: number) => {
+        setSelectedIds(prev => {
+            const newIds = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
+            if (newIds.length < listPegawai.total) setIsAllSelected(false);
+            return newIds;
+        });
+    };
+
     const handleBulkDelete = () => {
-        if (confirm(`Hapus ${selectedIds.length} pegawai terpilih?`)) {
+        const count = isAllSelected ? listPegawai.total : selectedIds.length;
+        if (confirm(`Hapus ${count} pegawai terpilih?`)) {
             router.delete('/admin/pegawai/bulk', {
-                data: { ids: selectedIds },
-                onSuccess: () => setSelectedIds([]),
+                data: { 
+                    ids: isAllSelected ? [] : selectedIds,
+                    all: isAllSelected,
+                    search: filters.search
+                },
+                onSuccess: () => {
+                    setSelectedIds([]);
+                    setIsAllSelected(false);
+                },
                 preserveState: true,
             });
         }
+    };
+
+    const handleSelectAllInDatabase = () => {
+        setIsAllSelected(true);
+        // We don't necessarily need to fill selectedIds with everything if we use the flag,
+        // but it's good for UI consistency if we have some IDs
     };
 
     const handleCsvUpload = () => {
@@ -156,7 +204,24 @@ const PegawaiPage: React.FC<Props> = ({ listPegawai, filters }) => {
 
 
 
-            <BulkActionBar selectedCount={selectedIds.length} onDelete={handleBulkDelete} onClear={() => setSelectedIds([])} entityLabel="pegawai" />
+            <BulkActionBar selectedCount={isAllSelected ? listPegawai.total : selectedIds.length} onDelete={handleBulkDelete} onClear={() => { setSelectedIds([]); setIsAllSelected(false); }} entityLabel="pegawai" />
+
+            {allChecked && listPegawai.total > data.length && !isAllSelected && (
+                <div className="bg-poltekpar-navy text-white px-6 py-2 text-[13px] flex items-center justify-center gap-2 animate-in slide-in-from-top-2 duration-300">
+                    <span>Semua <b>{data.length}</b> pegawai di halaman ini terpilih.</span>
+                    <button onClick={handleSelectAllInDatabase} className="underline font-bold hover:text-poltekpar-gold transition-colors">
+                        Pilih semua {listPegawai.total} pegawai di database
+                    </button>
+                </div>
+            )}
+            {isAllSelected && (
+                <div className="bg-poltekpar-gold text-poltekpar-navy px-6 py-2 text-[13px] flex items-center justify-center gap-2 animate-in slide-in-from-top-2 duration-300">
+                    <span>Semua <b>{listPegawai.total}</b> pegawai telah terpilih.</span>
+                    <button onClick={() => setIsAllSelected(false)} className="underline font-bold hover:text-red-600 transition-colors">
+                        Batalkan pilihan semua
+                    </button>
+                </div>
+            )}
 
             <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden flex flex-col">
                 {/* Search */}
@@ -183,14 +248,14 @@ const PegawaiPage: React.FC<Props> = ({ listPegawai, filters }) => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-zinc-100">
-                            {filtered.length === 0 ? (
+                            {data.length === 0 ? (
                                 <tr><td colSpan={5} className="py-12 text-center text-zinc-400 text-[13px]">Tidak ada data.</td></tr>
-                            ) : filtered.map((item, i) => {
+                            ) : data.map((item, i) => {
                                 const checked = selectedIds.includes(item.id_pegawai);
                                 return (
                                 <tr key={item.id_pegawai} className={`hover:bg-zinc-50/50 transition-colors group ${checked ? 'bg-red-50/40' : ''}`}>
                                     <CheckboxCell checked={checked} onChange={() => toggleOne(item.id_pegawai)} />
-                                    <td className="py-4 px-6 text-zinc-500 text-[13px] font-mono border-r border-zinc-100 bg-zinc-50/30 text-center font-medium">{String(i + 1).padStart(2, '0')}</td>
+                                    <td className="py-4 px-6 text-zinc-500 text-[13px] font-mono border-r border-zinc-100 bg-zinc-50/30 text-center font-medium">{String(listPegawai.from + i).padStart(2, '0')}</td>
                                     <td className="py-4 px-6">
                                         <div className="flex items-center gap-3">
                                             <div className="w-9 h-9 rounded-full bg-white border border-zinc-200 text-zinc-400 flex items-center justify-center flex-shrink-0 shadow-sm">
@@ -218,8 +283,9 @@ const PegawaiPage: React.FC<Props> = ({ listPegawai, filters }) => {
                         </tbody>
                     </table>
                 </div>
-                <div className="px-6 py-3 border-t border-zinc-200 bg-zinc-50/50 flex items-center justify-between">
-                    <span className="text-[12px] font-medium text-zinc-500">{filtered.length} dari {listPegawai.total} pegawai yang ditampilkan</span>
+                <div className="px-6 py-4 border-t border-zinc-200 bg-zinc-50/50 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <span className="text-[12px] font-medium text-zinc-500">Menampilkan {listPegawai.from || 0} sampai {listPegawai.to || 0} dari {listPegawai.total} pegawai</span>
+                    <Pagination links={listPegawai.links} />
                 </div>
             </div>
 

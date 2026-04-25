@@ -20,7 +20,7 @@ const getInitials = (name?: string): string => {
 
 const getNavLinks = (user: User | null): NavLink[] => {
     const navLinks: NavLink[] = [
-        { label: 'Beranda', href: '/', icon: 'fa-house' },
+        { label: 'Beranda', href: '/beranda', icon: 'fa-house' },
     ];
 
     if (!user) {
@@ -51,7 +51,7 @@ export default function Navbar() {
     const navLinks = useMemo(() => getNavLinks(user), [user]);
 
     const isActive = useCallback((href: string) => {
-        if (href === '/') return url === '/';
+        if (href === '/beranda') return url === '/beranda';
         if (href.startsWith('#')) return false;
         return url === href || url.startsWith(href + '/');
     }, [url]);
@@ -76,7 +76,7 @@ export default function Navbar() {
                 <div className="flex items-center justify-between h-16">
                     {/* Brand */}
                     <Link
-                        href="/"
+                        href="/beranda"
                         className="flex items-center gap-3 group"
                     >
                         <span className="w-10 h-10 flex items-center justify-center">

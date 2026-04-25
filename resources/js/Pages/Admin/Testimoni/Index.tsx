@@ -57,7 +57,7 @@ const TestimoniPage: React.FC<Props> = ({ listGroupedTestimoni, filters }) => {
     const [selectedTestimoni, setSelectedTestimoni] = useState<TestimoniItem | null>(null);
     const [expandedRow, setExpandedRow] = useState<number | null>(null);
     const [editingTestimoni, setEditingTestimoni] = useState<TestimoniItem | null>(null);
-    const [editForm, setEditForm] = useState({ nama_pemberi: '', rating: 5, pesan_ulasan: '', masukan: '' });
+    const [editForm, setEditForm] = useState({ nama_pemberi: '', rating: 5, pesan_ulasan: '', masukan: '', created_at: '' });
     const [deleteId, setDeleteId] = useState<number | null>(null);
 
     // Get user role for permission checks
@@ -88,7 +88,8 @@ const TestimoniPage: React.FC<Props> = ({ listGroupedTestimoni, filters }) => {
 
     const openEditModal = (t: TestimoniItem) => {
         setEditingTestimoni(t);
-        setEditForm({ nama_pemberi: t.nama_pemberi, rating: t.rating, pesan_ulasan: t.pesan_ulasan || '', masukan: t.masukan || '' });
+        const dateVal = t.created_at ? new Date(t.created_at).toISOString().slice(0, 10) : '';
+        setEditForm({ nama_pemberi: t.nama_pemberi, rating: t.rating, pesan_ulasan: t.pesan_ulasan || '', masukan: t.masukan || '', created_at: dateVal });
     };
 
     const handleEditSubmit = (e: React.FormEvent) => {
@@ -316,6 +317,10 @@ const TestimoniPage: React.FC<Props> = ({ listGroupedTestimoni, filters }) => {
                             <div className="space-y-1.5">
                                 <label className="text-xs font-bold text-zinc-700">Kritik & Saran</label>
                                 <textarea value={editForm.masukan} onChange={e => setEditForm(prev => ({ ...prev, masukan: e.target.value }))} rows={3} className="w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-poltekpar-primary" />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-zinc-700">Tanggal Pembuatan</label>
+                                <input type="date" value={editForm.created_at} onChange={e => setEditForm(prev => ({ ...prev, created_at: e.target.value }))} className="w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-poltekpar-primary" />
                             </div>
                             <div className="flex gap-3 pt-2">
                                 <button type="button" onClick={() => setEditingTestimoni(null)} className="flex-1 py-2.5 rounded-lg border border-zinc-200 text-zinc-600 font-bold text-sm hover:bg-zinc-50">Batal</button>

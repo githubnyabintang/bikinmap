@@ -4,12 +4,15 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Search } from 'lucide-react';
 
-// Fix for default marker icon in leaflet under Webpack/Vite
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+// Explicitly define the marker icon to avoid the "this._getIconUrl is not a function" error in Vite/React
+const DefaultIcon = L.icon({
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
 });
 
 interface MapLocationPickerProps {
@@ -103,6 +106,7 @@ function LocationMarker({ position, setPosition }: { position: L.LatLng | null, 
 
   return position === null ? null : (
     <Marker
+      icon={DefaultIcon}
       draggable={true}
       eventHandlers={eventHandlers}
       position={position}
@@ -133,7 +137,8 @@ export default function MapLocationPicker({ latitude, longitude, onChange, class
         if (position) {
             onChange(position.lat, position.lng);
         }
-  }, [onChange, position]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [position]);
 
   useEffect(() => {
     const nextLatLng = toLatLng(latitude, longitude);

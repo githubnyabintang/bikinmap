@@ -16,7 +16,7 @@ class MasterDataController extends Controller
         $sortField = $request->get('sort', 'nama_jenis');
         $sortDir = $request->get('direction', 'asc');
 
-        $listJenisPkm = JenisPkm::orderBy($sortField, $sortDir)->get();
+        $listJenisPkm = JenisPkm::orderBy($sortField, $sortDir)->paginate(10)->withQueryString();
 
         return Inertia::render('Admin/MasterData/JenisPkm', [
             'listJenisPkm' => $listJenisPkm,
@@ -80,9 +80,36 @@ class MasterDataController extends Controller
     public function bulkDestroyJenis(Request $request)
     {
         $request->validate([
-            'ids' => 'required|array',
+            'ids' => 'nullable|array',
             'ids.*' => 'integer|exists:jenis_pkm,id_jenis_pkm',
+            'all' => 'nullable|boolean',
+            'search' => 'nullable|string',
         ]);
+
+        if ($request->all) {
+            $query = JenisPkm::query();
+            // Optional: add search logic if needed for JenisPkm
+            
+            $items = $query->get();
+            $blocked = [];
+            foreach ($items as $jenis) {
+                if ($jenis->pengajuan()->count() > 0) {
+                    $blocked[] = $jenis->nama_jenis;
+                }
+            }
+
+            if (!empty($blocked)) {
+                return redirect()->back()->with('error', 'Beberapa jenis PKM masih digunakan oleh pengajuan: '.implode(', ', $blocked));
+            }
+
+            $count = $items->count();
+            $query->delete();
+            return redirect()->back()->with('success', "{$count} semua jenis PKM berhasil dihapus.");
+        }
+
+        if (!$request->ids || count($request->ids) === 0) {
+            return redirect()->back()->with('error', 'Tidak ada data yang dipilih.');
+        }
 
         $blocked = [];
         foreach ($request->ids as $id) {

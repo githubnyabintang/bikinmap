@@ -174,6 +174,14 @@ export default function Footer() {
                     </div>
 
                     <div className="border-t border-slate-800 pt-6 text-center">
+                        <div className="mb-6 text-left border-b border-slate-800/50 pb-6 hidden md:block">
+                            <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-3">Layanan Pengabdian Masyarakat Poltekpar Makassar</h4>
+                            <p className="text-slate-400 text-[11px] leading-relaxed max-w-4xl">
+                                SIGAPPA menyediakan akses terpadu untuk kegiatan pengabdian masyarakat (PKM), pemetaan geospasial pariwisata, 
+                                dan bimbingan teknis di wilayah Sulawesi Selatan dan Indonesia Timur. Dikelola resmi oleh Politeknik Pariwisata Makassar 
+                                untuk mendukung ekosistem pariwisata berkelanjutan dan pemberdayaan masyarakat desa wisata.
+                            </p>
+                        </div>
                         <p className="text-slate-400 text-sm">Copyright 2026 &copy; P3M Poltekpar Makassar</p>
                     </div>
                 </div>

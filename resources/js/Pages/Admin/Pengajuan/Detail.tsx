@@ -64,6 +64,7 @@ interface DraftState {
     kebutuhan: string;
     tgl_mulai: string | null;
     tgl_selesai: string | null;
+    tahun_pelaksanaan: string;
     is_tahun_saja: boolean;
     id_jenis_pkm: number;
     provinsi: string;
@@ -124,6 +125,18 @@ const toDateInputValue = (v?: string) => {
 
     return `${year}-${month}-${day}`;
 };
+const getYearValue = (v?: string | null) => {
+    if (!v) return '';
+
+    const match = String(v).match(/^(\d{1,4})/);
+
+    return match ? match[1] : '';
+};
+const toYearOnlyDate = (year: string) => {
+    const digits = year.replace(/\D/g, '').slice(0, 4);
+
+    return digits.length === 4 ? `${digits}-01-01` : null;
+};
 const getType = (p: Pengajuan): 'dosen' | 'masyarakat' => String(p.tipe_pengusul || p.user?.role || '').toLowerCase() === 'dosen' ? 'dosen' : 'masyarakat';
 const getKetua = (tim?: TimKegiatan[]) => tim?.find((m) => String(m.peran_tim || '').toLowerCase().includes('ketua'));
 const getName = (m?: TimKegiatan) => m?.pegawai?.nama_pegawai || m?.nama_mahasiswa || '';
@@ -166,6 +179,7 @@ const buildDraft = (pengajuan: Pengajuan, ketuaId?: number): DraftState => ({
     kebutuhan: pengajuan.kebutuhan || '',
     tgl_mulai: pengajuan.tgl_mulai || null,
     tgl_selesai: pengajuan.tgl_selesai || null,
+    tahun_pelaksanaan: getYearValue(pengajuan.tgl_mulai),
     is_tahun_saja: !!(pengajuan as any).is_tahun_saja,
     id_jenis_pkm: pengajuan.jenis_pkm?.id_jenis_pkm || 1,
     provinsi: pengajuan.provinsi || '',
@@ -540,8 +554,8 @@ export default function Detail({ pengajuan, listPegawai, listJenisPkm }: Props) 
             });
             return;
         }
-        if (selectedAction === 'direvisi' && !catatan.trim()) {
-            setCatatanError('Catatan revisi wajib diisi.');
+        if ((selectedAction === 'direvisi' || selectedAction === 'ditolak') && !catatan.trim()) {
+            setCatatanError('Catatan wajib diisi.');
             return;
         }
         setCatatanError('');
@@ -551,7 +565,7 @@ export default function Detail({ pengajuan, listPegawai, listJenisPkm }: Props) 
             message: `Status akan diubah menjadi "${selectedAction}".`,
             action: () => router.put(`/admin/pengajuan/${pengajuan.id_pengajuan}/status`, {
                 status_pengajuan: selectedAction,
-                catatan_admin: (selectedAction === 'direvisi' || selectedAction === 'diterima') ? catatan : null,
+                catatan_admin: (selectedAction === 'direvisi' || selectedAction === 'diterima' || selectedAction === 'ditolak') ? catatan : null,
             }),
             variant: 'warning',
             confirmLabel: 'Ya, Simpan',
@@ -735,7 +749,7 @@ export default function Detail({ pengajuan, listPegawai, listJenisPkm }: Props) 
                                     judul_kegiatan: draft.judul_kegiatan,
                                     kebutuhan: draft.kebutuhan,
                                     id_jenis_pkm: draft.id_jenis_pkm,
-                                    tgl_mulai: draft.tgl_mulai,
+                                    tgl_mulai: draft.is_tahun_saja ? toYearOnlyDate(draft.tahun_pelaksanaan) : draft.tgl_mulai,
                                     tgl_selesai: draft.tgl_selesai,
                                     is_tahun_saja: draft.is_tahun_saja ? 1 : 0,
                                 })}
@@ -758,14 +772,33 @@ export default function Detail({ pengajuan, listPegawai, listJenisPkm }: Props) 
                                             </div>
                                             <div className="md:col-span-2 space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
                                                 <div className="flex items-center gap-2">
-                                                    <input type="checkbox" id="is_tahun_saja" checked={draft.is_tahun_saja} onChange={(e) => setDraftField('is_tahun_saja', e.target.checked)} className="rounded border-slate-300 text-poltekpar-primary focus:ring-poltekpar-primary" />
+                                                    <input
+                                                        type="checkbox"
+                                                        id="is_tahun_saja"
+                                                        checked={draft.is_tahun_saja}
+                                                        onChange={(e) => setDraft((prev) => ({
+                                                            ...prev,
+                                                            is_tahun_saja: e.target.checked,
+                                                            tahun_pelaksanaan: e.target.checked ? (prev.tahun_pelaksanaan || getYearValue(prev.tgl_mulai)) : prev.tahun_pelaksanaan,
+                                                        }))}
+                                                        className="rounded border-slate-300 text-poltekpar-primary focus:ring-poltekpar-primary"
+                                                    />
                                                     <label htmlFor="is_tahun_saja" className="text-xs font-semibold text-slate-700 cursor-pointer">Waktu Kegiatan Hanya Tahun</label>
                                                 </div>
                                                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                                     <div className="space-y-1.5">
                                                         <div className="text-xs font-semibold text-slate-700">{draft.is_tahun_saja ? 'Tahun Pelaksanaan' : 'Tanggal Mulai'}</div>
                                                         {draft.is_tahun_saja ? (
-                                                            <input type="number" min="2020" max="2100" value={draft.tgl_mulai ? draft.tgl_mulai.substring(0, 4) : ''} onChange={e => setDraftField('tgl_mulai', e.target.value ? `${e.target.value}-01-01` : null)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-poltekpar-primary" placeholder="YYYY" />
+                                                            <input
+                                                                type="text"
+                                                                inputMode="numeric"
+                                                                pattern="[0-9]*"
+                                                                maxLength={4}
+                                                                value={draft.tahun_pelaksanaan}
+                                                                onChange={(e) => setDraftField('tahun_pelaksanaan', e.target.value.replace(/\D/g, '').slice(0, 4))}
+                                                                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-poltekpar-primary"
+                                                                placeholder="YYYY"
+                                                            />
                                                         ) : (
                                                             <input type="date" value={draft.tgl_mulai || ''} onChange={e => setDraftField('tgl_mulai', e.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-poltekpar-primary" />
                                                         )}
@@ -1070,7 +1103,7 @@ export default function Detail({ pengajuan, listPegawai, listJenisPkm }: Props) 
                         </div>
                     </Card>
                     {pengajuan.catatan_admin && <div className="rounded-xl border border-amber-200 bg-white p-5 shadow-sm"><div className="mb-1 text-[12px] font-bold uppercase tracking-wider text-amber-700">Catatan Terakhir</div><p className="whitespace-pre-wrap text-[13px] font-medium leading-relaxed text-slate-700">{pengajuan.catatan_admin}</p></div>}
-                    {pengajuan.status_pengajuan !== 'selesai' && <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm"><div className="border-b border-zinc-100 bg-zinc-50/50 px-6 py-4"><h2 className="text-[14px] font-semibold text-zinc-900">Verifikasi Berkas</h2></div><div className="space-y-6 p-5"><div className="grid grid-cols-1 gap-3"><button onClick={() => setSelectedAction('diterima')} className={`flex items-center justify-between rounded-lg border-2 px-4 py-3 text-[14px] font-medium transition-all ${selectedAction === 'diterima' ? 'border-emerald-500 bg-emerald-50 text-emerald-900 shadow-md ring-2 ring-emerald-200 scale-[1.02] font-bold' : 'border-emerald-200 bg-emerald-50/30 text-emerald-700 hover:border-emerald-300'}`}><div className="flex items-center gap-3"><CheckCircle size={18} />Diterima</div>{selectedAction === 'diterima' && <span className="text-[11px] bg-emerald-500 text-white px-2.5 py-1 rounded-full font-bold">TERPILIH</span>}</button><button onClick={() => setSelectedAction('direvisi')} className={`flex items-center justify-between rounded-lg border-2 px-4 py-3 text-[14px] font-medium transition-all ${selectedAction === 'direvisi' ? 'border-amber-500 bg-amber-50 text-amber-900 shadow-md ring-2 ring-amber-200 scale-[1.02] font-bold' : 'border-amber-200 bg-amber-50/30 text-amber-700 hover:border-amber-300'}`}><div className="flex items-center gap-3"><RotateCcw size={18} />Revisi</div>{selectedAction === 'direvisi' && <span className="text-[11px] bg-amber-500 text-white px-2.5 py-1 rounded-full font-bold">TERPILIH</span>}</button><button onClick={() => setSelectedAction('ditolak')} className={`flex items-center justify-between rounded-lg border-2 px-4 py-3 text-[14px] font-medium transition-all ${selectedAction === 'ditolak' ? 'border-red-500 bg-red-50 text-red-900 shadow-md ring-2 ring-red-200 scale-[1.02] font-bold' : 'border-red-200 bg-red-50/30 text-red-700 hover:border-red-300'}`}><div className="flex items-center gap-3"><X size={18} />Ditolak</div>{selectedAction === 'ditolak' && <span className="text-[11px] bg-red-500 text-white px-2.5 py-1 rounded-full font-bold">TERPILIH</span>}</button></div>{(selectedAction === 'direvisi' || selectedAction === 'diterima') && <div className="pt-2">{selectedAction === 'direvisi' ? (<div className="flex items-center gap-2 mb-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-[12px] font-bold text-amber-700"><AlertCircle size={14} className="shrink-0" />Catatan revisi wajib diisi sebelum verifikasi.</div>) : (<div className="flex items-center gap-2 mb-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-[12px] font-bold text-blue-700"><AlertCircle size={14} className="shrink-0" />Catatan persetujuan (opsional).</div>)}<textarea value={catatan} onChange={(e) => setCatatan(e.target.value)} rows={4} placeholder={selectedAction === 'direvisi' ? "Catatan revisi..." : "Tulis catatan tambahan untuk pengaju (opsional)..."} className="w-full rounded-md border border-zinc-200 p-3 text-[13px] outline-none focus:border-poltekpar-primary focus:ring-2 focus:ring-poltekpar-primary/20" />{catatanError && <p className="mt-1.5 text-[12px] text-red-500">{catatanError}</p>}</div>}<button onClick={saveDecision} disabled={!selectedAction || (selectedAction === 'direvisi' && !catatan.trim())} className={`w-full rounded-xl py-3 text-[14px] font-bold ${selectedAction && (selectedAction !== 'direvisi' || catatan.trim()) ? 'bg-zinc-900 text-white' : 'cursor-not-allowed bg-zinc-100 text-zinc-400'}`}>Verifikasi</button></div></div>}
+                    {pengajuan.status_pengajuan !== 'selesai' && <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm"><div className="border-b border-zinc-100 bg-zinc-50/50 px-6 py-4"><h2 className="text-[14px] font-semibold text-zinc-900">Verifikasi Berkas</h2></div><div className="space-y-6 p-5"><div className="grid grid-cols-1 gap-3"><button onClick={() => setSelectedAction('diterima')} className={`flex items-center justify-between rounded-lg border-2 px-4 py-3 text-[14px] font-medium transition-all ${selectedAction === 'diterima' ? 'border-emerald-500 bg-emerald-50 text-emerald-900 shadow-md ring-2 ring-emerald-200 scale-[1.02] font-bold' : 'border-emerald-200 bg-emerald-50/30 text-emerald-700 hover:border-emerald-300'}`}><div className="flex items-center gap-3"><CheckCircle size={18} />Diterima</div>{selectedAction === 'diterima' && <span className="text-[11px] bg-emerald-500 text-white px-2.5 py-1 rounded-full font-bold">TERPILIH</span>}</button><button onClick={() => setSelectedAction('direvisi')} className={`flex items-center justify-between rounded-lg border-2 px-4 py-3 text-[14px] font-medium transition-all ${selectedAction === 'direvisi' ? 'border-amber-500 bg-amber-50 text-amber-900 shadow-md ring-2 ring-amber-200 scale-[1.02] font-bold' : 'border-amber-200 bg-amber-50/30 text-amber-700 hover:border-amber-300'}`}><div className="flex items-center gap-3"><RotateCcw size={18} />Revisi</div>{selectedAction === 'direvisi' && <span className="text-[11px] bg-amber-500 text-white px-2.5 py-1 rounded-full font-bold">TERPILIH</span>}</button><button onClick={() => setSelectedAction('ditolak')} className={`flex items-center justify-between rounded-lg border-2 px-4 py-3 text-[14px] font-medium transition-all ${selectedAction === 'ditolak' ? 'border-red-500 bg-red-50 text-red-900 shadow-md ring-2 ring-red-200 scale-[1.02] font-bold' : 'border-red-200 bg-red-50/30 text-red-700 hover:border-red-300'}`}><div className="flex items-center gap-3"><X size={18} />Ditolak</div>{selectedAction === 'ditolak' && <span className="text-[11px] bg-red-500 text-white px-2.5 py-1 rounded-full font-bold">TERPILIH</span>}</button></div>{(selectedAction === 'direvisi' || selectedAction === 'diterima' || selectedAction === 'ditolak') && <div className="pt-2">{selectedAction === 'direvisi' ? (<div className="flex items-center gap-2 mb-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-[12px] font-bold text-amber-700"><AlertCircle size={14} className="shrink-0" />Catatan revisi wajib diisi sebelum verifikasi.</div>) : selectedAction === 'ditolak' ? (<div className="flex items-center gap-2 mb-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-[12px] font-bold text-red-700"><AlertCircle size={14} className="shrink-0" />Alasan penolakan wajib diisi sebelum verifikasi.</div>) : (<div className="flex items-center gap-2 mb-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-[12px] font-bold text-blue-700"><AlertCircle size={14} className="shrink-0" />Catatan persetujuan (opsional).</div>)}<textarea value={catatan} onChange={(e) => setCatatan(e.target.value)} rows={4} placeholder={selectedAction === 'direvisi' ? "Catatan revisi..." : selectedAction === 'ditolak' ? "Tulis alasan penolakan..." : "Tulis catatan tambahan untuk pengaju (opsional)..."} className="w-full rounded-md border border-zinc-200 p-3 text-[13px] outline-none focus:border-poltekpar-primary focus:ring-2 focus:ring-poltekpar-primary/20" />{catatanError && <p className="mt-1.5 text-[12px] text-red-500">{catatanError}</p>}</div>}<button onClick={saveDecision} disabled={!selectedAction || ((selectedAction === 'direvisi' || selectedAction === 'ditolak') && !catatan.trim())} className={`w-full rounded-xl py-3 text-[14px] font-bold ${selectedAction && (selectedAction !== 'direvisi' && selectedAction !== 'ditolak' || catatan.trim()) ? 'bg-zinc-900 text-white' : 'cursor-not-allowed bg-zinc-100 text-zinc-400'}`}>Verifikasi</button></div></div>}
                 </div>
             </div>
 

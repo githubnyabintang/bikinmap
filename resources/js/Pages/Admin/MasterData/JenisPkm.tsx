@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { router } from '@inertiajs/react';
 import AdminLayout from '../../../Layouts/AdminLayout';
 import ConfirmDialog from '../../../Components/ConfirmDialog';
+import Pagination from '../../../Components/Pagination';
 import { Edit, Trash2, X, Plus, Search, Upload, Check, Grid, Type } from 'lucide-react';
 import BulkActionBar, { CheckboxCell, CheckboxHeader } from '../../../Components/BulkActionBar';
 
@@ -12,12 +13,29 @@ interface JenisPkm {
     deskripsi?: string;
 }
 
+interface LinkItem {
+    url: string | null;
+    label: string;
+    active: boolean;
+}
+
+interface PaginatedData {
+    data: JenisPkm[];
+    current_page: number;
+    last_page: number;
+    total: number;
+    links: LinkItem[];
+    from: number;
+    to: number;
+}
+
 interface Props {
-    listJenisPkm: JenisPkm[];
+    listJenisPkm: PaginatedData;
     filters?: { sort?: string; direction?: string };
 }
 
 const JenisPkmPage: React.FC<Props> = ({ listJenisPkm, filters }) => {
+    const data = listJenisPkm.data || [];
     const [modalOpen, setModalOpen] = useState(false);
     const [nama, setNama] = useState('');
     const [warna, setWarna] = useState('');
@@ -44,7 +62,7 @@ const JenisPkmPage: React.FC<Props> = ({ listJenisPkm, filters }) => {
         '#d946ef', '#f43f5e', '#71717a', '#18181b'
     ];
 
-    const usedColors = listJenisPkm
+    const usedColors = data
         .filter((item) => item.id_jenis_pkm !== editId)
         .map((item) => (item.warna_icon || '').toUpperCase())
         .filter(Boolean);
@@ -102,26 +120,49 @@ const JenisPkmPage: React.FC<Props> = ({ listJenisPkm, filters }) => {
 
     const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
 
-    const filtered = listJenisPkm.filter(j => j.nama_jenis.toLowerCase().includes(search.toLowerCase()));
+    const filtered = data.filter(j => j.nama_jenis.toLowerCase().includes(search.toLowerCase()));
 
     // ── Bulk Delete ──
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
-    const allIdsOnPage = filtered.map(j => j.id_jenis_pkm);
+    const [isAllSelected, setIsAllSelected] = useState(false);
+    const allIdsOnPage = data.map(j => j.id_jenis_pkm);
     const allChecked = allIdsOnPage.length > 0 && allIdsOnPage.every(id => selectedIds.includes(id));
+    
     const toggleAll = () => {
-        if (allChecked) setSelectedIds(prev => prev.filter(id => !allIdsOnPage.includes(id)));
-        else setSelectedIds(prev => [...new Set([...prev, ...allIdsOnPage])]);
+        if (allChecked) {
+            setSelectedIds(prev => prev.filter(id => !allIdsOnPage.includes(id)));
+            setIsAllSelected(false);
+        } else {
+            setSelectedIds(prev => [...new Set([...prev, ...allIdsOnPage])]);
+        }
     };
+
     const toggleOne = (id: number) =>
-        setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+        setSelectedIds(prev => {
+            const newIds = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
+            if (newIds.length < listJenisPkm.total) setIsAllSelected(false);
+            return newIds;
+        });
+
     const handleBulkDelete = () => {
-        if (confirm(`Hapus ${selectedIds.length} jenis PKM terpilih?`)) {
+        const count = isAllSelected ? listJenisPkm.total : selectedIds.length;
+        if (confirm(`Hapus ${count} jenis PKM terpilih?`)) {
             router.delete('/admin/master/jenis-pkm/bulk', {
-                data: { ids: selectedIds },
-                onSuccess: () => setSelectedIds([]),
+                data: { 
+                    ids: isAllSelected ? [] : selectedIds,
+                    all: isAllSelected
+                },
+                onSuccess: () => {
+                    setSelectedIds([]);
+                    setIsAllSelected(false);
+                },
                 preserveState: true,
             });
         }
+    };
+
+    const handleSelectAllInDatabase = () => {
+        setIsAllSelected(true);
     };
 
     return (
@@ -138,7 +179,24 @@ const JenisPkmPage: React.FC<Props> = ({ listJenisPkm, filters }) => {
             </div>
 
 
-            <BulkActionBar selectedCount={selectedIds.length} onDelete={handleBulkDelete} onClear={() => setSelectedIds([])} entityLabel="jenis PKM" />
+            <BulkActionBar selectedCount={isAllSelected ? listJenisPkm.total : selectedIds.length} onDelete={handleBulkDelete} onClear={() => { setSelectedIds([]); setIsAllSelected(false); }} entityLabel="jenis PKM" />
+
+            {allChecked && listJenisPkm.total > data.length && !isAllSelected && (
+                <div className="bg-poltekpar-navy text-white px-6 py-2 text-[13px] flex items-center justify-center gap-2 animate-in slide-in-from-top-2 duration-300">
+                    <span>Semua <b>{data.length}</b> kategori di halaman ini terpilih.</span>
+                    <button onClick={handleSelectAllInDatabase} className="underline font-bold hover:text-poltekpar-gold transition-colors">
+                        Pilih semua {listJenisPkm.total} kategori di database
+                    </button>
+                </div>
+            )}
+            {isAllSelected && (
+                <div className="bg-poltekpar-gold text-poltekpar-navy px-6 py-2 text-[13px] flex items-center justify-center gap-2 animate-in slide-in-from-top-2 duration-300">
+                    <span>Semua <b>{listJenisPkm.total}</b> kategori telah terpilih.</span>
+                    <button onClick={() => setIsAllSelected(false)} className="underline font-bold hover:text-red-600 transition-colors">
+                        Batalkan pilihan semua
+                    </button>
+                </div>
+            )}
 
             <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-zinc-200">
                 {/* Search */}
@@ -158,7 +216,7 @@ const JenisPkmPage: React.FC<Props> = ({ listJenisPkm, filters }) => {
                         <thead>
                             <tr className="border-b border-zinc-200">
                                 <CheckboxHeader allChecked={allChecked} onToggleAll={toggleAll} />
-                                <th className="py-3 px-6 text-zinc-500 text-[11px] font-semibold uppercase tracking-wider w-12 text-center">ID</th>
+                                <th className="py-3 px-6 text-zinc-500 text-[11px] font-semibold uppercase tracking-wider w-12 text-center">No</th>
                                 <th className="py-3 px-6 text-zinc-500 text-[11px] font-semibold uppercase tracking-wider cursor-pointer hover:bg-zinc-100" onClick={() => handleSort('nama_jenis')}>
                                     Nama Kategori {sortField === 'nama_jenis' && (sortDir === 'asc' ? '↑' : '↓')}
                                 </th>
@@ -176,7 +234,7 @@ const JenisPkmPage: React.FC<Props> = ({ listJenisPkm, filters }) => {
                                 return (
                                 <tr key={item.id_jenis_pkm} className={`hover:bg-zinc-50/50 transition-colors group ${checked ? 'bg-red-50/40' : ''}`}>
                                     <CheckboxCell checked={checked} onChange={() => toggleOne(item.id_jenis_pkm)} />
-                                    <td className="py-4 px-6 text-zinc-400 text-[13px] text-center font-mono">{i + 1}</td>
+                                    <td className="py-4 px-6 text-zinc-400 text-[13px] text-center font-mono">{listJenisPkm.from + i}</td>
                                     <td className="py-4 px-6">
                                         <div className="flex items-center gap-3">
                                             <div className="w-8 h-8 rounded-lg bg-zinc-50 border border-zinc-100 flex items-center justify-center flex-shrink-0 text-zinc-400">
@@ -203,8 +261,9 @@ const JenisPkmPage: React.FC<Props> = ({ listJenisPkm, filters }) => {
                         </tbody>
                     </table>
                 </div>
-                <div className="px-6 py-3 border-t border-zinc-200 bg-zinc-50/50">
-                    <span className="text-[12px] font-medium text-zinc-500">{filtered.length} kategori ditemukan</span>
+                <div className="px-6 py-4 border-t border-zinc-200 bg-zinc-50/50 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <span className="text-[12px] font-medium text-zinc-500">Menampilkan {listJenisPkm.from || 0} sampai {listJenisPkm.to || 0} dari {listJenisPkm.total} kategori</span>
+                    <Pagination links={listJenisPkm.links} />
                 </div>
             </div>
 

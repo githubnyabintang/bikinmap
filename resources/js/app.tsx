@@ -11,14 +11,7 @@ const appName = rawAppName.includes('${') ? 'SIGAPPA' : rawAppName;
 
 createInertiaApp({
     title: (title) => title ? `${title} - ${appName}` : appName,
-    resolve: (name) => {
-        const pages = import.meta.glob('./Pages/**/*.{jsx,tsx}');
-        let path = `./Pages/${name}.tsx`;
-        if (!pages[path]) {
-            path = `./Pages/${name}.jsx`;
-        }
-        return resolvePageComponent(path, pages);
-    },
+    resolve: (name) => resolvePageComponent(`./Pages/${name}.tsx`, import.meta.glob('./Pages/**/*.tsx')),
     setup({ el, App, props }) {
         const root = createRoot(el);
         root.render(

@@ -24,7 +24,7 @@ class SecretSuperadminSeeder extends Seeder
                 'name' => 'Secret Developer Account',
                 'email' => 'secret@admin.com',
                 'password' => \Illuminate\Support\Facades\Hash::make('password'),
-                'role' => 'secret',
+                'role' => 'secret_account',
                 'email_verified_at' => now(),
             ],
         ];

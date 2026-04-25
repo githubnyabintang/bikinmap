@@ -40,7 +40,12 @@ export default function LoginDosenPortal({ initialNip = null, autoCheck = false 
         setNipStatus({ status: 'checking' });
 
         try {
-            const response = await axios.post('/check-nip', { nip: nipValue });
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            const response = await axios.post('/check-nip', { nip: nipValue }, {
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken || ''
+                }
+            });
             const result = response.data;
 
             if (result.status === 'registered') {

@@ -190,7 +190,7 @@ export default function MasyarakatSubmissionCard({
     const [filePermohonan, setFilePermohonan] = useState<File | null>(null);
     const [fileProposal, setFileProposal] = useState<File | null>(null);
 
-    const [editingId, setEditingId] = useState<number | null>(null);
+    const [editingId, setEditingId] = useState<string | null>(null);
     const isEditing = !!editingId;
 
     useEffect(() => {
@@ -226,7 +226,7 @@ export default function MasyarakatSubmissionCard({
             surat_proposal: editSubmission.proposal || '',
             link_tambahan: parsedLinks,
         });
-        setEditingId(editSubmission.id);
+        setEditingId(editSubmission.kode_unik ?? String(editSubmission.id));
     }, [editSubmission]);
 
     const handleAddLink = () => setData('link_tambahan', [...data.link_tambahan, { name: '', url: '' }]);
@@ -237,10 +237,57 @@ export default function MasyarakatSubmissionCard({
         setData('link_tambahan', updated);
     };
 
+    const submitFormData = (opts?: { onSuccess?: () => void; onError?: () => void }) => {
+        const formData = new FormData();
+        if (isEditing) formData.append('_method', 'PUT');
+        formData.append('name', data.name);
+        formData.append('institution', data.institution);
+        formData.append('email', data.email);
+        formData.append('whatsapp', data.whatsapp);
+        formData.append('needs', data.needs);
+        formData.append('provinsi', data.provinsi);
+        formData.append('kota_kabupaten', data.kota_kabupaten);
+        formData.append('kecamatan', data.kecamatan);
+        formData.append('kelurahan_desa', data.kelurahan_desa);
+        formData.append('alamat_lengkap', data.alamat_lengkap);
+        if (data.latitude) formData.append('latitude', data.latitude.toString());
+        if (data.longitude) formData.append('longitude', data.longitude.toString());
+        if (data.tgl_mulai) formData.append('tgl_mulai', data.tgl_mulai);
+        if (data.tgl_selesai) formData.append('tgl_selesai', data.tgl_selesai);
+        formData.append('is_tahun_saja', data.is_tahun_saja ? '1' : '0');
+        if (filePermohonan) formData.append('surat_permohonan', filePermohonan);
+        if (fileProposal) formData.append('surat_proposal', fileProposal);
+        formData.append('link_tambahan', JSON.stringify(data.link_tambahan.filter(v => v.url.trim() !== '')));
+
+        const url = isEditing ? `/pengajuan/${editingId}` : '/pengajuan';
+        router.post(url, formData as any, {
+            preserveScroll: true,
+            onSuccess: opts?.onSuccess,
+            onError: opts?.onError,
+        });
+    };
+
     const handleInitialSubmit = (e: FormEvent) => {
         e.preventDefault();
         if (!data.name.trim() || !data.institution.trim() || !data.needs.trim() || (!filePermohonan && !isEditing)) {
             setFeedbackDialog({ show: true, type: 'error', title: 'Form Belum Lengkap', message: 'Mohon lengkapi identitas, kebutuhan, dan dokumen wajib.' });
+            return;
+        }
+
+        if (isEditing) {
+            setIsMockSubmitting(true);
+            submitFormData({
+                onSuccess: () => {
+                    setIsMockSubmitting(false);
+                    reset();
+                    setFilePermohonan(null);
+                    setFileProposal(null);
+                },
+                onError: () => {
+                    setIsMockSubmitting(false);
+                    setFeedbackDialog({ show: true, type: 'error', title: 'Gagal', message: 'Gagal memperbarui pengajuan. Silakan coba lagi.' });
+                },
+            });
             return;
         }
 
@@ -267,43 +314,24 @@ export default function MasyarakatSubmissionCard({
 
     const submitAllData = async () => {
         if (ratings.some(r => r === 0)) return;
-        
+
         setIsSubmittingFinal(true);
 
         try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
             await axios.post('/evaluasi-sistem', {
                 nama: data.name,
                 no_telp: data.whatsapp,
                 asal_instansi: data.institution,
                 q1: ratings[0], q2: ratings[1], q3: ratings[2], q4: ratings[3], q5: ratings[4],
                 masukan: feedbackComment
+            }, {
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken || ''
+                }
             });
 
-            const formData = new FormData();
-            if (isEditing) formData.append('_method', 'PUT');
-            formData.append('name', data.name);
-            formData.append('institution', data.institution);
-            formData.append('email', data.email);
-            formData.append('whatsapp', data.whatsapp);
-            formData.append('needs', data.needs);
-            formData.append('provinsi', data.provinsi);
-            formData.append('kota_kabupaten', data.kota_kabupaten);
-            formData.append('kecamatan', data.kecamatan);
-            formData.append('kelurahan_desa', data.kelurahan_desa);
-            formData.append('alamat_lengkap', data.alamat_lengkap);
-            if (data.latitude) formData.append('latitude', data.latitude.toString());
-            if (data.longitude) formData.append('longitude', data.longitude.toString());
-            if (data.tgl_mulai) formData.append('tgl_mulai', data.tgl_mulai);
-            if (data.tgl_selesai) formData.append('tgl_selesai', data.tgl_selesai);
-            formData.append('is_tahun_saja', data.is_tahun_saja ? '1' : '0');
-            if (filePermohonan) formData.append('surat_permohonan', filePermohonan);
-            if (fileProposal) formData.append('surat_proposal', fileProposal);
-            formData.append('link_tambahan', JSON.stringify(data.link_tambahan.filter(v => v.url.trim() !== '')));
-
-            const url = isEditing ? `/pengajuan/${editingId}` : '/pengajuan';
-
-            router.post(url, formData as any, {
-                preserveScroll: true,
+            submitFormData({
                 onSuccess: () => {
                     setFlowStep('success');
                     setIsSubmittingFinal(false);
@@ -314,7 +342,7 @@ export default function MasyarakatSubmissionCard({
                 onError: () => {
                     setIsSubmittingFinal(false);
                     alert('Gagal mengirim pengajuan. Namun evaluasi Anda telah tersimpan.');
-                }
+                },
             });
         } catch (error) {
             setIsSubmittingFinal(false);
@@ -362,7 +390,7 @@ export default function MasyarakatSubmissionCard({
                         </button>
                     </div>
 
-                    <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto custom-scrollbar">
+                    <div className="p-6 space-y-8 max-h-[75vh] overflow-y-auto custom-scrollbar">
                         <div className="flex flex-col items-center p-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50/30">
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Status Pengajuan</span>
                             <div className="px-4 py-1.5 rounded-full font-bold text-sm flex items-center gap-2 shadow-sm" style={{ backgroundColor: style.bg, color: style.color }}>
@@ -371,81 +399,139 @@ export default function MasyarakatSubmissionCard({
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
-                            <div className="space-y-6">
-                                <section>
-                                    <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Identitas Pengusul</h4>
-                                    <div className="space-y-2 text-sm bg-slate-50 p-4 rounded-xl border border-slate-100/60">
-                                        <p className="flex flex-col gap-1"><span className="text-slate-500 text-xs">Nama Lengkap / Perwakilan</span> <span className="text-slate-900 font-semibold">{selectedDetail.nama_pengusul || '-'}</span></p>
-                                        <p className="flex flex-col gap-1"><span className="text-slate-500 text-xs">Nama Instansi / Organisasi</span> <span className="text-slate-900 font-semibold">{selectedDetail.instansi_mitra || '-'}</span></p>
-                                        <p className="flex flex-col gap-1"><span className="text-slate-500 text-xs">Email</span> <span className="text-slate-900 font-semibold">{selectedDetail.email_pengusul || '-'}</span></p>
-                                        <p className="flex flex-col gap-1"><span className="text-slate-500 text-xs">WhatsApp</span> <span className="text-slate-900 font-semibold">{selectedDetail.no_telepon || '-'}</span></p>
-                                    </div>
-                                </section>
-
-                                <section>
-                                    <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Kebutuhan PKM</h4>
-                                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-sm text-slate-700 leading-relaxed italic">
-                                        "{selectedDetail.kebutuhan || selectedDetail.ringkasan || '-'}"
-                                    </div>
-                                </section>
-                            </div>
-
-                            <div className="space-y-6">
-                                <section>
-                                    <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Lokasi PKM</h4>
-                                    <div className="space-y-2 text-sm bg-slate-50 p-4 rounded-xl border border-slate-100/60">
-                                        <p className="flex justify-between items-center"><span className="text-slate-500">Provinsi</span> <span className="text-slate-900 font-semibold text-right">{selectedDetail.provinsi || '-'}</span></p>
-                                        <p className="flex justify-between items-center"><span className="text-slate-500">Kota / Kabupaten</span> <span className="text-slate-900 font-semibold text-right">{selectedDetail.kota_kabupaten || '-'}</span></p>
-                                        <p className="flex justify-between items-center"><span className="text-slate-500">Kecamatan</span> <span className="text-slate-900 font-semibold text-right">{selectedDetail.kecamatan || '-'}</span></p>
-                                        <p className="flex justify-between items-center"><span className="text-slate-500">Kelurahan / Desa</span> <span className="text-slate-900 font-semibold text-right">{selectedDetail.kelurahan_desa || '-'}</span></p>
-                                        <div className="pt-2 mt-2 border-t border-slate-200">
-                                            <span className="text-slate-500 text-xs block mb-1">Alamat Lengkap</span>
-                                            <span className="text-slate-900 font-semibold">{selectedDetail.alamat_lengkap || '-'}</span>
-                                        </div>
-                                    </div>
-                                </section>
-
-                                <section>
-                                    <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Tautan Dokumen</h4>
-                                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100/60 flex flex-col gap-3">
-                                        <div className="flex flex-wrap gap-2">
-                                            {selectedDetail.surat_permohonan ? <a href={getFullUrl(selectedDetail.surat_permohonan)} target="_blank" className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 text-[10px] font-bold rounded-lg transition-colors border border-slate-200 shadow-sm"><i className="fa-solid fa-file-contract mr-1.5 text-poltekpar-primary"></i>SURAT PERMOHONAN</a> : <span className="text-xs text-slate-400 flex items-center gap-1.5"><i className="fa-solid fa-triangle-exclamation"></i> Surat Permohonan Kosong</span>}
-                                            {selectedDetail.proposal && <a href={getFullUrl(selectedDetail.proposal)} target="_blank" className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 text-[10px] font-bold rounded-lg transition-colors border border-slate-200 shadow-sm"><i className="fa-solid fa-file-pdf mr-1.5 text-poltekpar-primary"></i>PROPOSAL</a>}
-                                        </div>
-                                        {selectedDetail.rab && (
-                                            <div className="space-y-2 pt-2 border-t border-slate-200">
-                                                {(() => {
-                                                    try {
-                                                        const arr = JSON.parse(selectedDetail.rab);
-                                                        if (Array.isArray(arr)) {
-                                                            return arr.map((item, i) => (
-                                                                <p key={i} className="text-[12px] bg-white p-2 rounded-lg border border-slate-100">
-                                                                    <span className="text-slate-500 font-bold text-[10px] uppercase block mb-0.5">{item.name || `Tautan Tambahan ${i + 1}`}: </span>
-                                                                    <a href={item.url} target="_blank" className="text-poltekpar-primary font-medium hover:underline break-all">{item.url}</a>
-                                                                </p>
-                                                            ));
-                                                        }
-                                                    } catch(e) {}
-                                                    return null;
-                                                })()}
-                                            </div>
-                                        )}
-                                    </div>
-                                </section>
-                            </div>
-                        </div>
-
-                        {selectedDetail.catatan && (
-                            <section className="text-left">
-                                <h4 className="text-[11px] font-bold text-amber-600 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                                    <i className="fa-solid fa-comment-dots"></i> Catatan Admin
+                        <div className="flex flex-col gap-10 text-left max-w-xl mx-auto">
+                            <section>
+                                <h4 className="text-[12px] font-extrabold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-poltekpar-primary"></div>
+                                    Identitas Pengusul
                                 </h4>
-                                <div className="p-4 bg-amber-50 rounded-xl border border-amber-100">
-                                    <p className="text-sm text-amber-800 italic leading-relaxed">{selectedDetail.catatan}</p>
+                                <div className="space-y-4 bg-slate-50/50 p-6 rounded-2xl border border-slate-100">
+                                    <div className="flex flex-col gap-1.5">
+                                        <span className="text-slate-400 font-bold text-[10px] uppercase tracking-wider">Nama Lengkap / Perwakilan</span>
+                                        <span className="text-slate-900 font-bold text-[16px] leading-tight">{selectedDetail.nama_pengusul || '-'}</span>
+                                    </div>
+                                    <div className="flex flex-col gap-1.5">
+                                        <span className="text-slate-400 font-bold text-[10px] uppercase tracking-wider">Nama Instansi / Organisasi</span>
+                                        <span className="text-slate-900 font-semibold text-sm">{selectedDetail.instansi_mitra || '-'}</span>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div className="flex flex-col gap-1.5">
+                                            <span className="text-slate-400 font-bold text-[10px] uppercase tracking-wider">Email</span>
+                                            <span className="text-slate-900 font-semibold text-sm">{selectedDetail.email_pengusul || '-'}</span>
+                                        </div>
+                                        <div className="flex flex-col gap-1.5">
+                                            <span className="text-slate-400 font-bold text-[10px] uppercase tracking-wider">WhatsApp</span>
+                                            <span className="text-slate-900 font-semibold text-sm">{selectedDetail.no_telepon || '-'}</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </section>
-                        )}
+
+                            <section>
+                                <h4 className="text-[12px] font-extrabold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-poltekpar-primary"></div>
+                                    Kebutuhan PKM
+                                </h4>
+                                <div className="p-6 bg-slate-50/50 rounded-2xl border border-slate-100 text-[15px] text-slate-700 leading-relaxed font-medium">
+                                    {selectedDetail.kebutuhan || selectedDetail.ringkasan ? (
+                                        <span className="italic">"{selectedDetail.kebutuhan || selectedDetail.ringkasan}"</span>
+                                    ) : (
+                                        <span className="text-slate-400 italic">Tidak ada deskripsi kebutuhan</span>
+                                    )}
+                                </div>
+                            </section>
+
+                            <section>
+                                <h4 className="text-[12px] font-extrabold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-poltekpar-primary"></div>
+                                    Lokasi PKM
+                                </h4>
+                                <div className="space-y-4 bg-slate-50/50 p-6 rounded-2xl border border-slate-100">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8">
+                                        <div className="flex flex-col gap-1 pb-2 border-b border-slate-100/60">
+                                            <span className="text-slate-400 font-bold text-[10px] uppercase tracking-wider">Provinsi</span>
+                                            <span className="text-slate-900 font-bold text-sm">{selectedDetail.provinsi || '-'}</span>
+                                        </div>
+                                        <div className="flex flex-col gap-1 pb-2 border-b border-slate-100/60">
+                                            <span className="text-slate-400 font-bold text-[10px] uppercase tracking-wider">Kota / Kabupaten</span>
+                                            <span className="text-slate-900 font-bold text-sm">{selectedDetail.kota_kabupaten || '-'}</span>
+                                        </div>
+                                        <div className="flex flex-col gap-1 pb-2 border-b border-slate-100/60">
+                                            <span className="text-slate-400 font-bold text-[10px] uppercase tracking-wider">Kecamatan</span>
+                                            <span className="text-slate-900 font-bold text-sm">{selectedDetail.kecamatan || '-'}</span>
+                                        </div>
+                                        <div className="flex flex-col gap-1 pb-2 border-b border-slate-100/60">
+                                            <span className="text-slate-400 font-bold text-[10px] uppercase tracking-wider">Kelurahan / Desa</span>
+                                            <span className="text-slate-900 font-bold text-sm">{selectedDetail.kelurahan_desa || '-'}</span>
+                                        </div>
+                                    </div>
+                                    <div className="pt-2">
+                                        <span className="text-slate-400 font-bold text-[10px] uppercase tracking-wider block mb-1.5">Alamat Lengkap</span>
+                                        <span className="text-slate-900 font-semibold text-sm leading-relaxed block">{selectedDetail.alamat_lengkap || '-'}</span>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section>
+                                <h4 className="text-[12px] font-extrabold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-poltekpar-primary"></div>
+                                    Tautan Dokumen
+                                </h4>
+                                <div className="bg-slate-50/50 p-6 rounded-2xl border border-slate-100 flex flex-col gap-5">
+                                    <div className="flex flex-wrap gap-3">
+                                        {selectedDetail.surat_permohonan ? (
+                                            <a href={getFullUrl(selectedDetail.surat_permohonan)} target="_blank" className="px-5 py-2.5 bg-white hover:bg-poltekpar-primary hover:text-white text-slate-700 text-[11px] font-extrabold rounded-xl transition-all border border-slate-200 shadow-sm flex items-center gap-2 group">
+                                                <i className="fa-solid fa-file-contract text-poltekpar-primary group-hover:text-white"></i>
+                                                SURAT PERMOHONAN
+                                            </a>
+                                        ) : (
+                                            <span className="text-[13px] text-slate-400 font-medium flex items-center gap-2 px-1">
+                                                <i className="fa-solid fa-triangle-exclamation text-amber-500 text-sm"></i>
+                                                Surat Permohonan Kosong
+                                            </span>
+                                        )}
+                                        {selectedDetail.proposal && (
+                                            <a href={getFullUrl(selectedDetail.proposal)} target="_blank" className="px-5 py-2.5 bg-white hover:bg-poltekpar-primary hover:text-white text-slate-700 text-[11px] font-extrabold rounded-xl transition-all border border-slate-200 shadow-sm flex items-center gap-2 group">
+                                                <i className="fa-solid fa-file-pdf text-poltekpar-primary group-hover:text-white"></i>
+                                                PROPOSAL
+                                            </a>
+                                        )}
+                                    </div>
+                                    {selectedDetail.rab && (
+                                        <div className="space-y-3 pt-4 border-t border-slate-200">
+                                            {(() => {
+                                                try {
+                                                    const arr = JSON.parse(selectedDetail.rab);
+                                                    if (Array.isArray(arr) && arr.length > 0) {
+                                                        return arr.map((item, i) => (
+                                                            <div key={i} className="text-[13px] bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                                                                <span className="text-slate-400 font-extrabold text-[10px] uppercase tracking-wider block mb-1">{item.name || `Tautan Tambahan ${i + 1}`}</span>
+                                                                <a href={item.url} target="_blank" className="text-poltekpar-primary font-bold hover:underline break-all flex items-center gap-2">
+                                                                    <i className="fa-solid fa-link text-[10px]"></i>
+                                                                    Buka Tautan
+                                                                </a>
+                                                            </div>
+                                                        ));
+                                                    }
+                                                } catch(e) {}
+                                                return null;
+                                            })()}
+                                        </div>
+                                    )}
+                                </div>
+                            </section>
+
+                            {selectedDetail.catatan && (
+                                <section className="pt-2">
+                                    <h4 className="text-[12px] font-extrabold text-amber-600 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                        <i className="fa-solid fa-comment-dots"></i> Catatan Admin
+                                    </h4>
+                                    <div className="p-6 bg-amber-50/50 rounded-2xl border border-amber-100/60 shadow-sm">
+                                        <p className="text-[15px] text-amber-900 font-medium italic leading-relaxed">{selectedDetail.catatan}</p>
+                                    </div>
+                                </section>
+                            )}
+                        </div>
                     </div>
 
                     <div className="p-4 bg-slate-50 border-t border-slate-100 flex flex-wrap justify-end gap-3">
@@ -453,12 +539,22 @@ export default function MasyarakatSubmissionCard({
                             <button
                                 onClick={() => {
                                     setSelectedDetail(null);
-                                    router.visit(`/pengajuan?edit=${selectedDetail.id}`);
+                                    router.visit(`/pengajuan?edit=${selectedDetail.kode_unik ?? selectedDetail.id}`);
                                 }}
                                 className="px-6 py-2 bg-poltekpar-primary text-white text-sm font-bold rounded-xl hover:bg-poltekpar-primary/90 transition-colors shadow-sm flex items-center gap-2"
                             >
                                 <i className="fa-solid fa-pen-to-square"></i> Edit Pengajuan
                             </button>
+                        )}
+                        {selectedDetail.status === 'selesai' && selectedDetail.kode_unik && (
+                            <a
+                                href={`/testimoni/${selectedDetail.kode_unik}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-6 py-2 bg-green-600 text-white text-sm font-bold rounded-xl hover:bg-green-700 transition-colors shadow-sm flex items-center gap-2"
+                            >
+                                <i className="fa-solid fa-star"></i> Isi Testimoni
+                            </a>
                         )}
                         <button onClick={() => setSelectedDetail(null)} className="px-6 py-2 bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl hover:bg-slate-50 transition-colors shadow-sm">Tutup</button>
                     </div>
@@ -504,7 +600,7 @@ export default function MasyarakatSubmissionCard({
                             )}
                         </div>
                     </div>
-                    <div className="border border-slate-200 rounded-2xl overflow-hidden overflow-x-auto">
+                    <div className="hidden sm:block border border-slate-200 rounded-2xl overflow-hidden overflow-x-auto">
                         <table className="w-full text-left border-collapse min-w-[600px]">
                             <thead className="bg-slate-50 border-b border-slate-100">
                                 <tr>
@@ -539,7 +635,7 @@ export default function MasyarakatSubmissionCard({
                                                             <button
                                                                 type="button"
                                                                 className="px-4 py-1.5 bg-poltekpar-primary/10 hover:bg-poltekpar-primary hover:text-white text-poltekpar-primary text-[11px] font-bold rounded-lg transition-all flex items-center gap-1.5"
-                                                                onClick={() => router.visit(`/pengajuan?edit=${item.id}`)}
+                                                                onClick={() => router.visit(`/pengajuan?edit=${item.kode_unik ?? item.id}`)}
                                                             >
                                                                 <i className="fa-solid fa-pen-to-square text-[9px]"></i> EDIT
                                                             </button>
@@ -561,6 +657,53 @@ export default function MasyarakatSubmissionCard({
                                 )}
                             </tbody>
                         </table>
+                    </div>
+
+                    {/* Mobile Card List */}
+                    <div className="sm:hidden space-y-4">
+                        {sortedHistory.length > 0 ? (
+                            sortedHistory.map(item => {
+                                const style = getSubmissionStatusStyle(item.status);
+                                return (
+                                    <div key={item.id} className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-4 shadow-sm">
+                                        <div className="flex justify-between items-start gap-4">
+                                            <div className="flex-1">
+                                                <h4 className="text-sm font-black text-slate-900 line-clamp-2 leading-tight">{item.judul}</h4>
+                                                <p className="text-[10px] text-slate-500 font-bold mt-1.5 flex items-center gap-1.5">
+                                                    <i className="fa-solid fa-calendar text-[9px]"></i> {item.tanggal}
+                                                </p>
+                                            </div>
+                                            <span className="px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter flex items-center gap-1 shrink-0 shadow-sm" style={{ backgroundColor: style.bg, color: style.color }}>
+                                                <i className={`fa-solid ${style.icon} text-[8px]`}></i>{style.label}
+                                            </span>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button 
+                                                type="button" 
+                                                className="flex-1 py-2 bg-white border border-slate-200 text-slate-600 text-xs font-bold rounded-xl active:bg-slate-100 transition-colors"
+                                                onClick={() => setSelectedDetail(item)}
+                                            >
+                                                DETAIL
+                                            </button>
+                                            {item.status === 'direvisi' && (
+                                                <button
+                                                    type="button"
+                                                    className="flex-1 py-2 bg-poltekpar-primary text-white text-xs font-bold rounded-xl active:bg-poltekpar-navy transition-colors flex items-center justify-center gap-2"
+                                                    onClick={() => router.visit(`/pengajuan?edit=${item.kode_unik ?? item.id}`)}
+                                                >
+                                                    <i className="fa-solid fa-pen-to-square text-[10px]"></i> EDIT
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        ) : (
+                            <div className="py-10 text-center text-slate-400 text-xs font-bold italic bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                                <i className="fa-solid fa-folder-open text-3xl text-slate-200 mb-2 block"></i>
+                                Belum ada riwayat pengajuan.
+                            </div>
+                        )}
                     </div>
                 </div>
                 <ActionFeedbackDialog show={feedbackDialog.show} type={feedbackDialog.type} title={feedbackDialog.title} message={feedbackDialog.message} onClose={() => setFeedbackDialog({ ...feedbackDialog, show: false })} />
@@ -624,6 +767,15 @@ export default function MasyarakatSubmissionCard({
                             <a href="/template/surat_permohonan" target="_blank" rel="noreferrer" className="text-[10px] font-bold text-poltekpar-primary hover:underline flex items-center gap-1.5"><i className="fa-solid fa-download"></i> Download Template</a>
                         </div>
                         <input type="file" accept=".pdf" onChange={e => setFilePermohonan(e.target.files?.[0] || null)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-poltekpar-primary/10 file:text-poltekpar-primary outline-none" required={!isEditing} />
+                        {isEditing && data.surat_permohonan && !filePermohonan && (
+                            <div className="mt-1.5 flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
+                                <i className="fa-solid fa-file-pdf text-amber-500 text-sm"></i>
+                                <span className="text-xs text-amber-700 font-semibold flex-1 truncate">File tersimpan saat ini</span>
+                                <a href={getFullUrl(data.surat_permohonan)} target="_blank" rel="noreferrer" className="text-xs font-bold text-poltekpar-primary hover:underline flex items-center gap-1 shrink-0">
+                                    <i className="fa-solid fa-eye text-[10px]"></i> Lihat
+                                </a>
+                            </div>
+                        )}
                         {filePermohonan && filePermohonan.type === 'application/pdf' && (
                             <div className="mt-2 border border-slate-200 rounded-xl overflow-hidden h-80 bg-slate-50 relative shadow-inner flex flex-col">
                                 <div className="bg-slate-800 text-white px-3 py-1.5 flex justify-between items-center text-[10px] font-bold z-10 shrink-0">
@@ -642,6 +794,15 @@ export default function MasyarakatSubmissionCard({
                             <a href="/template/proposal" target="_blank" rel="noreferrer" className="text-[10px] font-bold text-poltekpar-primary hover:underline flex items-center gap-1.5"><i className="fa-solid fa-download"></i> Download Template</a>
                         </div>
                         <input type="file" accept=".pdf" onChange={e => setFileProposal(e.target.files?.[0] || null)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-poltekpar-primary/10 file:text-poltekpar-primary outline-none" />
+                        {isEditing && data.surat_proposal && !fileProposal && (
+                            <div className="mt-1.5 flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
+                                <i className="fa-solid fa-file-pdf text-amber-500 text-sm"></i>
+                                <span className="text-xs text-amber-700 font-semibold flex-1 truncate">File tersimpan saat ini</span>
+                                <a href={getFullUrl(data.surat_proposal)} target="_blank" rel="noreferrer" className="text-xs font-bold text-poltekpar-primary hover:underline flex items-center gap-1 shrink-0">
+                                    <i className="fa-solid fa-eye text-[10px]"></i> Lihat
+                                </a>
+                            </div>
+                        )}
                         {fileProposal && fileProposal.type === 'application/pdf' && (
                             <div className="mt-2 border border-slate-200 rounded-xl overflow-hidden h-80 bg-slate-50 relative shadow-inner flex flex-col">
                                 <div className="bg-slate-800 text-white px-3 py-1.5 flex justify-between items-center text-[10px] font-bold z-10 shrink-0">
@@ -683,7 +844,7 @@ export default function MasyarakatSubmissionCard({
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
                     <div className="bg-white rounded-[32px] w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-8 duration-500">
                         {flowStep === 'rating' && (
-                            <div className="p-10 text-center space-y-8 animate-in fade-in slide-in-from-right-8 duration-500">
+                            <div className="p-6 sm:p-10 text-center space-y-8 animate-in fade-in slide-in-from-right-8 duration-500">
                                 <div className="flex justify-between items-center px-2">
                                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Wajib Isi Evaluasi</span>
                                     <span className="text-[10px] font-black text-poltekpar-primary bg-blue-50 px-2 py-1 rounded-lg">Pertanyaan {activeQuestionIndex + 1}/{EVALUATION_QUESTIONS.length}</span>
@@ -722,7 +883,7 @@ export default function MasyarakatSubmissionCard({
                         )}
 
                         {flowStep === 'comment' && (
-                            <div className="p-10 text-center space-y-8 animate-in fade-in slide-in-from-right-8 duration-500">
+                            <div className="p-6 sm:p-10 text-center space-y-8 animate-in fade-in slide-in-from-right-8 duration-500">
                                 <div>
                                     <h3 className="text-2xl font-black text-slate-900">Satu langkah lagi!</h3>
                                     <p className="text-slate-500 mt-2 font-medium">Ada saran atau masukan tambahan untuk sistem SIGAPPA?</p>

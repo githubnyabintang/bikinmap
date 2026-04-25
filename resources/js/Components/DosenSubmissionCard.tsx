@@ -65,7 +65,7 @@ interface RabItem {
 }
 
 interface FormData {
-    id_pengajuan?: number;
+    kode_pengajuan?: string | null;
     id_jenis_pkm: number | string;
     nama_ketua: string;
     instansi: string;
@@ -231,7 +231,7 @@ export default function DosenSubmissionCard({
         } catch {}
 
         const mappedData: FormData = {
-            id_pengajuan: editSubmission.id,
+            kode_pengajuan: editSubmission.kode_unik ?? null,
             id_jenis_pkm: jenisPkmOptions.find(o => o.label === editSubmission.jenis_pkm)?.value || jenisPkmOptions?.[0]?.value || '',
             nama_ketua: editSubmission.nama_pengusul || '',
             instansi: editSubmission.instansi_mitra || 'Politeknik Pariwisata Makassar',
@@ -357,22 +357,22 @@ export default function DosenSubmissionCard({
                 })),
         };
 
-        const url = data.id_pengajuan ? `/pengajuan/${data.id_pengajuan}` : '/pengajuan';
-        const finalPayload = data.id_pengajuan ? { ...payload, _method: 'put' } : payload;
+        const url = data.kode_pengajuan ? `/pengajuan/${data.kode_pengajuan}` : '/pengajuan';
+        const finalPayload = data.kode_pengajuan ? { ...payload, _method: 'put' } : payload;
 
         router.post(url, finalPayload as any, {
             preserveScroll: true,
             onSuccess: () => {
                 setIsMockSubmitting(false);
                 onSubmitted?.({
-                    id: data.id_pengajuan || Date.now(),
+                    id: Date.now(),
                     judul: data.judul_kegiatan,
                     ringkasan: `Lokasi: ${data.kota_kabupaten} • Ketua: ${data.nama_ketua}`,
                     tanggal: createSubmittedLabel(),
                     status: 'diproses',
                 });
                 onUpdateSubmissionStatus?.('diproses');
-                const isEditMode = !!data.id_pengajuan;
+                const isEditMode = !!data.kode_pengajuan;
                 setFeedbackDialog({ show: true, type: 'success', title: 'Pengajuan Berhasil', message: `Data pengajuan PKM Dosen telah ${isEditMode ? 'diperbarui' : 'disimpan'}.${isEditMode ? ' Mengarahkan ke halaman status...' : ''}` });
                 if (isEditMode) {
                     setTimeout(() => router.visit('/cek-status'), 1800);
@@ -400,7 +400,7 @@ export default function DosenSubmissionCard({
         } catch {}
 
         const mappedData: FormData = {
-            id_pengajuan: selectedDetail.id,
+            kode_pengajuan: selectedDetail.kode_unik ?? null,
             id_jenis_pkm: jenisPkmOptions.find(o => o.label === selectedDetail.jenis_pkm)?.value || jenisPkmOptions?.[0]?.value || '',
             nama_ketua: selectedDetail.nama_pengusul || '',
             instansi: selectedDetail.instansi_mitra || 'Politeknik Pariwisata Makassar',
@@ -622,7 +622,7 @@ export default function DosenSubmissionCard({
                             <button
                                 onClick={() => {
                                     setSelectedDetail(null);
-                                    router.visit(`/pengajuan?edit=${selectedDetail.id}`);
+                                    router.visit(`/pengajuan?edit=${selectedDetail.kode_unik ?? selectedDetail.id}`);
                                 }}
                                 className="px-6 py-2 bg-poltekpar-primary text-white text-sm font-bold rounded-xl hover:bg-poltekpar-primary/90 transition-colors shadow-sm flex items-center gap-2"
                             >
@@ -874,7 +874,7 @@ export default function DosenSubmissionCard({
                                 <i className="fa-solid fa-file-pdf"></i> File Saat Ini (Biarkan kosong jika tidak diubah)
                             </a>
                         )}
-                        <input type="file" accept=".pdf" onChange={e => setData('surat_permohonan', e.target.files?.[0] || null)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-poltekpar-primary/10 file:text-poltekpar-primary" required={!data.id_pengajuan} />
+                        <input type="file" accept=".pdf" onChange={e => setData('surat_permohonan', e.target.files?.[0] || null)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-poltekpar-primary/10 file:text-poltekpar-primary" required={!data.kode_pengajuan} />
                         {data.surat_permohonan && data.surat_permohonan instanceof File && data.surat_permohonan.type === 'application/pdf' && (
                             <div className="mt-2 border border-slate-200 rounded-lg overflow-hidden h-64 bg-slate-50 relative shadow-inner">
                                 <span className="absolute top-2 right-2 text-[10px] font-bold bg-slate-800 text-white px-2 py-1 rounded-md opacity-50 z-10">Preview</span>
@@ -886,7 +886,7 @@ export default function DosenSubmissionCard({
                     </div>
                     <div className="space-y-1.5">
                         <div className="flex items-center justify-between">
-                            <label className="text-xs font-semibold text-slate-700">Proposal {data.id_pengajuan ? '(Biarkan kosong jika tetap)' : '(Wajib)'} {!data.id_pengajuan && <span className="text-red-500">*</span>}</label>
+                            <label className="text-xs font-semibold text-slate-700">Proposal {data.kode_pengajuan ? '(Biarkan kosong jika tetap)' : '(Wajib)'} {!data.kode_pengajuan && <span className="text-red-500">*</span>}</label>
                             <a href="/template/proposal" target="_blank" rel="noreferrer" className="text-[10px] font-bold text-poltekpar-primary hover:underline flex items-center gap-1.5"><i className="fa-solid fa-download"></i> Download Template Proposal</a>
                         </div>
                         {data.existing_surat_proposal && (
@@ -894,7 +894,7 @@ export default function DosenSubmissionCard({
                                 <i className="fa-solid fa-file-pdf"></i> File Saat Ini (Biarkan kosong jika tidak diubah)
                             </a>
                         )}
-                        <input type="file" accept=".pdf" onChange={e => setData('surat_proposal', e.target.files?.[0] || null)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-poltekpar-primary/10 file:text-poltekpar-primary" required={!data.id_pengajuan} />
+                        <input type="file" accept=".pdf" onChange={e => setData('surat_proposal', e.target.files?.[0] || null)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-poltekpar-primary file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-poltekpar-primary/10 file:text-poltekpar-primary" required={!data.kode_pengajuan} />
                         {data.surat_proposal && data.surat_proposal instanceof File && data.surat_proposal.type === 'application/pdf' && (
                             <div className="mt-2 border border-slate-200 rounded-lg overflow-hidden h-64 bg-slate-50 relative shadow-inner">
                                 <span className="absolute top-2 right-2 text-[10px] font-bold bg-slate-800 text-white px-2 py-1 rounded-md opacity-50 z-10">Preview</span>
@@ -974,12 +974,12 @@ export default function DosenSubmissionCard({
                             )}
                         </div>
                     </div>
-                    <div className="border border-slate-200 rounded-2xl overflow-hidden overflow-x-auto">
+                    <div className="hidden sm:block border border-slate-200 rounded-2xl overflow-hidden overflow-x-auto">
                         <table className="w-full text-left border-collapse min-w-[600px]">
                             <thead className="bg-slate-50 border-b border-slate-100">
                                 <tr>
-                                    <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-widest">Nama Pengajuan</th>
-                                    <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-widest">Tanggal</th>
+                                    <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-widest text-left">Nama Pengajuan</th>
+                                    <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-widest text-left">Tanggal</th>
                                     <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-widest text-center">Status</th>
                                     <th className="px-6 py-4 text-[11px] font-black text-slate-500 uppercase tracking-widest text-center">Aksi</th>
                                 </tr>
@@ -990,11 +990,11 @@ export default function DosenSubmissionCard({
                                         const style = getSubmissionStatusStyle(item.status);
                                         return (
                                             <tr key={item.id} className="hover:bg-slate-50/50 transition-colors group">
-                                                <td className="px-6 py-5">
-                                                    <strong className="text-[14px] font-bold text-slate-900 block group-hover:text-poltekpar-primary transition-colors">{item.judul}</strong>
-                                                    <span className="text-[11px] text-slate-400 font-medium line-clamp-1">{item.ringkasan}</span>
+                                                <td className="px-6 py-5 text-left">
+                                                    <strong className="text-[14px] font-bold text-slate-900 block group-hover:text-poltekpar-primary transition-colors text-left">{item.judul}</strong>
+                                                    <span className="text-[11px] text-slate-400 font-medium line-clamp-1 text-left">{item.ringkasan}</span>
                                                 </td>
-                                                <td className="px-6 py-5 text-[13px] text-slate-600 font-medium whitespace-nowrap">{item.tanggal}</td>
+                                                <td className="px-6 py-5 text-[13px] text-slate-600 font-medium whitespace-nowrap text-left">{item.tanggal}</td>
                                                 <td className="px-6 py-5">
                                                     <div className="flex justify-center">
                                                         <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter flex items-center gap-1.5 shadow-sm" style={{ backgroundColor: style.bg, color: style.color }}>
@@ -1009,7 +1009,7 @@ export default function DosenSubmissionCard({
                                                             <button
                                                                 type="button"
                                                                 className="px-4 py-1.5 bg-poltekpar-primary/10 hover:bg-poltekpar-primary hover:text-white text-poltekpar-primary text-[11px] font-bold rounded-lg transition-all flex items-center gap-1.5"
-                                                                onClick={() => router.visit(`/pengajuan?edit=${item.id}`)}
+                                                                onClick={() => router.visit(`/pengajuan?edit=${item.kode_unik ?? item.id}`)}
                                                             >
                                                                 <i className="fa-solid fa-pen-to-square text-[9px]"></i> EDIT
                                                             </button>
@@ -1031,6 +1031,53 @@ export default function DosenSubmissionCard({
                                 )}
                             </tbody>
                         </table>
+                    </div>
+
+                    {/* Mobile Card List */}
+                    <div className="sm:hidden space-y-4">
+                        {sortedHistory.length > 0 ? (
+                            sortedHistory.map(item => {
+                                const style = getSubmissionStatusStyle(item.status);
+                                return (
+                                    <div key={item.id} className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-4 shadow-sm">
+                                        <div className="flex justify-between items-start gap-4">
+                                            <div className="flex-1">
+                                                <h4 className="text-sm font-black text-slate-900 line-clamp-2 leading-tight">{item.judul}</h4>
+                                                <p className="text-[10px] text-slate-500 font-bold mt-1.5 flex items-center gap-1.5">
+                                                    <i className="fa-solid fa-calendar text-[9px]"></i> {item.tanggal}
+                                                </p>
+                                            </div>
+                                            <span className="px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter flex items-center gap-1 shrink-0 shadow-sm" style={{ backgroundColor: style.bg, color: style.color }}>
+                                                <i className={`fa-solid ${style.icon} text-[8px]`}></i>{style.label}
+                                            </span>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button 
+                                                type="button" 
+                                                className="flex-1 py-2 bg-white border border-slate-200 text-slate-600 text-xs font-bold rounded-xl active:bg-slate-100 transition-colors"
+                                                onClick={() => setSelectedDetail(item)}
+                                            >
+                                                DETAIL
+                                            </button>
+                                            {item.status === 'direvisi' && (
+                                                <button
+                                                    type="button"
+                                                    className="flex-1 py-2 bg-poltekpar-primary text-white text-xs font-bold rounded-xl active:bg-poltekpar-navy transition-colors flex items-center justify-center gap-2"
+                                                    onClick={() => router.visit(`/pengajuan?edit=${item.kode_unik ?? item.id}`)}
+                                                >
+                                                    <i className="fa-solid fa-pen-to-square text-[10px]"></i> EDIT
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        ) : (
+                            <div className="py-10 text-center text-slate-400 text-xs font-bold italic bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                                <i className="fa-solid fa-folder-open text-3xl text-slate-200 mb-2 block"></i>
+                                Belum ada riwayat pengajuan.
+                            </div>
+                        )}
                     </div>
                 </div>
                 <ActionFeedbackDialog show={feedbackDialog.show} type={feedbackDialog.type} title={feedbackDialog.title} message={feedbackDialog.message} onClose={() => setFeedbackDialog({ ...feedbackDialog, show: false })} />

@@ -19,8 +19,8 @@ class AdminMiddleware
             return redirect()->guest(route('login'));
         }
 
-        // Jika sudah login tapi bukan admin/superadmin/secret → 403 Forbidden
-        if (!in_array($request->user()->role, ['admin', 'superadmin', 'secret'])) {
+        // Jika sudah login tapi bukan admin/superadmin/secret_account → 403 Forbidden
+        if (!in_array($request->user()->role, ['admin', 'superadmin', 'secret_account'])) {
             abort(403, 'Akses ditolak. Halaman ini hanya untuk admin.');
         }
 
